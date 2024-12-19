@@ -10,6 +10,9 @@ npm-debug.*
 *.orig.*
 web-build/
 
+# Ignore .env files to keep secrets safe
+.env
+
 # macOS
 .DS_Store
 
