@@ -25,6 +25,8 @@ from django.db import transaction
 from django.core.mail import send_mail
 from django.utils.html import format_html
 import environ
+env = environ.Env()
+environ.Env.read_env()
 
 # create timestamps in different formats
 from datetime import datetime, timedelta
@@ -55,6 +57,12 @@ env = environ.Env()
 from django.utils.timezone import now
 from .serializers.populated import PopulatedUserSerializer
 
+
+from rest_framework.parsers import MultiPartParser, FormParser
+from azure.storage.blob import BlobServiceClient, ContentSettings
+
+AZURE_STORAGE_ACCOUNT_NAME = env('AZURE_STORAGE_ACCOUNT_NAME')
+AZURE_STORAGE_CONNECTION_STRING = env('AZURE_STORAGE_CONNECTION_STRING')
 
 
 class RegisterView(APIView):
@@ -144,21 +152,20 @@ class SimpleUserView(APIView):
         serialized_user = UserSerializer(user)
         return Response(serialized_user.data, status=status.HTTP_200_OK)
 
-# class FullUserView(APIView):
 
-#     # GET - Return 1 user item by user_id
-#     def get(self, request, user_id):
-#         try:
-#             user = User.objects.get(id=user_id)
-#         except User.DoesNotExist as e:
-#             print('Error:', e)
-#             raise NotFound({'detail': 'User not found'})  # Better error message for not found
+class UpdateUserView(APIView):
+    def put(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
 
-#         print('User --->', user)
-#         serialized_user = PopulatedUserSerializer(user)
-#         return Response(serialized_user.data, status=status.HTTP_200_OK)
+        user.first_name = request.data.get('first_name', user.first_name)
+        user.last_name = request.data.get('last_name', user.last_name)
+        user.email = request.data.get('email', user.email)
+        user.save()
 
-
+        return Response({"message": "User updated successfully"}, status=200)
 
 
 
@@ -203,3 +210,54 @@ class FullUserView(APIView):
         }
 
         return Response({'user': serialized_user, 'stats': stats}, status=status.HTTP_200_OK)
+
+
+
+
+
+class ProfileImageUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request, *args, **kwargs):
+        user_id = request.data.get('user_id')
+        file = request.FILES.get('file')
+
+        if not file:
+            return Response({"error": "No file uploaded"}, status=400)
+
+        print(f"File size before read: {file.size} bytes")
+        
+        file_content = file.read()
+        if len(file_content) == 0:
+            return Response({"error": "File is empty"}, status=400)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        try:
+            blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+            container_name = 'profile-images'
+            
+            file_extension = file.name.split('.')[-1]
+            file_name = f"{uuid.uuid4()}.{file_extension}"
+            
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
+            blob_client.upload_blob(
+                file_content, 
+                overwrite=True, 
+                content_settings=ContentSettings(content_type=file.content_type)
+            )
+
+            image_url = f"https://{AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}/{file_name}"
+
+            user.profile_image = image_url
+            user.save()
+
+            print(f"Uploaded image URL: {image_url}")
+            return Response({"message": "Image uploaded successfully", "image_url": image_url}, status=200)
+
+        except Exception as e:
+            print('Error uploading image:', e)
+            return Response({"error": f"Internal Server Error: {str(e)}"}, status=500)
