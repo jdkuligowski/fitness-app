@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
         height: 50,
         borderRadius: 25,
         borderWidth: 5,
-        borderColor: '#B8373B', // Customize color based on score
+        borderColor: '#B8373B', 
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -904,5 +904,4 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
     },
-
 });
