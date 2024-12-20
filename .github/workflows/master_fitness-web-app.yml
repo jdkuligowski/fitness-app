@@ -17,17 +17,20 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11' # Use the Python version you are working with (3.13, 3.11, etc.)
+          python-version: '3.11' # Change to 3.13 if absolutely necessary
 
-      - name: Create and start virtual environment
+      - name: Install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify installed packages
+        run: |
+          source venv/bin/activate
+          pip list
+
       - name: Run Tests
         run: |
           source venv/bin/activate
@@ -59,6 +62,6 @@ jobs:
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: 'fitness-web-app' # Change this to your Azure Web App name
+          app-name: 'fitness-web-app'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3BDFE8AEDA9C459B886AA0C4B58D7024 }}
