@@ -14,6 +14,7 @@ import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env'
 import RPEGauge from '../../components/RPEGauge';
+import { Colours } from '../../components/styles';
 
 
 export default function StatsOverview() {
@@ -213,15 +214,15 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFF4F4', // Match the header background color
+        backgroundColor: Colours.primaryHeader, 
     },
     statsPageContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground, 
     },
     header: {
         padding: 20,
-        backgroundColor: '#FFF4F4',
+        backgroundColor: Colours.primaryHeader, 
         height: 100,
         borderBottomLeftRadius: 50,
         borderBottomRightRadius: 50,
@@ -233,11 +234,13 @@ const styles = StyleSheet.create({
     },
     dateText: {
         marginLeft: 5,
+        color: 'white',
     },
     appIntro: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        
     },
     introContainer: {
         flexDirection: 'row',
@@ -263,12 +266,14 @@ const styles = StyleSheet.create({
     initialsText: {
         fontSize: 18,
         fontWeight: 600,
+        
     },
     headingText: {
         fontSize: 16,
         width: '100%',
         marginTop: 2,
         marginBottom: 2,
+        color: 'white',
     },
     subHeadingText: {
         fontSize: 16,
@@ -277,6 +282,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
         marginBottom: 2,
         marginLeft: 10,
+        color: 'white',
     },
     profileButton: {
         backgroundColor: '#FFE0E1',

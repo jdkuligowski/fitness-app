@@ -12,29 +12,20 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
+import { Colours } from '@/app/src/components/styles';
+import strengthRules30 from '../../../components/workoutRules/strengthRules30'
+import strengthRules40 from '../../../components/workoutRules/strengthRules40'
+import strengthRules50 from '../../../components/workoutRules/strengthRules50'
+import strengthRules60 from '../../../components/workoutRules/strengthRules60'
+import commonRules from '../../../components/workoutRules/commonRules'
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-const workoutConfigurations = {
-    30: [
-        { option: 1, sections: ["B", "C", "D"] },
-        { option: 2, sections: ["B", "C", "F"] },
-    ],
-    40: [
-        { option: 1, sections: ["B", "C", "D", "E"] },
-        { option: 2, sections: ["B", "C", "D", "F"] },
-    ],
-    50: [
-        { option: 1, sections: ["B", "C", "D", "E", "F"] },
-        { option: 2, sections: ["B", "C", "D", "F", "G"] },
-    ],
-    60: [
-        { option: 1, sections: ["B", "C", "D", "E", "F", "G", "H"] },
-        { option: 2, sections: ["B", "C", "D", "F", "G", "H", "I"] },
-    ],
-    75: [
-        { option: 1, sections: ["B", "C", "D", "E", "F", "G", "H", "I"] },
-    ],
+const strengthRulesMap = {
+    30: strengthRules30,
+    40: strengthRules40,
+    50: strengthRules50,
+    60: strengthRules60,
 };
 
 export default function WorkoutScreen({ route }) {
@@ -90,279 +81,183 @@ export default function WorkoutScreen({ route }) {
     };
 
 
-    // Feature toggle to force Exercise C to be "Leg Press" for Lower Body workouts
-    const forceLegPressForC = false; // Set this to true or false to enable/disable the feature
 
     // Filter workout data for a section
-    // Filter workout data for a section
-    const filterWorkoutData = (section, usedExercises = new Set(), previousMovements = {}) => {
-        const maxComplexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
-
-        const filteredData = workoutData.filter(
-            (exercise) =>
-                exercise.complexity <= maxComplexity &&
-                (selectedWorkout === "Full body" || exercise.body_area === selectedWorkout) &&
-                !usedExercises.has(exercise.exercise)
-        );
-
-        // 🔥 Custom logic for Section B: Only movements that have 'Warm Up' in `movement_type`
-        if (section === "B") {
-            const warmUpMovements = filteredData.filter(
-                (exercise) => exercise.movement_type.includes("Warm Up")
-            );
-
-            const superset = [];
-            while (superset.length < 3 && warmUpMovements.length > 0) {
-                const randomIndex = Math.floor(Math.random() * warmUpMovements.length);
-                const randomExercise = warmUpMovements[randomIndex];
-                if (!usedExercises.has(randomExercise.exercise)) {
-                    superset.push(randomExercise.exercise);
-                    usedExercises.add(randomExercise.exercise);
-                }
-            }
-            return { movements: superset, sectionType: "superset" };
+    const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
+        if (!filters || !Array.isArray(filters)) {
+            console.warn("Invalid filters provided to filterWorkoutData:", filters);
+            return [];
         }
 
-        // 🔥 Custom logic for Section C: Only movements that have 'Primary' in `movement_type`
-        if (section === "C") {
-            if (forceLegPressForC && selectedWorkout === "Lower Body") {
-                const legPressExercise = "Leg Press";
-                usedExercises.add(legPressExercise);
-                previousMovements['C'] = 'Leg Press'; // Log movement type for C
-                return { movements: [legPressExercise], sectionType: "single" };
+        const filteredMovements = filters.flatMap((filterSet) => {
+            if (!Array.isArray(filterSet)) {
+                // console.warn("Filter set is not an array. Wrapping it:", filterSet);
+                filterSet = [filterSet];
             }
 
-            const primaryMovements = filteredData.filter(
-                (exercise) => exercise.movement_type.includes("Primary")
-            );
+            return workoutData.filter((exercise) => {
+                const standardizedWorkoutType = workoutType.toLowerCase(); // Standardize workoutType
+                const exerciseBodyArea = exercise.body_area?.toLowerCase() || ""; // Standardize exercise body_area
 
-            const randomExercise = primaryMovements[Math.floor(Math.random() * primaryMovements.length)];
-            if (randomExercise) {
-                usedExercises.add(randomExercise.exercise);
-                previousMovements['C'] = randomExercise.movement; // Track movement type for Section C
-            }
+                // Check if this filter set explicitly targets Core
+                const isCoreFilter = filterSet.some(
+                    ({ key, value }) => key === "primary_body_part" && value.toLowerCase() === "core"
+                );
 
-            return { movements: randomExercise ? [randomExercise.exercise] : [], sectionType: "single" };
-        }
+                // Determine if the body area filter should be applied
+                const isCorrectBodyArea =
+                    isCoreFilter || // If Core is in the filter, bypass body area filtering
+                    standardizedWorkoutType === "full body" || // Full Body skips body area filtering
+                    exerciseBodyArea.includes(standardizedWorkoutType); // Match Upper/Lower Body for others
 
-        // 🔥 Custom logic for Section D: Only movements that have 'Primary' in `movement_type` but not the same movement type as Section C
-        if (section === "D") {
-            const primaryMovements = filteredData.filter(
-                (exercise) =>
-                    exercise.movement_type.includes("Primary") &&
-                    exercise.movement !== previousMovements['C'] // Ensure this movement is different from Section C
-            );
+                // Apply all conditions in the filter set
+                const matchesFilters = filterSet.every(({ key, value, operator }) => {
+                    if (!exercise[key]) return false;
+                    if (operator === "contains") {
+                        return Array.isArray(value)
+                            ? value.some((v) => exercise[key].includes(v))
+                            : exercise[key].includes(value);
+                    }
+                    if (operator === "equals") {
+                        return exercise[key] === value;
+                    }
+                    return false;
+                });
 
-            const randomExercise = primaryMovements[Math.floor(Math.random() * primaryMovements.length)];
-            if (randomExercise) {
-                usedExercises.add(randomExercise.exercise);
-                previousMovements['D'] = randomExercise.movement; // Track movement type for Section D
-            }
+                return isCorrectBodyArea && matchesFilters;
+            });
+        });
 
-            return { movements: randomExercise ? [randomExercise.exercise] : [], sectionType: "single" };
-        }
-
-        // 🔥 Custom logic for sections E, F, G, H, I: Ensure balance in movement types
-        if (["E", "F", "G", "H", "I"].includes(section)) {
-            const secondaryAccessoryMovements = filteredData.filter(
-                (exercise) =>
-                    exercise.movement_type.includes("Secondary") ||
-                    exercise.movement_type.includes("Accessory")
-            );
-
-            const superset = [];
-            const movementCount = {}; // Track the count of each movement type in this section
-
-            while (superset.length < 3 && secondaryAccessoryMovements.length > 0) {
-                const randomIndex = Math.floor(Math.random() * secondaryAccessoryMovements.length);
-                const randomExercise = secondaryAccessoryMovements[randomIndex];
-
-                const movementType = randomExercise.movement;
-                movementCount[movementType] = (movementCount[movementType] || 0) + 1;
-
-                // 🔥 Ensure no more than 2 of the same movement type are in the superset
-                if (
-                    movementCount[movementType] <= 2 &&
-                    !usedExercises.has(randomExercise.exercise)
-                ) {
-                    superset.push(randomExercise.exercise);
-                    usedExercises.add(randomExercise.exercise);
-                } else {
-                    // If this movement type has too many entries, decrease the count and continue
-                    movementCount[movementType] -= 1;
-                }
-            }
-
-            return { movements: superset, sectionType: "superset" };
-        }
-
-        // Default if no section matches
-        return { movements: [], sectionType: "single" };
+        // Deduplicate, shuffle, and exclude already used exercises
+        const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));
+        return uniqueMovements
+            .sort(() => Math.random() - 0.5) // Shuffle for randomness
+            .filter((movement) => !usedExercises.has(movement)); // Exclude used exercises
     };
 
 
-    // 🔥 Generate a single workout plan
+
+    // Function to handle filtering and random selection for Warm-Up A
+    const filterWarmUpA = () => {
+        // console.log('common rules ->', commonRules.warmUpA.filters);
+
+        // Flatten filters if they are nested
+        const filters = commonRules.warmUpA.filters.flat();
+
+        // Filter exercises matching the Warm-Up A criteria
+        const warmUpCandidates = workoutData.filter((exercise) => {
+            return filters.every(({ key, value, operator }) => {
+                if (!exercise[key]) return false;
+                if (operator === "contains") return exercise[key].includes(value);
+                if (operator === "equals") return exercise[key] === value;
+                return false;
+            });
+        });
+
+        if (warmUpCandidates.length === 0) {
+            console.warn("No candidates found for Warm-Up A.");
+            return [];
+        }
+
+        // Select one random movement from the candidates
+        const selectedExercise = warmUpCandidates[Math.floor(Math.random() * warmUpCandidates.length)];
+        return [selectedExercise.exercise]; // Return as an array
+    };
+
+
+
+    // Function to handle filtering and random selection for Warm-Up B (up to 3 movements)
+    const filterWarmUpMovements = (usedExercises, type) => {
+        const standardizedType = type.toLowerCase();
+        const bodyAreaFilter =
+            standardizedType === "upper body" ? "upper body" : standardizedType === "lower body" ? "lower body" : null;
+
+        const warmUpMovements = workoutData.filter(
+            (exercise) =>
+                exercise.movement_type.includes("Warm Up") &&
+                (!bodyAreaFilter || exercise.body_area?.toLowerCase() === bodyAreaFilter) &&
+                !usedExercises.has(exercise.exercise)
+        );
+
+        const shuffledMovements = warmUpMovements
+            .sort(() => Math.random() - 0.5) // Shuffle the array
+            .slice(0, 3) // Select up to 3
+            .map((movement) => movement.exercise);
+
+        shuffledMovements.forEach((movement) => usedExercises.add(movement));
+        return shuffledMovements;
+    };
+
+    // Generate a single workout plan
     const generateWorkoutPlan = () => {
-        // Define the allowed times and force `selectedTime` to one of them
         const allowedTimes = [30, 40, 50, 60, 75];
         const closestTime = allowedTimes.reduce((prev, curr) =>
             Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
         );
         console.log(`Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
 
-        const configurations = workoutConfigurations[closestTime];
-        if (!configurations) {
-            console.error("No configurations found for the selected time:", closestTime);
+        const rules = strengthRulesMap[closestTime];
+        if (!rules) {
+            console.error(`No rules found for ${closestTime} minutes.`);
             return [];
         }
 
-        const selectedConfig = configurations[Math.floor(Math.random() * configurations.length)];
-        const usedExercises = new Set();
-
-        // 🔥 Filter conditioning exercises for warmup
-        const conditioningExercises = workoutData.filter(
-            (exercise) => exercise.movement === "Conditioning" && !usedExercises.has(exercise.exercise)
-        );
-
-        const warmupExercise = conditioningExercises[Math.floor(Math.random() * conditioningExercises.length)];
-
-        // Add the selected warm-up exercise to the used set
-        if (warmupExercise) {
-            usedExercises.add(warmupExercise.exercise);
+        const workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
+        const workoutKeys = Object.keys(rules).filter((key) => key.startsWith(workoutKeyBase));
+        if (workoutKeys.length === 0) {
+            console.error(`No workout keys found for type: ${selectedWorkout}`);
+            return [];
         }
 
-        const plan = selectedConfig.sections.map((section, index) => {
-            const { movements, sectionType } = filterWorkoutData(section, usedExercises);
-            const partLabel =
-                section === "B"
-                    ? "Movement readiness superset"
-                    : `Workout part ${index}`;
-            return { section, movements, partLabel, sectionType };
+        const selectedKey = workoutKeys[Math.floor(Math.random() * workoutKeys.length)];
+        const selectedRules = rules[selectedKey];
+        if (!selectedRules) {
+            console.error(`No rules found for selected workout key: ${selectedKey}`);
+            return [];
+        }
+
+        const usedExercises = new Set();
+        const plan = [];
+
+        // Add Warm-Up A Section (1 movement)
+        const warmUpA = filterWarmUpA();
+        plan.push({
+            partLabel: commonRules.warmUpA.section,
+            movements: warmUpA,
+            sectionType: "single",
         });
 
-        return [
-            {
-                partLabel: "Warmup",
-                movements: warmupExercise ? [warmupExercise.exercise] : ["Default warm-up activity"],
-                sectionType: "single",
-            },
-            ...plan,
-        ];
+        // Add Warm-Up B Section (up to 3 movements)
+        const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
+        plan.push({
+            partLabel: commonRules.warmUpB.section,
+            movements: warmUpB,
+            sectionType: "superset",
+        });
+
+        // Add Main Workout Sections
+        selectedRules.sections.forEach((sectionRule) => {
+            const movements = [];
+
+            sectionRule.filters.forEach((filterSet) => {
+                const movementCandidates = filterWorkoutData(filterSet, usedExercises, selectedWorkout);
+                if (movementCandidates.length > 0) {
+                    const selectedMovement =
+                        movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
+                    movements.push(selectedMovement);
+                    usedExercises.add(selectedMovement);
+                }
+            });
+
+            plan.push({
+                partLabel: sectionRule.section,
+                movements,
+                sectionType: movements.length > 1 ? "superset" : "single",
+            });
+        });
+
+        return plan.slice(0, 9);
     };
-
-    // // Filter workout data for a section
-    // const filterWorkoutData = (section, usedExercises = new Set()) => {
-    //     const maxComplexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
-
-    //     const filteredData = workoutData.filter(
-    //         (exercise) =>
-    //             exercise.complexity <= maxComplexity &&
-    //             (selectedWorkout === "Full body" || exercise.body_area === selectedWorkout) &&
-    //             !usedExercises.has(exercise.exercise)
-    //     );
-
-    //     // Custom logic for Section B
-    //     if (section === "B") {
-    //         const superset = [];
-    //         while (superset.length < 3 && filteredData.length > 0) {
-    //             const randomIndex = Math.floor(Math.random() * filteredData.length);
-    //             const randomExercise = filteredData[randomIndex];
-    //             if (!usedExercises.has(randomExercise.exercise)) {
-    //                 superset.push(randomExercise.exercise);
-    //                 usedExercises.add(randomExercise.exercise);
-    //             }
-    //         }
-    //         return { movements: superset, sectionType: "superset" };
-    //     }
-
-    //     // Custom logic for Section C
-    //     if (section === "C") {
-    //         // 🔥 Feature toggle logic
-    //         if (forceLegPressForC && selectedWorkout === "Lower Body") {
-    //             const legPressExercise = "Leg Press ";
-    //             usedExercises.add(legPressExercise);
-    //             return { movements: [legPressExercise], sectionType: "single" };
-    //         }
-    //         const randomExercise = filteredData[Math.floor(Math.random() * filteredData.length)];
-    //         if (randomExercise) usedExercises.add(randomExercise.exercise);
-    //         return { movements: randomExercise ? [randomExercise.exercise] : [], sectionType: "single" };
-    //     }
-
-    //     // Custom logic for Section D
-    //     if (section === "D") {
-    //         const randomExercise = filteredData[Math.floor(Math.random() * filteredData.length)];
-    //         if (randomExercise) usedExercises.add(randomExercise.exercise);
-    //         return { movements: randomExercise ? [randomExercise.exercise] : [], sectionType: "single" };
-    //     }
-
-    //     // Custom logic for sections E, F, G, H, I
-    //     if (["E", "F", "G", "H", "I"].includes(section)) {
-    //         const superset = [];
-    //         while (superset.length < 3 && filteredData.length > 0) {
-    //             const randomIndex = Math.floor(Math.random() * filteredData.length);
-    //             const randomExercise = filteredData[randomIndex];
-    //             if (!usedExercises.has(randomExercise.exercise)) {
-    //                 superset.push(randomExercise.exercise);
-    //                 usedExercises.add(randomExercise.exercise);
-    //             }
-    //         }
-    //         return { movements: superset, sectionType: "superset" };
-    //     }
-
-    //     return { movements: [], sectionType: "single" };
-    // };
-
-    // // Generate a single workout plan
-    // // Generate a single workout plan
-    // const generateWorkoutPlan = () => {
-    //     // Define the allowed times and force `selectedTime` to one of them
-    //     const allowedTimes = [30, 40, 50, 60, 75];
-    //     const closestTime = allowedTimes.reduce((prev, curr) =>
-    //         Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
-    //     );
-    //     console.log(`Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
-
-    //     const configurations = workoutConfigurations[closestTime];
-    //     if (!configurations) {
-    //         console.error("No configurations found for the selected time:", closestTime);
-    //         return [];
-    //     }
-
-    //     const selectedConfig = configurations[Math.floor(Math.random() * configurations.length)];
-    //     const usedExercises = new Set();
-
-    //     // Filter conditioning exercises for warmup
-    //     const conditioningExercises = workoutData.filter(
-    //         (exercise) => exercise.movement === "Conditioning" && !usedExercises.has(exercise.exercise)
-    //     );
-
-    //     const warmupExercise =
-    //         conditioningExercises[Math.floor(Math.random() * conditioningExercises.length)];
-
-    //     // Add the selected warm-up exercise to the used set
-    //     if (warmupExercise) {
-    //         usedExercises.add(warmupExercise.exercise);
-    //     }
-
-    //     const plan = selectedConfig.sections.map((section, index) => {
-    //         const { movements, sectionType } = filterWorkoutData(section, usedExercises);
-    //         const partLabel =
-    //             section === "B"
-    //                 ? "Movement readiness superset"
-    //                 : `Workout part ${index}`;
-    //         return { section, movements, partLabel, sectionType };
-    //     });
-
-    //     return [
-    //         {
-    //             partLabel: "Warmup",
-    //             movements: warmupExercise ? [warmupExercise.exercise] : ["Default warm-up activity"],
-    //             sectionType: "single",
-    //         },
-    //         ...plan,
-    //     ];
-    // };
-
 
     // Generate multiple workout plans
     const generateWorkoutPlans = () => {
@@ -371,6 +266,7 @@ export default function WorkoutScreen({ route }) {
             plans.push(generateWorkoutPlan());
         }
         setWorkoutPlans(plans);
+        console.log("Generated workout plans:", plans);
     };
 
     // Fetch data and generate workout plans
@@ -383,6 +279,8 @@ export default function WorkoutScreen({ route }) {
             generateWorkoutPlans();
         }
     }, [workoutData]);
+
+
 
     if (isLoading) {
         return (
@@ -616,11 +514,11 @@ export default function WorkoutScreen({ route }) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F3FF', // Background color for the entire screen
+        backgroundColor: Colours.primaryBackground,
     },
     scrollContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground,
         paddingBottom: 100,
     },
     header: {

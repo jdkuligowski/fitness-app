@@ -12,6 +12,7 @@ import axios from 'axios';
 import ENV from '../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { isToday, isTomorrow, parseISO } from 'date-fns';
+import { Colours } from '../../components/styles';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -155,7 +156,7 @@ export default function HomeScreen() {
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.dateBox}>
-              <Ionicons name="calendar-outline" color={'black'} size={20} />
+              <Ionicons name="calendar-outline" color={'white'} size={20} />
               <Text style={styles.dateText}>{formattedDate}</Text>
             </View>
             <View style={styles.appIntro}>
@@ -317,15 +318,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF4F4', // Match the header background color
+    backgroundColor: Colours.primaryHeader,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F3F3FF',
+    backgroundColor: Colours.primaryBackground,
   },
   header: {
     padding: 20,
-    backgroundColor: '#FFF4F4',
+    backgroundColor: Colours.primaryHeader,
     height: 175,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
@@ -337,6 +338,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     marginLeft: 5,
+    color: 'white',
   },
   appIntro: {
     flexDirection: 'row',
@@ -373,6 +375,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 2,
     marginBottom: 2,
+    color: 'white',
   },
   subHeadingText: {
     fontSize: 16,
@@ -380,6 +383,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 2,
     marginBottom: 2,
+    color: 'white',
+
   },
   profileButton: {
     backgroundColor: '#FFE0E1',

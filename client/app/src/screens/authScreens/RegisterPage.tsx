@@ -9,6 +9,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import ENV from '../../../../env'
+import { Colours } from '../../components/styles';
 
 export default function RegisterPage() {
     const navigation = useNavigation();
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     landingSafeArea: {
         fontFamily: 'sora',
         flex: 1,
-        backgroundColor: '#F3F3FF', // Background color for the entire screen
+        backgroundColor: Colours.primaryBackground, // Background color for the entire screen
     },
     registerContainer: {
         padding: 20,

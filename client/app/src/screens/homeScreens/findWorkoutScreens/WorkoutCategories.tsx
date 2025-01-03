@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import ENV from '../../../../../env'
+import { Colours } from '@/app/src/components/styles';
 
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
@@ -74,15 +75,15 @@ export default function RunningScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F6F3DC', // Background color for the entire screen
+    backgroundColor: Colours.primaryHeader, 
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#F3F3FF',
+    backgroundColor: Colours.primaryBackground, 
   },
   header: {
     padding: 20,
-    backgroundColor: '#F6F3DC',
+    backgroundColor: Colours.primaryHeader, 
     height: 175,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,

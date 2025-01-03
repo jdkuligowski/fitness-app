@@ -13,6 +13,7 @@ import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env'
 import * as ImagePicker from 'expo-image-picker';
+import { Colours } from '../../components/styles';
 
 
 
@@ -235,11 +236,11 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F3FF', // Match the header background color
+        backgroundColor: Colours.primaryBackground, 
     },
     profilePageContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground, 
     },
     header: {
         padding: 20,

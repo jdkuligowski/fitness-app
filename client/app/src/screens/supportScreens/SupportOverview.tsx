@@ -12,8 +12,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env'
-
-
+import { Colours } from '../../components/styles'
 
 export default function SupportOverview() {
     const [userData, setUserData] = useState('')
@@ -157,15 +156,15 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFF4F4', // Match the header background color
+        backgroundColor: Colours.primaryHeader, // Match the header background color
     },
     supportPageContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground,
     },
     header: {
         padding: 20,
-        backgroundColor: '#FFF4F4',
+        backgroundColor: Colours.primaryHeader,
         height: 100,
         borderBottomLeftRadius: 50,
         borderBottomRightRadius: 50,
@@ -213,6 +212,7 @@ const styles = StyleSheet.create({
         width: '100%',
         marginTop: 2,
         marginBottom: 2,
+        color: 'white',
     },
     subHeadingText: {
         fontSize: 16,
@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
         marginBottom: 2,
         marginLeft: 10,
+        color: 'white',
     },
     profileButton: {
         backgroundColor: '#FFE0E1',

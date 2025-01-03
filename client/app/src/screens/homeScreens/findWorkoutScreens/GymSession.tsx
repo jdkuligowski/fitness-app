@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Fla
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
+import { Colours } from '@/app/src/components/styles';
 
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
@@ -46,7 +47,7 @@ export default function RunningScreen() {
             <View style={styles.leftSection}>
 
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color="black" />
+                <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
               <Text style={styles.workoutTitle}>Find a workout</Text>
             </View>
@@ -62,7 +63,7 @@ export default function RunningScreen() {
           <View style={styles.workoutInfoDetails}>
             <Text style={styles.workoutSubtitle}>What kind of gym session do you want to do?</Text>
             <View style={styles.workoutType}>
-              {['Full body', 'Upper Body', 'Lower Body'].map((option, index) => (
+              {['Full body', 'Upper body', 'Lower body'].map((option, index) => (
                 // {['Full body', 'Upper Body', 'Lower Body', 'Push', 'Pull', 'Back & bis', 'Chest & tris', 'Vanity'].map((option, index) => (
                 <TouchableOpacity
                   key={index}
@@ -142,17 +143,17 @@ export default function RunningScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF4F4', // Background color for the entire screen
+    backgroundColor: Colours.primaryHeader, 
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#F3F3FF',
+    backgroundColor: Colours.primaryBackground, 
     paddingBottom: 100,
   },
   header: {
     padding: 20,
-    backgroundColor: '#FFF4F4',
-    height: 120,
+    backgroundColor: Colours.primaryHeader, 
+    height: 100,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
     width: '100%',
@@ -171,14 +172,14 @@ const styles = StyleSheet.create({
   workoutTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: 'black',
+    color: 'white',
     marginLeft: 10,
   },
   backButton: {
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: 'white',
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -200,11 +201,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginTop: 25,
     fontWeight: 'bold',
-    color: 'black',
+    color: 'white',
     flex: 1, // Makes the text take remaining space
   },
   workoutInfo: {
-    backgroundColor: '#F3F3FF',
+    backgroundColor: Colours.primaryBackground,
     padding: 20,
   },
   workoutInfoDetails: {

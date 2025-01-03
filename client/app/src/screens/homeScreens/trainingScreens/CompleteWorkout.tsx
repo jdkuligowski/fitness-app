@@ -23,6 +23,7 @@ import RPEGauge from '../../../components/RPEGauge'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
+import { Colours } from '@/app/src/components/styles';
 
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -550,11 +551,11 @@ export default function CompleteWorkout({ route, navigation }) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground,
     },
     scrollContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground,
     },
     header: {
         padding: 20,

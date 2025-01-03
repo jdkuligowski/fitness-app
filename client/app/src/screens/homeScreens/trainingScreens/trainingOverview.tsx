@@ -13,6 +13,7 @@ import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import SaveWorkoutModal from '../../modalScreens/SaveWorkoutModal';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../../env'
+import { Colours } from '@/app/src/components/styles';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -702,11 +703,11 @@ export default function TrainingOverview() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F3FF', // Match the header background color
+        backgroundColor: Colours.primaryBackground, 
     },
     container: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground, 
         // paddingBottom: 100,
     },
     trainingViewBlock: {

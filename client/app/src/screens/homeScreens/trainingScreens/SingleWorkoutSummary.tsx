@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ENV from '../../../../../env'
+import { Colours } from '@/app/src/components/styles';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -167,11 +168,11 @@ export default function WorkoutSummary({ route, navigation }) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F3FF', // Background color for the entire screen
+        backgroundColor: Colours.primaryBackground, 
     },
     scrollContainer: {
         flexGrow: 1,
-        backgroundColor: '#F3F3FF',
+        backgroundColor: Colours.primaryBackground, 
         paddingBottom: 100,
     },
     header: {
