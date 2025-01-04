@@ -16,6 +16,7 @@ import { Colours } from '../../components/styles'
 
 export default function SupportOverview() {
     const [userData, setUserData] = useState('')
+    const navigation = useNavigation();
 
     // fetch user data function
     const getUser = async () => {
@@ -78,8 +79,10 @@ export default function SupportOverview() {
                     </View>
                 </View>
                 <View style={styles.supportContent}>
-                    <TouchableOpacity style={styles.supportRow}>
-
+                    <TouchableOpacity
+                        style={styles.supportRow}
+                        onPress={() => navigation.navigate("ChatOverview", { roomId: 0, userId: userData.id, userData: userData })}
+                    >
                         <View style={styles.supportLeft}>
                             <View
                                 style={[

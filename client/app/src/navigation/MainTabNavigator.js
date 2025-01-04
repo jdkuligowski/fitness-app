@@ -9,6 +9,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native'; // Import helper
 import TrainingOverview from '../screens/homeScreens/trainingScreens/trainingOverview';
 import TrainingStackNavigator from './TrainingStackNavigator'; // Import the new stack navigator
+import SupportStackNavigator from './SupportStackNavigator';
 
 
 const Tab = createBottomTabNavigator();
@@ -21,7 +22,7 @@ export default function MainTabNavigator() {
         const routeName = getFocusedRouteNameFromRoute(route) ?? '';
 
         // Hide tab bar if on WorkoutDetails screen
-        const isTabBarHidden = ['WorkoutDetails', 'TrainingDetails', 'CompleteWorkout'].includes(routeName);
+        const isTabBarHidden = ['WorkoutDetails', 'TrainingDetails', 'CompleteWorkout', 'ChatOverview'].includes(routeName);
 
         return {
           tabBarIcon: ({ focused, color, size }) => {
@@ -67,7 +68,7 @@ export default function MainTabNavigator() {
       <Tab.Screen name="Home" component={HomeStackNavigator} />
       <Tab.Screen name="Training" component={TrainingStackNavigator} />
       <Tab.Screen name="Stats" component={StatsOverview} />
-      <Tab.Screen name="Support" component={SupportOverview} />
+      <Tab.Screen name="Support" component={SupportStackNavigator} />
     </Tab.Navigator>
   );
 }
