@@ -208,17 +208,17 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.activityArray}>
-              {/* <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Running')}>
-                  <Ionicons name="heart-outline" size={20} color="#E87EA1" />
-                </TouchableOpacity>
-                <Text style={styles.activityText}>Running</Text>
-              </View> */}
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Gym')}>
                   <Ionicons name="barbell-outline" size={20} color="#897AD3" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Gym</Text>
+              </View>
+              <View style={styles.activity}>
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Running')}>
+                  <Ionicons name="heart-outline" size={20} color="#E87EA1" />
+                </TouchableOpacity>
+                <Text style={styles.activityText}>Running</Text>
               </View>
               {/* <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton}>

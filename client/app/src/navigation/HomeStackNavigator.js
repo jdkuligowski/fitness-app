@@ -1,12 +1,14 @@
 // src/navigation/HomeStackNavigator.js
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/homeScreens/Home';
-import RunningScreen from '../screens/homeScreens/RunningScreen';
 import TrainingOverview from '../screens/homeScreens/trainingScreens/trainingOverview'
 import GymSession from '../screens/homeScreens/findWorkoutScreens/GymSession'
 import GymSessionDetails from '../screens/homeScreens/findWorkoutScreens/GymSessionDetails'
 import SaveWorkoutModal from '../screens/modalScreens/SaveWorkoutModal'
 import SingleWorkoutSummary from '../screens/homeScreens/trainingScreens/SingleWorkoutSummary'
+import RunningSession from '../screens/homeScreens/findWorkoutScreens/RunningSession'
+import RunningSessionDetails from '../screens/homeScreens/findWorkoutScreens/RunningSessionDetails'
+
 
 const Stack = createStackNavigator();
 
@@ -15,9 +17,10 @@ export default function HomeStackNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       {/* <Stack.Screen name="Training overview" component={TrainingOverview} options={{ headerShown: false }} /> */}
-      <Stack.Screen name="Running" component={RunningScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Running" component={RunningSession} options={{ headerShown: false }} />
       <Stack.Screen name="Gym" component={GymSession} options={{ headerShown: false }} />
       <Stack.Screen name="WorkoutDetails" component={GymSessionDetails} options={{ headerShown: false }} />
+      <Stack.Screen name="RunningSessionDetails" component={RunningSessionDetails} options={{ headerShown: false }} />
       <Stack.Screen 
                 name="SaveWorkoutModal" 
                 component={SaveWorkoutModal} 

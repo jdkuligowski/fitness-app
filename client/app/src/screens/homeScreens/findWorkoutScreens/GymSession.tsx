@@ -10,7 +10,7 @@ const SLIDER_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = 20; // Width of each slider item
 
 
-export default function RunningScreen() {
+export default function GymSession() {
   const navigation = useNavigation();
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [selectedValue, setSelectedValue] = useState(50); // Default selected value
@@ -49,7 +49,7 @@ export default function RunningScreen() {
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={styles.workoutTitle}>Find a workout</Text>
+              <Text style={styles.workoutTitle}>Find a gym workout</Text>
             </View>
 
             <TouchableOpacity style={styles.profileButton}>

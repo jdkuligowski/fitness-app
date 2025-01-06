@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
         paddingRight: 20,
     },
     buttonContainer: {
-        width: '90%',
+        width: '100%',
     },
     continueButton: {
         backgroundColor: 'black',

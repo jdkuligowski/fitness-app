@@ -55,7 +55,8 @@ INSTALLED_APPS = [
     'chat_message',
     'chat_room',
     'channels',
-
+    'running_sessions',
+    'running_session_details',
 ]
 
 MIDDLEWARE = [

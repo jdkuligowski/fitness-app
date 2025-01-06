@@ -22,7 +22,7 @@ export default function MainTabNavigator() {
         const routeName = getFocusedRouteNameFromRoute(route) ?? '';
 
         // Hide tab bar if on WorkoutDetails screen
-        const isTabBarHidden = ['WorkoutDetails', 'TrainingDetails', 'CompleteWorkout', 'ChatOverview'].includes(routeName);
+        const isTabBarHidden = ['WorkoutDetails', 'TrainingDetails', 'CompleteWorkout', 'ChatOverview', 'RunningSessionDetails'].includes(routeName);
 
         return {
           tabBarIcon: ({ focused, color, size }) => {
