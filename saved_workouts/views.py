@@ -40,62 +40,75 @@ class SaveWorkoutView(APIView):
 
         try:
             with transaction.atomic():
-                workout_number = data.get('workout_number')
-                if not workout_number:  # If no workout number is provided, it's a new workout
-                    last_workout = Workout.objects.filter(owner=user).order_by('-workout_number').first()
-                    workout_number = (last_workout.workout_number + 1) if last_workout else 1
+                # Determine the workout type
+                workout_type = data.get('activity_type')
 
-                # Determine status and scheduled_date
-                workout_status = data.get('status', 'Saved')
-                scheduled_date = data.get('scheduled_date')  # Expecting 'YYYY-MM-DD'
-                if workout_status == 'Scheduled' and scheduled_date:
-                    try:
-                        # Ensure date is valid
-                        scheduled_date = scheduled_date
-                    except ValueError:
-                        return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+                # Delegate processing based on workout type
+                if workout_type == 'Gym':
+                    return self._save_gym_workout(data, user)
+                elif workout_type == 'Running':
+                    return self._save_running_workout(data, user)
+                else:
+                    return Response({'error': f'Unsupported workout type: {workout_type}'}, status=400)
 
-
-                # Create Workout
-                workout = Workout.objects.create(
-                    name=data['name'],
-                    workout_number=workout_number,  # Dynamically assign the workout number
-                    description=data['description'],
-                    duration=data['duration'],
-                    complexity=data['complexity'],
-                    status=workout_status,  # Assign status
-                    scheduled_date=scheduled_date,  # Assign scheduled_date if provided
-                    owner=user,  # Use the user from the payload
-                )
-
-                # Create Sections
-                for section_data in data['sections']:
-                    section = Section.objects.create(
-                        workout=workout,
-                        section_type=section_data['section_type'],
-                        section_name=section_data['section_name'],
-                        section_order=section_data['section_order'],
-                    )
-
-                    # Create Section Movements
-                    for movement_data in section_data['movements']:
-                        movement = Movement.objects.get(exercise=movement_data['movement_name'])  # Match movement from DB
-                        SectionMovement.objects.create(
-                            section=section,
-                            movements=movement,
-                            movement_order=movement_data['movement_order'],
-                        )
-
-                return Response(
-                    {'message': 'Workout saved successfully', 'workout_id': workout.id}, 
-                status=status.HTTP_201_CREATED
-                )
         except Exception as e:
             print(e)
-            return Response({'error': 'An error occurred while saving the workout'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'An error occurred while saving the workout'}, status=400)
+
+    def _save_gym_workout(self, data, user):
+        # Process and save gym workout
+        workout = Workout.objects.create(
+            name=data['name'],
+            workout_number=self._get_workout_number(user),
+            description=data['description'],
+            duration=data['duration'],
+            complexity=data['complexity'],
+            status=data.get('status', 'Saved'),
+            scheduled_date=data.get('scheduled_date'),
+            owner=user,
+            activity_type="Gym",
+        )
+
+        # Save sections and movements
+        for section_data in data['sections']:
+            section = Section.objects.create(
+                workout=workout,
+                section_type=section_data['section_type'],
+                section_name=section_data['section_name'],
+                section_order=section_data['section_order'],
+            )
+            for movement_data in section_data['movements']:
+                movement = Movement.objects.get(exercise=movement_data['movement_name'])
+                SectionMovement.objects.create(
+                    section=section,
+                    movements=movement,
+                    movement_order=movement_data['movement_order'],
+                )
+        return Response({'message': 'Gym workout saved successfully', 'workout_id': workout.id}, status=201)
+
+    def _save_running_workout(self, data, user):
+        # Process and save running workout
+        workout = Workout.objects.create(
+            name=data['name'],
+            workout_number=self._get_workout_number(user),
+            description=data['description'],
+            duration=data['duration'],
+            complexity=0,  # Running-specific logic
+            status=data.get('status', 'Saved'),
+            scheduled_date=data.get('scheduled_date'),
+            owner=user,
+            activity_type="Running",
+        )
+        # Add specific logic for running workouts if needed (e.g., intervals, distances)
+        return Response({'message': 'Running workout saved successfully', 'workout_id': workout.id}, status=201)
+
+    def _get_workout_number(self, user):
+        last_workout = Workout.objects.filter(owner=user).order_by('-workout_number').first()
+        return (last_workout.workout_number + 1) if last_workout else 1
 
 
 
+# Show all workouts of all types
 class GetAllWorkoutsView(APIView):
     # permission_classes = [IsAuthenticated]
 
@@ -110,6 +123,7 @@ class GetAllWorkoutsView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+# Show all upcoming workouts of different types
 class GetUpcomingWorkouts(APIView):
     """
     View to get all workouts for a user.
@@ -139,7 +153,7 @@ class GetUpcomingWorkouts(APIView):
 
 
 
-
+# Get single gym workouts
 class GetSingleWorkoutView(APIView):
     """
     Get a single workout and return all related workout details along with 
@@ -264,9 +278,7 @@ class GetSingleWorkoutView(APIView):
 
     
     
-
-
-
+# Updating the status of a workout
 class UpdateWorkoutStatusView(APIView):
     def patch(self, request, workout_id):
         """
@@ -287,7 +299,7 @@ class UpdateWorkoutStatusView(APIView):
         return Response({'message': f'Workout status updated to {new_status}'}, status=status.HTTP_200_OK)
 
 
-
+# Deleting workout from saved
 class DeleteWorkoutView(APIView):
     """
     Delete a specific workout.
@@ -305,7 +317,7 @@ class DeleteWorkoutView(APIView):
         return Response({'message': 'Workout deleted successfully'}, status=status.HTTP_200_OK)
 
 
-
+# Updating workout date
 class UpdateWorkoutDateView(APIView):
     """
     Update the scheduled date of a workout.
@@ -337,212 +349,7 @@ class UpdateWorkoutDateView(APIView):
 
 
 
-
-# class CompleteWorkoutAPIView(APIView):
-#     """
-#     Update the workout status to 'Completed' and save the workout details.
-#     """
-
-#     def put(self, request, workout_id):
-#         user_id = request.query_params.get('user_id')  # Fetch the user_id from query params
-
-#         try:
-#             logger.info(f"Starting completion process for workout_id: {workout_id}")
-
-#             # 1️⃣ --- Update Workout Status ---
-#             try:
-#                 workout = Workout.objects.get(id=workout_id, owner=user_id)
-#                 workout.status = 'Completed'  # ✅ Update status to 'Completed'
-#                 workout.completed_date = date.today()  # ✅ Set completed_date to today's date
-#                 workout.save()
-#                 logger.info(f"Workout with id {workout_id} marked as completed")
-#             except Workout.DoesNotExist:
-#                 logger.error(f"Workout with id {workout_id} does not exist for user {user_id}")
-#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-#             except Exception as e:
-#                 logger.exception(f"Error updating workout status: {e}")
-#                 return Response({'error': f'Error updating workout status: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 2️⃣ --- Pre-Fetch All Required Data ---
-#             sections_data = request.data.get('sections', [])
-#             section_ids = [section['section_id'] for section in sections_data]
-            
-#             # Use select_related to get all sections linked to this workout
-#             sections = Section.objects.filter(id__in=section_ids, workout=workout).select_related('workout')
-
-#             # Pre-fetch movements and sets for all relevant sections
-#             movements = SectionMovement.objects.filter(section__in=sections).select_related('section')
-#             sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
-
-#             # 3️⃣ --- Update Sections, Movements, and Sets ---
-#             movements_to_update = []
-#             new_sets = []
-
-#             for section_data in sections_data:
-#                 for movement_data in section_data.get('movements', []):
-#                     movement_id = movement_data.get('movement_id')
-#                     movement = next((m for m in movements if m.id == movement_id), None)
-                    
-#                     if movement:
-#                         movement.movement_difficulty = movement_data.get('movement_difficulty', movement.movement_difficulty)
-#                         movement.movement_comment = movement_data.get('movement_comments', movement.movement_comment)
-#                         movements_to_update.append(movement)
-                    
-#                     for set_data in movement_data.get('sets', []):
-#                         set_instance = next(
-#                             (s for s in sets if s.section_movement.id == movement_id and s.set_number == set_data.get('set_number')),
-#                             None
-#                         )
-#                         if set_instance:
-#                             set_instance.reps = set_data.get('reps', 0)
-#                             set_instance.weight = set_data.get('weight', 0)
-#                         else:
-#                             new_sets.append(
-#                                 Set(
-#                                     section_movement=movement,
-#                                     set_number=set_data.get('set_number'),
-#                                     reps=set_data.get('reps', 0),
-#                                     weight=set_data.get('weight', 0)
-#                                 )
-#                             )
-
-#             # 4️⃣ --- Bulk Update and Bulk Create ---
-#             if movements_to_update:
-#                 SectionMovement.objects.bulk_update(movements_to_update, ['movement_difficulty', 'movement_comment'])
-            
-#             if new_sets:
-#                 Set.objects.bulk_create(new_sets)
-
-#             logger.info(f"Workout with id {workout_id} completed successfully for user {request.user.id}")
-#             return Response({'message': 'Workout completed successfully!'}, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             logger.exception(f"Unexpected error in CompleteWorkoutAPIView for workout_id {workout_id}")
-#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# class CompleteWorkoutAPIView(APIView):
-#     """
-#     Update the workout status to 'Completed' and save the workout details.
-#     """
-
-#     def put(self, request, workout_id):
-#         user_id = request.query_params.get('user_id')  # Fetch the user_id from query params
-
-#         try:
-#             logger.info(f"Starting completion process for workout_id: {workout_id}, user_id: {user_id}")
-
-#             # 1️⃣ --- Get User Object ---
-#             try:
-#                 user = User.objects.get(id=user_id)
-#             except User.DoesNotExist:
-#                 logger.error(f"User with id {user_id} does not exist.")
-#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#             # 2️⃣ --- Update Workout Status ---
-#             try:
-#                 workout = Workout.objects.get(id=workout_id, owner=user)
-#                 workout.status = 'Completed'
-#                 workout.completed_date = now().date()
-#                 workout.save()
-#                 logger.info(f"Workout with id {workout_id} marked as completed")
-#             except Workout.DoesNotExist:
-#                 logger.error(f"Workout with id {workout_id} does not exist for user {user_id}")
-#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-#             except Exception as e:
-#                 logger.exception(f"Error updating workout status: {e}")
-#                 return Response({'error': f'Error updating workout status: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 3️⃣ --- Award Points for Workout Completion ---
-#             try:
-#                 if not ScoreLog.objects.filter(user_id=user_id, workout_id=workout.id, score_type='Workout Completion').exists():
-#                     leaderboard, _ = Leaderboard.objects.get_or_create(user_id=user_id)
-#                     leaderboard.total_score += 50  # Award 50 points for workout completion
-#                     leaderboard.weekly_score += 50  # Weekly score logic
-#                     leaderboard.save()
-
-#                     ScoreLog.objects.create(
-#                         user_id=user_id,
-#                         score_type='Workout Completion',
-#                         score_value=50,
-#                         description=f'Workout completed: {workout.name}',
-#                         workout_id=workout.id
-#                     )
-
-#                     logger.info(f"✅ 50 points awarded for workout completion (workout_id: {workout_id}, user_id: {user_id})")
-#             except Exception as e:
-#                 logger.exception(f"Error awarding workout completion points for user {user_id}: {e}")
-
-#             # 4️⃣ --- Pre-Fetch All Required Data ---
-#             sections_data = request.data.get('sections', [])
-#             section_ids = [section['section_id'] for section in sections_data]
-            
-#             sections = Section.objects.filter(id__in=section_ids, workout=workout).select_related('workout')
-#             movements = SectionMovement.objects.filter(section__in=sections).select_related('section')
-#             sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
-
-#             # 5️⃣ --- Update Sections, Movements, and Sets ---
-#             movements_to_update = []
-#             new_sets = []
-#             unique_movement_ids = set()  # Track movements with new sets
-
-#             for section_data in sections_data:
-#                 for movement_data in section_data.get('movements', []):
-#                     movement_id = movement_data.get('movement_id')
-#                     movement = next((m for m in movements if m.id == movement_id), None)
-                    
-#                     if movement:
-#                         movement.movement_difficulty = movement_data.get('movement_difficulty', movement.movement_difficulty)
-#                         movement.movement_comment = movement_data.get('movement_comments', movement.movement_comment)
-#                         movements_to_update.append(movement)
-                    
-#                         for set_data in movement_data.get('sets', []):
-#                             if movement:  # Check if movement exists
-#                                 new_sets.append(
-#                                     Set(
-#                                         section_movement=movement,
-#                                         set_number=set_data.get('set_number'),
-#                                         reps=set_data.get('reps', 0),
-#                                         weight=set_data.get('weight', 0)
-#                                     )
-#                                 )
-#                                 unique_movement_ids.add(movement_id)  # Only add if movement is valid
-
-#             if movements_to_update:
-#                 SectionMovement.objects.bulk_update(movements_to_update, ['movement_difficulty', 'movement_comment'])
-            
-#             if new_sets:
-#                 Set.objects.bulk_create(new_sets)
-
-#             # 6️⃣ --- Award Points for Movement Tracking ---
-#             try:
-#                 for movement_id in unique_movement_ids:
-#                     if not ScoreLog.objects.filter(user_id=user_id, section_movement_id=movement_id, score_type='Movement Score').exists():
-#                         leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
-#                         leaderboard.total_score += 5  # Award 5 points for each movement
-#                         leaderboard.weekly_score += 5
-#                         leaderboard.save()
-
-#                         ScoreLog.objects.create(
-#                             user_id=user_id,
-#                             score_type='Movement Score',
-#                             score_value=5,
-#                             description='User tracked at least one set for a movement',
-#                             section_movement_id=movement_id
-#                         )
-
-#                         logger.info(f"✅ 5 points awarded for movement tracking (movement_id: {movement_id}, user_id: {user_id})")
-#             except Exception as e:
-#                 logger.exception(f"Error awarding movement tracking points for user {user_id}: {e}")
-
-#             logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
-#             return Response({'message': 'Workout completed successfully!'}, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             logger.exception(f"Unexpected error in CompleteWorkoutAPIView for workout_id {workout_id}")
-#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
+# View for completing gym workouts
 class CompleteWorkoutAPIView(APIView):
 
     def put(self, request, workout_id):

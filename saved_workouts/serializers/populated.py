@@ -7,5 +7,5 @@ class PopulatedWorkoutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workout
-        fields = ['id', 'name', 'description', 'status', 'complexity', 'duration', 
+        fields = ['id', 'name', 'description', 'status', 'complexity', 'duration', 'activity_type',
                   'comments', 'workout_number', 'scheduled_date', 'workout_sections']

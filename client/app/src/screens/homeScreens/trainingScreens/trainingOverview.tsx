@@ -67,7 +67,7 @@ export default function TrainingOverview() {
         }
     }, [dates]);
 
-    
+
     // Generate an array of dates based on the current month
     useEffect(() => {
         const generateDatesForMonth = () => {
@@ -201,11 +201,11 @@ export default function TrainingOverview() {
                 }
                 return acc;
             }, []);
-            
+
             setSavedWorkouts(uniqueWorkouts);
         }
     }, [selectedView, workouts]);
-    
+
 
 
     const filterMapping = {
@@ -361,7 +361,7 @@ export default function TrainingOverview() {
                                 contentContainerStyle={styles.calendarContent}
                                 getItemLayout={getItemLayout}
                                 onScrollToIndexFailed={onScrollToIndexFailed}
-                                />
+                            />
                         </View>
                         <View style={styles.workoutList}>
                             {dailyWorkouts.length > 0 ? (
@@ -373,7 +373,19 @@ export default function TrainingOverview() {
                                             navigation.navigate('TrainingDetails', { workoutId: item.id })
                                         }
                                     >
-                                        <View style={styles.overviewBox}>
+                                        <View
+                                            style={[
+                                                styles.overviewBox,
+                                                {
+                                                    backgroundColor:
+                                                        item.activity_type === 'Gym'
+                                                            ? '#EFE8FF'
+                                                            : item.activity_type === 'Running'
+                                                                ? '#D2E4EA'
+                                                                : 'black',
+                                                },
+                                            ]}
+                                        >
                                             <View style={styles.overviewHeader}>
                                                 <View>
                                                     <Text style={styles.workoutTitle}>{item.name}</Text>
@@ -390,9 +402,9 @@ export default function TrainingOverview() {
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
-                                                <Text style={styles.workoutSummaryButton}>Intermediate</Text>
-                                                <Text style={styles.workoutSummaryButton}>Gym session</Text>
-                                                <Text style={styles.workoutSummaryButton}> sections</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
+                                                <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
                                             </View>
                                             <View style={styles.trainerDetails}>
                                                 <Image
@@ -447,7 +459,19 @@ export default function TrainingOverview() {
                                                     navigation.navigate('TrainingDetails', { workoutId: item.id })
                                                 }
                                             >
-                                                <View style={styles.overviewBox}>
+                                                <View
+                                                    style={[
+                                                        styles.overviewBox,
+                                                        {
+                                                            backgroundColor:
+                                                                item.activity_type === 'Gym'
+                                                                    ? '#EFE8FF'
+                                                                    : item.activity_type === 'Running'
+                                                                        ? '#D2E4EA'
+                                                                        : 'black',
+                                                        },
+                                                    ]}
+                                                >
                                                     <View style={styles.overviewHeader}>
                                                         <View>
                                                             <Text style={styles.workoutTitle}>{item.name}</Text>
@@ -464,9 +488,9 @@ export default function TrainingOverview() {
                                                         </TouchableOpacity>
                                                     </View>
                                                     <View style={styles.workoutSummaryArray}>
-                                                        <Text style={styles.workoutSummaryButton}>Intermediate</Text>
-                                                        <Text style={styles.workoutSummaryButton}>Gym session</Text>
-                                                        <Text style={styles.workoutSummaryButton}>Sections</Text>
+                                                        {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
+                                                        <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
+                                                        {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
                                                     </View>
                                                     <View style={styles.trainerDetails}>
                                                         <Image
@@ -512,7 +536,19 @@ export default function TrainingOverview() {
                                             navigation.navigate('TrainingDetails', { workoutId: item.id })
                                         }
                                     >
-                                        <View style={styles.overviewBox}>
+                                        <View
+                                            style={[
+                                                styles.overviewBox,
+                                                {
+                                                    backgroundColor:
+                                                        item.activity_type === 'Gym'
+                                                            ? '#EFE8FF'
+                                                            : item.activity_type === 'Running'
+                                                                ? '#D2E4EA'
+                                                                : 'black',
+                                                },
+                                            ]}
+                                        >
                                             <View style={styles.overviewHeader}>
                                                 <View>
                                                     <Text style={styles.workoutTitle}>{item.name}</Text>
@@ -529,9 +565,9 @@ export default function TrainingOverview() {
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
-                                                <Text style={styles.workoutSummaryButton}>Intermediate</Text>
-                                                <Text style={styles.workoutSummaryButton}>Gym session</Text>
-                                                <Text style={styles.workoutSummaryButton}> sections</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
+                                                <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
                                             </View>
                                             <View style={styles.trainerDetails}>
                                                 <Image
@@ -703,11 +739,11 @@ export default function TrainingOverview() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     container: {
         flexGrow: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
         // paddingBottom: 100,
     },
     trainingViewBlock: {

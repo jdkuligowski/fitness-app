@@ -14,7 +14,7 @@ import ENV from '../../../../env'
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, onClose, selectedTime, selectedWorkout, workoutPlan, closeModal,
-    frequency, modalRoute, fetchWorkouts, isLoading, setIsBouncerLoading }) {
+    frequency, modalRoute, fetchWorkouts, isLoading, setIsBouncerLoading, workoutType }) {
 
     const navigation = useNavigation();
     const [workoutPlans, setWorkoutPlans] = useState([]);
@@ -66,34 +66,45 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
 
     const saveWorkout = async (workoutPlan, status = "Saved") => {
         try {
-            const userId = await AsyncStorage.getItem("userId"); // Retrieve the user ID if stored locally
-            console.log("user_id ->", userId);
-            const formattedDate = selectedDate.toISOString().split("T")[0]; // Convert to 'YYYY-MM-DD'
-            console.log('save workout ->', workoutPlan);
+            const userId = await AsyncStorage.getItem("userId");
+            const formattedDate = selectedDate.toISOString().split("T")[0];
 
-            const payload = {
-                user_id: userId, // Add the user ID here
-                name: `${selectedWorkout} Workout`, // Example: "Full body Workout"
-                description: "Custom generated workout",
+            // Dynamically structure the payload based on the workout type
+            let payload = {
+                user_id: userId,
+                name: `${selectedWorkout}`,
                 duration: selectedTime,
-                complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-                status: status, // Pass the workout status ("Saved" or "Scheduled")
-                scheduled_date: status === "Scheduled" ? selectedDate.toISOString().split("T")[0] : null, // Pass the selected date if "Scheduled"
-                sections: workoutPlan.map((section, index) => ({
+                status: status,
+                scheduled_date: status === "Scheduled" ? formattedDate : null,
+                activity_type: workoutType, // Add activity type dynamically
+            };
+
+            if (workoutType === "Gym") {
+                payload.description = "Custom generated workout",
+                payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3; // Add complexity for gym workouts
+                payload.sections = workoutPlan.map((section, index) => ({
                     section_name: section.partLabel,
                     section_order: index + 1,
-                    section_type: section.sectionType, // Pass section type here
+                    section_type: section.sectionType,
                     movements: section.movements.map((movement, movementIndex) => ({
                         movement_name: movement,
                         movement_order: movementIndex + 1,
                     })),
-                })),
-            };
+                }));
+            } else if (workoutType === "Running") {
+                payload.description = currentWorkout.session_name
+                payload.complexity = 0; // Running doesn't require complexity
+                // Add running-specific fields if required, e.g., distance or pace
+                // payload.distance = workoutPlan.distance || null;
+                // payload.pace = workoutPlan.pace || null;
+                // payload.intervals = workoutPlan.intervals || [];
+            }
 
             const response = await axios.post(
                 `${ENV.API_URL}/api/saved_workouts/save-workout/`,
                 payload
             );
+
             console.log("Workout saved successfully:", response.data);
             Alert.alert("Workout Saved", "Your workout has been saved successfully!");
         } catch (error) {
@@ -102,36 +113,35 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
         }
     };
 
-
     const reSaveWorkout = async (workoutId, status = "Saved") => {
         try {
             setIsBouncerLoading(true); // Start loading spinner
-    
+
             const userId = await AsyncStorage.getItem("userId");
-    
+
             // 1️⃣ --- Fetch full workout details ---
             const response = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${workoutId}/`, {
                 params: { user_id: userId }
             });
-    
+
             const workoutPlan = response.data;
-    
+
             if (!workoutPlan) {
                 console.warn('Workout plan is missing or undefined.');
                 Alert.alert("Error", "Workout data is missing. Please try again.");
                 setIsBouncerLoading(false);
-                return; 
+                return;
             }
-    
+
             if (!workoutPlan.workout?.workout_sections || !Array.isArray(workoutPlan.workout.workout_sections)) {
                 console.warn('workout_sections is missing or not an array.', workoutPlan.workout?.workout_sections);
                 Alert.alert("Error", "Workout sections are missing. Please try again.");
                 setIsBouncerLoading(false);
-                return; 
+                return;
             }
-    
+
             const formattedDate = selectedDate.toISOString().split("T")[0];
-    
+            console.log('activity ->', workoutPlan)
             // 2️⃣ --- Format the Payload Properly ---
             const payload = {
                 user_id: userId,
@@ -139,8 +149,9 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 comments: null,
                 description: workoutPlan.workout?.description || 'No description',
                 duration: workoutPlan.workout?.duration || 0,
-                complexity: workoutPlan.workout?.complexity || 1,
+                complexity: workoutPlan.workout?.complexity || 0,
                 status: status,
+                activity_type: workoutPlan.workout?.activity_type,
                 scheduled_date: status === "Scheduled" ? formattedDate : null,
                 workout_number: workoutPlan.workout?.workout_number,
                 sections: workoutPlan.workout?.workout_sections.map((section, index) => ({
@@ -154,15 +165,15 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     })),
                 })),
             };
-    
+
             console.log("Payload for resave ->", JSON.stringify(payload, null, 2)); // Debugging
-    
+
             // 3️⃣ --- Call the save endpoint ---
             const saveResponse = await axios.post(
                 `${ENV.API_URL}/api/saved_workouts/save-workout/`,
                 payload
             );
-    
+
             console.log("Workout duplicated successfully:", saveResponse.data);
             Alert.alert("Workout Added", "Your workout has been added to the calendar!");
         } catch (error) {
@@ -174,7 +185,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
         }
     };
 
-    
+
 
     const deleteWorkout = async () => {
         Alert.alert(
@@ -268,8 +279,8 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                                             onPress={() => {
                                                 setUserNeed('Duplicate')
                                                 setShowCalendarModal(true)
-                                            }}                                         
-                                            >
+                                            }}
+                                        >
                                             <Text style={styles.modalButtonTextFilled}>Duplicate workout</Text>
                                         </TouchableOpacity>
                                     </>
@@ -295,7 +306,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                                             onPress={() => {
                                                 setUserNeed('Duplicate')
                                                 setShowCalendarModal(true)
-                                            }} 
+                                            }}
                                         >
                                             <Text style={styles.modalButtonTextFilled}>Duplicate workout</Text>
                                         </TouchableOpacity>

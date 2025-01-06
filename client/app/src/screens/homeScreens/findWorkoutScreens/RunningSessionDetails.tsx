@@ -10,7 +10,8 @@ import {
     Dimensions,
     ScrollView,
     Alert,
-    Image
+    Image,
+    Modal
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
@@ -18,6 +19,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colours } from "@/app/src/components/styles";
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
+import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -29,6 +31,8 @@ export default function SuggestedRunningWorkouts({ route }) {
     const [filteredWorkouts, setFilteredWorkouts] = useState([]);
     const flatListRef = useRef(null);
     const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access loader functions
+    const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
 
     // Fetch workouts from the server
@@ -145,6 +149,16 @@ export default function SuggestedRunningWorkouts({ route }) {
         }
     }, [workouts]);
 
+    const showModalForWorkout = (workout) => {
+        setCurrentWorkout(workout); // Set the workout plan that will be used inside the modal
+    };
+
+
+    const closeModal = () => {
+        setCurrentWorkout(null); // Reset the current workout when modal is closed
+        setShowDatePicker(false);
+    };
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -210,7 +224,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                                                 </View>
                                                 <TouchableOpacity
                                                     style={styles.profileButton}
-                                                    // onPress={() => showModalForWorkout(item)} // Set modal for current workout
+                                                    onPress={() => showModalForWorkout(item)} // Set modal for current workout
                                                 >
                                                     <Ionicons name="heart-outline" color={'black'} size={20} />
                                                 </TouchableOpacity>
@@ -311,7 +325,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                                     <View style={styles.buttonContainer}>
                                         <TouchableOpacity
                                             style={styles.submitButton}
-                                            // onPress={() => saveAndStartWorkout(item)}
+                                        // onPress={() => saveAndStartWorkout(item)}
                                         >
                                             <Text style={styles.submitButtonText}>Start workout</Text>
                                             <View style={styles.submitArrow}>
@@ -323,6 +337,26 @@ export default function SuggestedRunningWorkouts({ route }) {
                                 </View>
                             )} />
                     </>
+                )}
+                {currentWorkout && (
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={!!currentWorkout}
+                        onRequestClose={closeModal}
+                    >
+                        <SaveWorkoutModal
+                            currentWorkout={currentWorkout} // Pass the workout object
+                            onClose={closeModal} // Pass the close function
+                            selectedTime={Math.round(calculateWorkoutDuration(currentWorkout))} // Pass the selected time
+                            selectedWorkout={selectedWorkout} // Pass the selected workout name
+                            workoutPlan={currentWorkout} // Pass the current workout plan
+                            closeModal={closeModal} // Close function for modal
+                            frequency={0}
+                            modalRoute={'Discovery'}
+                            workoutType="Running"
+                        />
+                    </Modal>
                 )}
             </View>
         </SafeAreaView>

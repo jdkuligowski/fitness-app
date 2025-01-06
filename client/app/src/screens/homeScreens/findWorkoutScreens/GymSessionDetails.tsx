@@ -499,6 +499,7 @@ export default function WorkoutScreen({ route }) {
                             closeModal={closeModal} // Close function for modal
                             frequency={frequency}
                             modalRoute={'Discovery'}
+                            workoutType="Gym" 
                         />
                     </Modal>
                 )}
