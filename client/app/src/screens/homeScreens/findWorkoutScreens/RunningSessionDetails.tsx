@@ -150,8 +150,31 @@ export default function SuggestedRunningWorkouts({ route }) {
     }, [workouts]);
 
     const showModalForWorkout = (workout) => {
-        setCurrentWorkout(workout); // Set the workout plan that will be used inside the modal
+        // Augment the intervals with calculated times
+        const augmentedIntervals = workout.intervals.map((interval) => {
+            const targetPaceInSeconds = calculateTargetPace(interval.target_pace);
+            const splitTimePerRepeat = targetPaceInSeconds * interval.repeat_distance;
+            return {
+                ...interval,
+                targetPaceInSeconds,
+                splitTimes: Array.from({ length: interval.repeats }, (_, i) => ({
+                    repeatNumber: i + 1,
+                    targetTime: splitTimePerRepeat, // Target time for each repeat in seconds
+                })),
+            };
+        });
+    
+        // Augment the workout with calculated warmup and cooldown times
+        const augmentedWorkout = {
+            ...workout,
+            augmentedIntervals,
+            warmupPace: warmupCooldownPaceInSeconds,
+            cooldownPace: warmupCooldownPaceInSeconds,
+        };
+    
+        setCurrentWorkout(augmentedWorkout); // Pass the augmented workout to the modal
     };
+    
 
 
     const closeModal = () => {

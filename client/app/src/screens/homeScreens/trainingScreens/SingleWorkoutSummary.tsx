@@ -37,6 +37,7 @@ export default function WorkoutSummary({ route, navigation }) {
                 setUserWorkouts(workout); // Set workout data
                 setMovementHistory(movement_history); // Set movement history data
                 console.log('Workout data ->', workout);
+                // console.log('Workout data ->', workout);
                 console.log('Movement history ->', movement_history);
                 setIsLoading(false)
             } catch (error) {
@@ -74,6 +75,18 @@ export default function WorkoutSummary({ route, navigation }) {
     };
 
 
+    const IntervalTime = ({ time }) => (
+        <View style={styles.intervalTimeContainer}>
+            <Text style={styles.intervalTimeText}>{time}</Text>
+        </View>
+    );
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -100,8 +113,15 @@ export default function WorkoutSummary({ route, navigation }) {
                 <View style={styles.workoutCard}>
 
                     <View style={styles.workoutOverview}>
-                        <View style={styles.overviewBox}>
-
+                        <View style={[styles.overviewBox,
+                        {
+                            backgroundColor:
+                                userWorkouts.activity_type === 'Gym'
+                                    ? '#EFE8FF'
+                                    : userWorkouts.activity_type === 'Running'
+                                        ? '#D2E4EA'
+                                        : 'black',
+                        }]}>
                             <View style={styles.overviewHeader}>
                                 <Text style={styles.workoutTitle}>{userWorkouts.name}</Text>
                                 <View style={styles.workoutOverviewTime}>
@@ -110,9 +130,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                 </View>
                             </View>
                             <View style={styles.workoutSummaryArray}>
-                                <Text style={styles.workoutSummaryButton}>{userWorkouts.complexity === 1 ? 'Beginner' : userWorkouts.complexity === 2 ? 'Intermediate' : 'Advanced'}</Text>
-                                <Text style={styles.workoutSummaryButton}>Gym session</Text>
-                                <Text style={styles.workoutSummaryButton}>{userWorkouts.workout_sections.length} sections</Text>
+                                {/* <Text style={styles.workoutSummaryButton}>{userWorkouts.complexity === 1 ? 'Beginner' : userWorkouts.complexity === 2 ? 'Intermediate' : 'Advanced'}</Text> */}
+                                <Text style={styles.workoutSummaryButton}>{userWorkouts.activity_type}</Text>
+                                {/* <Text style={styles.workoutSummaryButton}>{userWorkouts.workout_sections.length} sections</Text> */}
                             </View>
                             <View style={styles.trainerDetails}>
                                 <Image
@@ -131,21 +151,108 @@ export default function WorkoutSummary({ route, navigation }) {
                     <View style={styles.dividerLine}></View>
                     <Text style={styles.workoutActivity}>Workout Summary</Text>
                     <ScrollView style={styles.workoutList}>
-                        {userWorkouts?.workout_sections?.map((section, index) => (
-                            <View key={index} style={styles.sectionContainer}>
-                                <Text style={styles.sectionTitle}>{section.section_name}</Text>
-                                {section.section_movement_details.map((movement, i) => (
-                                    <View key={i} style={styles.movementRow}>
-                                        <Text>
-                                            <Text style={styles.movementLabel}>{`Movement ${i + 1}: `}</Text>
-                                            <Text style={styles.movementDetail}>{movement.movements.exercise}</Text>
-                                        </Text>
+                        {userWorkouts.activity_type === "Gym" ? (
+                            // Gym Layout
+                            userWorkouts?.workout_sections?.map((section, index) => (
+                                <View key={index} style={styles.sectionContainer}>
+                                    <Text style={styles.sectionTitle}>{section.section_name}</Text>
+                                    {section.section_movement_details.map((movement, i) => (
+                                        <View key={i} style={styles.movementRow}>
+                                            <Text>
+                                                <Text style={styles.movementLabel}>{`Movement ${i + 1}: `}</Text>
+                                                <Text style={styles.movementDetail}>{movement.movements.exercise}</Text>
+                                            </Text>
+                                        </View>
+                                    ))}
+                                    <View style={styles.subDividerLine}></View>
+                                </View>
+                            ))
+                        ) : userWorkouts.activity_type === "Running" ? (
+                            // Running Layout
+                            <>
+                                <Text style={styles.summaryDetail}>{userWorkouts.description}</Text>
+
+                                {userWorkouts.running_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        <Text style={styles.sectionTitle}>Warmup</Text>
+                                        <View style={styles.intervalContainer}>
+                                            {session.warmup_distance < 1 ? (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.warmup_distance * 1000}m at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.warmup_distance}km at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
                                 ))}
-                                <View style={styles.subDividerLine}></View>
-                            </View>
-                        ))}
+
+                                <View style={styles.sectionContainer}>
+                                    <Text style={styles.sectionTitle}>Intervals</Text>
+                                    {userWorkouts.running_sessions.map((session, sessionIndex) => (
+                                        <View key={sessionIndex}>
+                                            {session.saved_intervals && session.saved_intervals.length > 0 ? (
+                                                session.saved_intervals.map((interval, intervalIndex) => (
+                                                    <View key={intervalIndex} style={styles.intervalContainer}>
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {interval.repeats} x{" "}
+                                                                {interval.repeat_distance < 1
+                                                                    ? `${interval.repeat_distance * 1000}m`
+                                                                    : `${interval.repeat_distance}km`}{" "}
+                                                                at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(interval.target_pace)} />
+                                                        </View>
+                                                        {interval.comments && (
+                                                            <Text style={styles.movementDetail}>{interval.comments}</Text>
+                                                        )}
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.movementDetail}>No intervals defined</Text>
+                                            )}
+                                        </View>
+                                    ))}
+                                </View>
+
+
+                                {userWorkouts.running_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        <Text style={styles.sectionTitle}>Cool down</Text>
+                                        <View style={styles.intervalContainer}>
+                                            {session.cooldown_distance < 1 ? (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.cooldown_distance * 1000}m at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.cooldown_distance}km at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+                                ))}
+                            </>
+                        ) : (
+                            <Text style={styles.movementDetail}>Unknown activity type</Text>
+                        )}
                     </ScrollView>
+
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
                             style={styles.submitButton}
@@ -168,11 +275,11 @@ export default function WorkoutSummary({ route, navigation }) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     scrollContainer: {
         flexGrow: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
         paddingBottom: 100,
     },
     header: {
@@ -319,10 +426,14 @@ const styles = StyleSheet.create({
     workoutActivity: {
         paddingLeft: 20,
         paddingRight: 20,
+        marginBottom: 10,
         fontWeight: 700,
         fontSize: 16,
     },
-
+    summaryDetail: {
+        marginBottom: 10,
+        fontSize: 16,
+    },
     title: {
         fontSize: 24,
         fontWeight: "bold",
@@ -333,7 +444,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     workoutList: {
-        padding: 20,
+        paddingLeft: 20,
+        paddingRight: 20,
         height: 350,
     },
     sectionContainer: {
@@ -448,5 +560,19 @@ const styles = StyleSheet.create({
     loadingImage: {
         width: 100, // ✅ Adjust to the size of your GIF
         height: 100, // ✅ Adjust to the size of your GIF
+    },
+    intervalContainer: {
+        marginTop: 10,
+        marginBottom: 10,
+    },
+    timeBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    intervalTimeContainer: {
+        marginLeft: 5,
+        backgroundColor: '#D2E4EA',
+        borderRadius: 5,
+        padding: 3,
     },
 });

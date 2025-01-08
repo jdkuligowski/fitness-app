@@ -57,6 +57,9 @@ INSTALLED_APPS = [
     'channels',
     'running_sessions',
     'running_session_details',
+    'saved_runs',
+    'saved_run_intervals',
+    'saved_run_interval_times',
 ]
 
 MIDDLEWARE = [

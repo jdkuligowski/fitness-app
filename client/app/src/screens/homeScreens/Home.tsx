@@ -263,7 +263,17 @@ export default function HomeScreen() {
               {upcomingWorkouts.map((workout) => (
                 <TouchableOpacity
                   key={workout.id}
-                  style={styles.popularWorkout}
+                  style={[
+                    styles.popularWorkout,
+                    {
+                      backgroundColor:
+                      workout.activity_type === 'Gym'
+                          ? '#EFE8FF'
+                          : workout.activity_type === 'Running'
+                            ? '#D2E4EA'
+                            : 'black',
+                    },
+                  ]}
                   onPress={() =>
                     navigation.navigate('Training', {
                       screen: 'TrainingDetails',
@@ -276,6 +286,8 @@ export default function HomeScreen() {
                 >
                   <View style={styles.topRow}>
                     <Text style={styles.workoutTitle}>{workout.name}</Text>
+                    <Text style={styles.workoutDescription}>{workout.description}</Text>
+
                   </View>
 
                   <View style={styles.middleRow}>
@@ -497,9 +509,12 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    // flexDirection: 'row',
+    // justifyContent: 'space-between',
     width: '100%',
+  },
+  workoutDescription: {
+    marginTop: 5,
   },
   workoutTitle: {
     fontSize: 22,

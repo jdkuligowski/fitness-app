@@ -21,12 +21,19 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 
+from saved_runs.models import SavedRunningSession
+from running_sessions.models import RunningSession
+from saved_run_intervals.models import SavedRunningInterval
+from saved_run_interval_times.models import SavedRunningSplitTime
+from saved_runs.serializers.populated import PopulatedSavedRunningSessionSerializer
+
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
 class SaveWorkoutView(APIView):
     def post(self, request):
         data = request.data
+        print('data received ->', data)
 
         # Validate and retrieve the user
         user_id = data.get('user_id')
@@ -56,10 +63,17 @@ class SaveWorkoutView(APIView):
             return Response({'error': 'An error occurred while saving the workout'}, status=400)
 
     def _save_gym_workout(self, data, user):
+        # Determine workout number
+        if data.get('workout_number'):
+            workout_number = data['workout_number']  # Use provided workout_number for duplication
+        else:
+            workout_number = self._get_workout_number(user)  # Generate a new workout_number
+
+        
         # Process and save gym workout
         workout = Workout.objects.create(
             name=data['name'],
-            workout_number=self._get_workout_number(user),
+            workout_number=workout_number,
             description=data['description'],
             duration=data['duration'],
             complexity=data['complexity'],
@@ -87,25 +101,70 @@ class SaveWorkoutView(APIView):
         return Response({'message': 'Gym workout saved successfully', 'workout_id': workout.id}, status=201)
 
     def _save_running_workout(self, data, user):
-        # Process and save running workout
+        print("Received data:", data)  # Debugging the incoming payload
+        # Determine workout number
+        if data.get('workout_number'):
+            workout_number = data['workout_number']  # Use provided workout_number for duplication
+        else:
+            workout_number = self._get_workout_number(user)  # Generate a new workout_number
+
+
+        # Create the base Workout instance
         workout = Workout.objects.create(
             name=data['name'],
-            workout_number=self._get_workout_number(user),
+            workout_number=workout_number,
             description=data['description'],
             duration=data['duration'],
-            complexity=0,  # Running-specific logic
+            complexity=0,  # Fixed complexity for running workouts
             status=data.get('status', 'Saved'),
             scheduled_date=data.get('scheduled_date'),
             owner=user,
             activity_type="Running",
         )
-        # Add specific logic for running workouts if needed (e.g., intervals, distances)
+
+        # Create SavedRunningSession
+        running_session_data = data['running_sessions']
+        running_session = RunningSession.objects.get(id=running_session_data['running_session_id'])
+
+        saved_running_session = SavedRunningSession.objects.create(
+            workout=workout,
+            running_session=running_session,
+            warmup_distance=running_session_data.get('warmup_distance'),
+            cooldown_distance=running_session_data.get('cooldown_distance'),
+            total_distance=running_session_data.get('total_distance'),
+            rpe=running_session_data.get('rpe'),
+            comments=running_session_data.get('comments'),
+            suggested_warmup_pace=running_session_data.get('suggested_warmup_pace'),
+            suggested_cooldown_pace=running_session_data.get('suggested_cooldown_pace'),
+        )
+
+        # Save intervals
+        for interval_data in running_session_data.get('saved_intervals', []):
+            saved_interval = SavedRunningInterval.objects.create(
+                saved_session=saved_running_session,
+                repeat_variation=interval_data.get('repeat_variation'),
+                repeats=interval_data.get('repeats'),
+                repeat_distance=interval_data.get('repeat_distance'),
+                target_pace=interval_data.get('target_interval'),
+                comments=interval_data.get('comments'),
+            )
+
+            # Save split times
+            for split_time in interval_data.get('split_times', []):
+                SavedRunningSplitTime.objects.create(
+                    saved_interval=saved_interval,
+                    repeat_number=split_time['repeat_number'],
+                    target_time=split_time.get('time_in_seconds'),
+                    actual_time=split_time.get('actual_time'),
+                    comments=split_time.get('comments', None),
+                )
+
         return Response({'message': 'Running workout saved successfully', 'workout_id': workout.id}, status=201)
+
 
     def _get_workout_number(self, user):
         last_workout = Workout.objects.filter(owner=user).order_by('-workout_number').first()
         return (last_workout.workout_number + 1) if last_workout else 1
-
 
 
 # Show all workouts of all types
@@ -276,7 +335,54 @@ class GetSingleWorkoutView(APIView):
             logger.error(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    
+
+
+
+class GetSingleRunningWorkoutView(APIView):
+    """
+    Get a single running workout and return all related running session details,
+    including intervals and split times.
+    """
+
+    def get(self, request, workout_id):
+        user_id = request.query_params.get('user_id')
+
+        try:
+            # Fetch the Workout object with related running sessions and intervals
+            try:
+                workout = Workout.objects.prefetch_related(
+                    Prefetch(
+                        'running_sessions',
+                        queryset=SavedRunningSession.objects.prefetch_related(
+                            Prefetch(
+                                'saved_intervals',
+                                queryset=SavedRunningInterval.objects.prefetch_related(
+                                    'split_times'
+                                )
+                            )
+                        )
+                    )
+                ).get(id=workout_id, owner=user_id)
+            except Workout.DoesNotExist:
+                return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Ensure it's a running workout
+            if workout.activity_type != "Running":
+                return Response({'error': 'This endpoint only handles running workouts.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the workout and running session data
+            try:
+                serializer = PopulatedWorkoutSerializer(workout)
+                serialized_workout = serializer.data
+            except Exception as e:
+                return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response(serialized_workout, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     
 # Updating the status of a workout
 class UpdateWorkoutStatusView(APIView):

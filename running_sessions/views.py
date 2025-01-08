@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import RunningSession
 from .serializers.populated import PopulatedRunningSessionSerializer
+from .serializers.common import RunningSessionSerializer
 
 class RunningWorkoutsView(APIView):
     """
@@ -14,7 +15,7 @@ class RunningWorkoutsView(APIView):
             running_sessions = RunningSession.objects.all()
             
             # Serialize the data
-            serializer = PopulatedRunningSessionSerializer(running_sessions, many=True)
+            serializer = RunningSessionSerializer(running_sessions, many=True)
             
             # Return the serialized data
             return Response(serializer.data, status=status.HTTP_200_OK)

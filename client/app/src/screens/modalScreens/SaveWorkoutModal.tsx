@@ -68,7 +68,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
         try {
             const userId = await AsyncStorage.getItem("userId");
             const formattedDate = selectedDate.toISOString().split("T")[0];
-
+            console.log('workout to save: ', currentWorkout)
             // Dynamically structure the payload based on the workout type
             let payload = {
                 user_id: userId,
@@ -81,23 +81,42 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
 
             if (workoutType === "Gym") {
                 payload.description = "Custom generated workout",
-                payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3; // Add complexity for gym workouts
-                payload.sections = workoutPlan.map((section, index) => ({
-                    section_name: section.partLabel,
-                    section_order: index + 1,
-                    section_type: section.sectionType,
-                    movements: section.movements.map((movement, movementIndex) => ({
-                        movement_name: movement,
-                        movement_order: movementIndex + 1,
-                    })),
-                }));
+                    payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
+                    payload.sections = workoutPlan.map((section, index) => ({
+                        section_name: section.partLabel,
+                        section_order: index + 1,
+                        section_type: section.sectionType,
+                        movements: section.movements.map((movement, movementIndex) => ({
+                            movement_name: movement,
+                            movement_order: movementIndex + 1,
+                        })),
+                    }));
             } else if (workoutType === "Running") {
-                payload.description = currentWorkout.session_name
-                payload.complexity = 0; // Running doesn't require complexity
-                // Add running-specific fields if required, e.g., distance or pace
-                // payload.distance = workoutPlan.distance || null;
-                // payload.pace = workoutPlan.pace || null;
-                // payload.intervals = workoutPlan.intervals || [];
+                payload.description = currentWorkout.session_name;
+                payload.complexity = 0; // Fixed complexity for running
+                payload.running_sessions = {
+                    running_session_id: currentWorkout.id, // ID of the selected running session
+                    rpe: workoutPlan.rpe || null, // User-provided RPE
+                    comments: workoutPlan.comments || null, // User comments
+                    suggested_warmup_pace: workoutPlan.warmupPace, // Pre-calculated warmup pace
+                    suggested_cooldown_pace: workoutPlan.cooldownPace, // Pre-calculated cooldown pace
+                    warmup_distance: workoutPlan.warmup_distance,
+                    cooldown_distance: workoutPlan.cool_down_distance,
+                    total_distance: workoutPlan.total_distance,
+                    saved_intervals: currentWorkout.augmentedIntervals.map((interval) => ({
+                        repeat_variation: interval.repeat_variation, // Variation of the interval
+                        repeats: interval.repeats, // Number of repeats
+                        repeat_distance: interval.repeat_distance, // Distance of each repeat
+                        target_interval: interval.targetPaceInSeconds, // Target pace for the interval
+                        comments: interval.comments || null, // User comments for the interval
+                        split_times: Array.from({ length: interval.repeats }, (_, index) => ({
+                            repeat_number: index + 1, // Generate repeat numbers from 1 to `repeats`
+                            time_in_seconds: interval.targetPaceInSeconds,
+                            actual_time: null, // Placeholder for user-provided actual time
+                            comments: null, // Placeholder for user-provided comments
+                        })),
+                    })),
+                };
             }
 
             const response = await axios.post(
@@ -118,61 +137,97 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             setIsBouncerLoading(true); // Start loading spinner
 
             const userId = await AsyncStorage.getItem("userId");
+            console.log("current workout ->", currentWorkout);
 
-            // 1️⃣ --- Fetch full workout details ---
-            const response = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${workoutId}/`, {
-                params: { user_id: userId }
-            });
+            const endpoint =
+                currentWorkout.activity_type === "Running"
+                    ? `/api/saved_workouts/get-single-running-workout/${workoutId}/`
+                    : `/api/saved_workouts/get-single-workout/${workoutId}/`;
+
+            // Fetch full workout details
+            const response = await axios.get(`${ENV.API_URL}${endpoint}`, { params: { user_id: userId } });
 
             const workoutPlan = response.data;
+            console.log("workout response ->", workoutPlan);
 
             if (!workoutPlan) {
-                console.warn('Workout plan is missing or undefined.');
+                console.warn("Workout plan is missing or undefined.");
                 Alert.alert("Error", "Workout data is missing. Please try again.");
                 setIsBouncerLoading(false);
                 return;
             }
 
-            if (!workoutPlan.workout?.workout_sections || !Array.isArray(workoutPlan.workout.workout_sections)) {
-                console.warn('workout_sections is missing or not an array.', workoutPlan.workout?.workout_sections);
-                Alert.alert("Error", "Workout sections are missing. Please try again.");
-                setIsBouncerLoading(false);
-                return;
+            const formattedDate = selectedDate.toISOString().split("T")[0];
+            const activityType = workoutPlan.activity_type || workoutPlan.workout?.activity_type;
+            console.log('activity type: ', activityType)
+            let payload = {}; // Initialize an empty payload
+
+            if (activityType === "Gym") {
+                // Gym workout logic
+                payload = {
+                    user_id: userId,
+                    name: workoutPlan.workout.name || "Unnamed Workout",
+                    workout_number: workoutPlan.workout.workout_number,
+                    description: workoutPlan.workout.description || "No description",
+                    duration: workoutPlan.workout.duration || 0,
+                    complexity: workoutPlan.workout.complexity || 0,
+                    status: status,
+                    activity_type: workoutPlan.workout.activity_type,
+                    scheduled_date: status === "Scheduled" ? formattedDate : null,
+                    sections: workoutPlan.workout.workout_sections.map((section, index) => ({
+                        section_name: section.section_name,
+                        section_order: index + 1,
+                        section_type: section.section_type,
+                        movements: (section.section_movement_details || []).map((movement, movementIndex) => ({
+                            movement_name: movement.movements?.exercise,
+                            movement_order: movementIndex + 1,
+                            movement_difficulty: movement.movement_difficulty || 0,
+                        })),
+                    })),
+                };
+            } else if (activityType === "Running") {
+                // Running workout logic
+                const runningSession = workoutPlan.running_sessions[0]; // Assuming only one running session
+                payload = {
+                    user_id: userId,
+                    name: workoutPlan.name || "Unnamed Workout",
+                    workout_number: workoutPlan.workout_number,
+                    description: workoutPlan.description || "No description",
+                    duration: workoutPlan.duration || 0,
+                    complexity: workoutPlan.complexity || 0,
+                    status: status,
+                    activity_type: workoutPlan.activity_type,
+                    scheduled_date: status === "Scheduled" ? formattedDate : null,
+                    running_sessions: {
+                        running_session_id: runningSession.id || null,
+                        rpe: runningSession?.rpe || null,
+                        comments: runningSession?.comments || null,
+                        suggested_warmup_pace: runningSession?.suggested_warmup_pace || null,
+                        suggested_cooldown_pace: runningSession?.suggested_cooldown_pace || null,
+                        warmup_distance: runningSession?.warmup_distance || null,
+                        cooldown_distance: runningSession?.cooldown_distance || null,
+                        total_distance: runningSession?.total_distance || null,
+                        saved_intervals: runningSession?.saved_intervals.map((interval) => ({
+                            repeat_variation: interval.repeat_variation,
+                            repeats: interval.repeats,
+                            repeat_distance: interval.repeat_distance,
+                            target_interval: interval.target_pace,
+                            comments: interval.comments || null,
+                            split_times: interval.split_times.map((split, index) => ({
+                                repeat_number: index + 1,
+                                time_in_seconds: split.time_in_seconds,
+                                actual_time: split.actual_time || null,
+                                comments: split.comments || null,
+                            })),
+                        })),
+                    },
+                };
             }
 
-            const formattedDate = selectedDate.toISOString().split("T")[0];
-            console.log('activity ->', workoutPlan)
-            // 2️⃣ --- Format the Payload Properly ---
-            const payload = {
-                user_id: userId,
-                name: workoutPlan.workout?.name || 'Unnamed Workout',
-                comments: null,
-                description: workoutPlan.workout?.description || 'No description',
-                duration: workoutPlan.workout?.duration || 0,
-                complexity: workoutPlan.workout?.complexity || 0,
-                status: status,
-                activity_type: workoutPlan.workout?.activity_type,
-                scheduled_date: status === "Scheduled" ? formattedDate : null,
-                workout_number: workoutPlan.workout?.workout_number,
-                sections: workoutPlan.workout?.workout_sections.map((section, index) => ({
-                    section_name: section.section_name,
-                    section_order: index + 1,
-                    section_type: section.section_type,
-                    movements: (section.section_movement_details || []).map((movement, movementIndex) => ({
-                        movement_name: movement.movements?.exercise,
-                        movement_order: movementIndex + 1,
-                        movement_difficulty: movement.movement_difficulty || 0, // Optional if movement difficulty is included
-                    })),
-                })),
-            };
+            console.log("Payload for resave ->", payload);
 
-            console.log("Payload for resave ->", JSON.stringify(payload, null, 2)); // Debugging
-
-            // 3️⃣ --- Call the save endpoint ---
-            const saveResponse = await axios.post(
-                `${ENV.API_URL}/api/saved_workouts/save-workout/`,
-                payload
-            );
+            // Call the save endpoint
+            const saveResponse = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
 
             console.log("Workout duplicated successfully:", saveResponse.data);
             Alert.alert("Workout Added", "Your workout has been added to the calendar!");
@@ -184,6 +239,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             setIsBouncerLoading(false); // Remove loading spinner
         }
     };
+
 
 
 

@@ -1,11 +1,13 @@
-from rest_framework import serializers 
-from ..models import Workout
+from rest_framework import serializers
 from workout_sections.serializers.populated import PopulatedSectionSerializer
+from running_sessions.serializers.populated import PopulatedSavedRunningSessionSerializer
+from ..models import Workout
 
 class PopulatedWorkoutSerializer(serializers.ModelSerializer):
-    workout_sections = PopulatedSectionSerializer(many=True)  # Reference the workout sections
+    workout_sections = PopulatedSectionSerializer(many=True)  # Gym workout sections
+    running_sessions = PopulatedSavedRunningSessionSerializer(many=True)  # Running sessions
 
     class Meta:
         model = Workout
-        fields = ['id', 'name', 'description', 'status', 'complexity', 'duration', 'activity_type',
-                  'comments', 'workout_number', 'scheduled_date', 'workout_sections']
+        fields = '__all__'
+
