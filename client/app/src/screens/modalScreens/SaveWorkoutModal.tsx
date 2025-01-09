@@ -199,7 +199,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     activity_type: workoutPlan.activity_type,
                     scheduled_date: status === "Scheduled" ? formattedDate : null,
                     running_sessions: {
-                        running_session_id: runningSession.id || null,
+                        running_session_id: runningSession.running_session || null,
                         rpe: runningSession?.rpe || null,
                         comments: runningSession?.comments || null,
                         suggested_warmup_pace: runningSession?.suggested_warmup_pace || null,
@@ -224,7 +224,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 };
             }
 
-            console.log("Payload for resave ->", payload);
+            console.log("Payload for resave ->", JSON.stringify(payload, null, 2)); // Pretty print with 2 spaces
 
             // Call the save endpoint
             const saveResponse = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
