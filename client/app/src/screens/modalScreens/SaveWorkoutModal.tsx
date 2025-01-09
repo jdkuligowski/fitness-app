@@ -98,6 +98,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     running_session_id: currentWorkout.id, // ID of the selected running session
                     rpe: workoutPlan.rpe || null, // User-provided RPE
                     comments: workoutPlan.comments || null, // User comments
+                    workout_notes: workoutPlan.notes || null,
                     suggested_warmup_pace: workoutPlan.warmupPace, // Pre-calculated warmup pace
                     suggested_cooldown_pace: workoutPlan.cooldownPace, // Pre-calculated cooldown pace
                     warmup_distance: workoutPlan.warmup_distance,
@@ -109,6 +110,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         repeat_distance: interval.repeat_distance, // Distance of each repeat
                         target_interval: interval.targetPaceInSeconds, // Target pace for the interval
                         comments: interval.comments || null, // User comments for the interval
+                        rest_time:interval.rest_time || null,
                         split_times: Array.from({ length: interval.repeats }, (_, index) => ({
                             repeat_number: index + 1, // Generate repeat numbers from 1 to `repeats`
                             time_in_seconds: interval.targetPaceInSeconds,
@@ -202,6 +204,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         running_session_id: runningSession.running_session || null,
                         rpe: runningSession?.rpe || null,
                         comments: runningSession?.comments || null,
+                        workout_notes: runningSession?.notes || null,
                         suggested_warmup_pace: runningSession?.suggested_warmup_pace || null,
                         suggested_cooldown_pace: runningSession?.suggested_cooldown_pace || null,
                         warmup_distance: runningSession?.warmup_distance || null,
@@ -213,6 +216,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                             repeat_distance: interval.repeat_distance,
                             target_interval: interval.target_pace,
                             comments: interval.comments || null,
+                            rest_time:interval.rest_time || null,
                             split_times: interval.split_times.map((split, index) => ({
                                 repeat_number: index + 1,
                                 time_in_seconds: split.time_in_seconds,

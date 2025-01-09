@@ -28,5 +28,5 @@ urlpatterns = [
     path('api/workout_sections/', include('workout_sections.urls')),
     path('api/chat/', include('chat_message.urls')),
     path('api/running_sessions/', include('running_sessions.urls')),
-
+    path('api/saved_runs/', include('saved_runs.urls')),
 ]

@@ -12,3 +12,4 @@ class SavedRunningInterval(models.Model):
     target_pace = models.PositiveIntegerField(null=True, blank=True)  # Expected pace (seconds per km)
     average_actual_pace = models.PositiveIntegerField(null=True, blank=True)  # Actual pace (seconds per km)
     comments = models.TextField(null=True, blank=True)
+    rest_time = models.PositiveIntegerField(null=True, blank=True)  # Actual pace (seconds per km)

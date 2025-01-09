@@ -134,6 +134,7 @@ class SaveWorkoutView(APIView):
             total_distance=running_session_data.get('total_distance'),
             rpe=running_session_data.get('rpe'),
             comments=running_session_data.get('comments'),
+            workout_notes=running_session_data.get('workout_notes'),
             suggested_warmup_pace=running_session_data.get('suggested_warmup_pace'),
             suggested_cooldown_pace=running_session_data.get('suggested_cooldown_pace'),
         )
@@ -147,6 +148,7 @@ class SaveWorkoutView(APIView):
                 repeat_distance=interval_data.get('repeat_distance'),
                 target_pace=interval_data.get('target_interval'),
                 comments=interval_data.get('comments'),
+                rest_time=interval_data.get('rest_time'),
             )
 
             # Save split times

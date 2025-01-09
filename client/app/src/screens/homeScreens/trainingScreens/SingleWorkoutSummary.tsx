@@ -36,7 +36,7 @@ export default function WorkoutSummary({ route, navigation }) {
                 const { workout, movement_history } = response.data; // Destructure the response
                 setUserWorkouts(workout); // Set workout data
                 setMovementHistory(movement_history); // Set movement history data
-                console.log('Workout data ->', workout);
+                console.log('Workout data ->', JSON.stringify(workout, null, 2));
                 // console.log('Workout data ->', workout);
                 console.log('Movement history ->', movement_history);
                 setIsLoading(false)
@@ -60,11 +60,19 @@ export default function WorkoutSummary({ route, navigation }) {
             console.log('Workout status updated:', response.data);
 
 
+
             // Navigate to CompleteWorkout regardless of status
-            navigation.navigate('CompleteWorkout', {
-                workout: userWorkouts,
-                movementHistory: movementHistory
-            });
+            if (userWorkouts.activity_type === 'Gym') {
+                navigation.navigate('CompleteWorkout', {
+                    workout: userWorkouts,
+                    movementHistory: movementHistory
+                });
+            } else if ((userWorkouts.activity_type === 'Running')) {
+                navigation.navigate('CompleteRunningWorkout', {
+                    workout: userWorkouts,
+                    // movementHistory: movementHistory
+                });
+            }
 
         } catch (error) {
             console.error('Error updating workout status:', error.message);
@@ -171,7 +179,13 @@ export default function WorkoutSummary({ route, navigation }) {
                             // Running Layout
                             <>
                                 <Text style={styles.summaryDetail}>{userWorkouts.description}</Text>
-
+                                {userWorkouts.running_sessions.map((session, index) => (
+                                    session.workout_notes ? (
+                                        <Text key={`notes-${index}`} style={styles.summaryDetail}>
+                                            {session.workout_notes}
+                                        </Text>
+                                    ) : null
+                                ))}
                                 {userWorkouts.running_sessions.map((session, index) => (
                                     <View key={index} style={styles.sectionContainer}>
                                         <Text style={styles.sectionTitle}>Warmup</Text>
@@ -212,9 +226,14 @@ export default function WorkoutSummary({ route, navigation }) {
                                                             </Text>
                                                             <IntervalTime time={formatTime(interval.target_pace)} />
                                                         </View>
-                                                        {interval.comments && (
-                                                            <Text style={styles.movementDetail}>{interval.comments}</Text>
+                                                        {interval.rest_time && (
+                                                            <Text style={styles.movementDetail}>
+                                                                Rest: {interval.rest_time} seconds between intervals
+                                                            </Text>
                                                         )}
+                                                        {/* {interval.comments && (
+                                                            <Text style={styles.movementDetail}>{session.notes}</Text>
+                                                        )} */}
                                                     </View>
                                                 ))
                                             ) : (

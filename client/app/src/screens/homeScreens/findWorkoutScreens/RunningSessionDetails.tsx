@@ -163,7 +163,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                 })),
             };
         });
-    
+
         // Augment the workout with calculated warmup and cooldown times
         const augmentedWorkout = {
             ...workout,
@@ -171,10 +171,10 @@ export default function SuggestedRunningWorkouts({ route }) {
             warmupPace: warmupCooldownPaceInSeconds,
             cooldownPace: warmupCooldownPaceInSeconds,
         };
-    
+
         setCurrentWorkout(augmentedWorkout); // Pass the augmented workout to the modal
     };
-    
+
 
 
     const closeModal = () => {
@@ -270,8 +270,10 @@ export default function SuggestedRunningWorkouts({ route }) {
                                     </View>
                                     <View style={styles.dividerLine}></View>
                                     <Text style={styles.workoutActivity}>Workout Summary</Text>
-                                    <Text style={styles.summaryDetail}>{item.session_name}
-                                    </Text>
+                                    <Text style={styles.summaryDetail}>{item.session_name}</Text>
+                                    {item.notes === 'NULL' ? '' :
+                                        <Text style={styles.summaryDetail}>{item.notes}</Text>
+                                    }
                                     <ScrollView style={styles.workoutList}>
                                         <View style={styles.sectionContainer}>
                                             <Text style={styles.sectionTitle}>Warmup</Text>
