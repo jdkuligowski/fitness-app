@@ -231,9 +231,6 @@ export default function WorkoutSummary({ route, navigation }) {
                                                                 Rest: {interval.rest_time} seconds between intervals
                                                             </Text>
                                                         )}
-                                                        {/* {interval.comments && (
-                                                            <Text style={styles.movementDetail}>{session.notes}</Text>
-                                                        )} */}
                                                     </View>
                                                 ))
                                             ) : (
