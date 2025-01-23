@@ -39,9 +39,10 @@ export default function TrainingOverview() {
         level: '',
         time: null
     });
-    const workoutOptions = ['Gym session', 'Running', 'Rowing', 'Mobility', 'Bodyweight'];
+    const workoutOptions = ['Gym session', 'Running'];
+    // const workoutOptions = ['Gym session', 'Running', 'Rowing', 'Mobility', 'Bodyweight'];
     const typeOptions = ['Full Body', 'Lower Body', 'Upper Body'];
-    const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
+    // const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false); // Modal visibility state
     const flatListRef = useRef(null); // Ref for the FlatList
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
@@ -656,7 +657,7 @@ export default function TrainingOverview() {
                             </View>
 
                             {/* Level Filters */}
-                            <View style={styles.modalSubHeader}>
+                            {/* <View style={styles.modalSubHeader}>
                                 <Text style={styles.filterLabel}>Level</Text>
                                 <View style={styles.line} />
                             </View>
@@ -680,7 +681,7 @@ export default function TrainingOverview() {
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </View> */}
 
 
                             {/* Apply Filters Button */}

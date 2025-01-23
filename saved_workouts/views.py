@@ -26,6 +26,8 @@ from running_sessions.models import RunningSession
 from saved_run_intervals.models import SavedRunningInterval
 from saved_run_interval_times.models import SavedRunningSplitTime
 from saved_runs.serializers.populated import PopulatedSavedRunningSessionSerializer
+from saved_conditioning.models import ConditioningWorkout
+from conditioning_summary.models import ConditioningOverview
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -69,7 +71,6 @@ class SaveWorkoutView(APIView):
         else:
             workout_number = self._get_workout_number(user)  # Generate a new workout_number
 
-        
         # Process and save gym workout
         workout = Workout.objects.create(
             name=data['name'],
@@ -91,14 +92,69 @@ class SaveWorkoutView(APIView):
                 section_name=section_data['section_name'],
                 section_order=section_data['section_order'],
             )
-            for movement_data in section_data['movements']:
-                movement = Movement.objects.get(exercise=movement_data['movement_name'])
-                SectionMovement.objects.create(
+
+            # Check if the section is "Conditioning"
+            if section_data['section_name'] == "Conditioning" and 'conditioning_workout' in section_data:
+                conditioning_workout = section_data['conditioning_workout']
+                conditioning_overview_id = conditioning_workout.get('conditioning_overview_id')
+
+                if not conditioning_overview_id:
+                    return Response(
+                        {'error': 'conditioning_overview_id is required for Conditioning sections'},
+                        status=400
+                    )
+
+                try:
+                    conditioning_overview = ConditioningOverview.objects.get(id=conditioning_overview_id)
+                except ConditioningOverview.DoesNotExist:
+                    return Response(
+                        {'error': f"ConditioningOverview with ID {conditioning_overview_id} does not exist"},
+                        status=400
+                    )
+
+                # Create ConditioningWorkout
+                ConditioningWorkout.objects.create(
                     section=section,
-                    movements=movement,
-                    movement_order=movement_data['movement_order'],
+                    conditioning_overview=conditioning_overview,
+                    comments=conditioning_workout.get('comments'),
+                    rpe=conditioning_workout.get('rpe'),
                 )
-        return Response({'message': 'Gym workout saved successfully', 'workout_id': workout.id}, status=201)
+
+                # Save Conditioning movements
+                for movement_data in conditioning_workout['movements']:
+                    try:
+                        movement = Movement.objects.get(exercise=movement_data['movement_name'])
+                    except Movement.DoesNotExist:
+                        return Response(
+                            {'error': f"Movement '{movement_data['movement_name']}' does not exist"},
+                            status=400
+                        )
+                    SectionMovement.objects.create(
+                        section=section,
+                        movements=movement,
+                        movement_order=movement_data['movement_order'],
+                    )
+            else:
+                # Save standard movements for non-conditioning sections
+                for movement_data in section_data['movements']:
+                    try:
+                        movement = Movement.objects.get(exercise=movement_data['movement_name'])
+                    except Movement.DoesNotExist:
+                        return Response(
+                            {'error': f"Movement '{movement_data['movement_name']}' does not exist"},
+                            status=400
+                        )
+                    SectionMovement.objects.create(
+                        section=section,
+                        movements=movement,
+                        movement_order=movement_data['movement_order'],
+                    )
+
+        serialized_workout = PopulatedWorkoutSerializer(workout).data
+        return Response({'message': 'Gym workout saved successfully', 'workout': serialized_workout}, status=201)
+
+
+
 
     def _save_running_workout(self, data, user):
         print("Received data:", data)  # Debugging the incoming payload
@@ -134,7 +190,7 @@ class SaveWorkoutView(APIView):
             total_distance=running_session_data.get('total_distance'),
             rpe=running_session_data.get('rpe'),
             comments=running_session_data.get('comments'),
-            workout_notes=running_session_data.get('workout_notes'),
+            workout_notes=running_session_data.get('comments'),
             suggested_warmup_pace=running_session_data.get('suggested_warmup_pace'),
             suggested_cooldown_pace=running_session_data.get('suggested_cooldown_pace'),
         )
@@ -457,9 +513,8 @@ class UpdateWorkoutDateView(APIView):
 
 
 
-# View for completing gym workouts
-class CompleteWorkoutAPIView(APIView):
 
+class CompleteWorkoutAPIView(APIView):
     def put(self, request, workout_id):
         user_id = request.query_params.get('user_id')
 
@@ -496,12 +551,32 @@ class CompleteWorkoutAPIView(APIView):
             
             sections = Section.objects.filter(id__in=section_ids, workout=workout).select_related('workout')
             movements = SectionMovement.objects.filter(section__in=sections).select_related('section')
-            sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
+            existing_sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
+
+            # Create mappings for fast lookup
+            existing_sets_map = {
+                (set_instance.section_movement_id, set_instance.set_number): set_instance
+                for set_instance in existing_sets
+            }
 
             new_sets = []
+            sets_to_update = []
             valid_movement_ids = set()  # Only add movements with at least one set with valid reps/weight
+            conditioning_updates = []  # For bulk updating ConditioningWorkout entries
 
             for section_data in sections_data:
+                if 'conditioning_workouts' in section_data:
+                    # Handle ConditioningWorkout details
+                    for conditioning_data in section_data['conditioning_workouts']:
+                        conditioning_id = conditioning_data.get('conditioning_id')
+                        conditioning_instance = ConditioningWorkout.objects.filter(id=conditioning_id).first()
+
+                        if conditioning_instance:
+                            conditioning_instance.comments = conditioning_data.get('comments', conditioning_instance.comments)
+                            conditioning_instance.rpe = conditioning_data.get('rpe', conditioning_instance.rpe)
+                            conditioning_updates.append(conditioning_instance)
+
+                # Handle standard movements
                 for movement_data in section_data.get('movements', []):
                     movement_id = movement_data.get('movement_id')
                     movement = next((m for m in movements if m.id == movement_id), None)
@@ -512,15 +587,25 @@ class CompleteWorkoutAPIView(APIView):
                         for set_data in movement_data.get('sets', []):
                             reps = set_data.get('reps') or 0
                             weight = set_data.get('weight') or 0
-                            
-                            new_sets.append(
-                                Set(
-                                    section_movement=movement,
-                                    set_number=set_data.get('set_number'),
-                                    reps=reps,
-                                    weight=weight
+                            set_number = set_data.get('set_number')
+
+                            existing_set = existing_sets_map.get((movement_id, set_number))
+
+                            if existing_set:
+                                # Update existing set
+                                existing_set.reps = reps
+                                existing_set.weight = weight
+                                sets_to_update.append(existing_set)
+                            else:
+                                # Create new set
+                                new_sets.append(
+                                    Set(
+                                        section_movement=movement,
+                                        set_number=set_number,
+                                        reps=reps,
+                                        weight=weight
+                                    )
                                 )
-                            )
 
                             # Check if this set has valid reps and weight
                             if reps > 0 and weight > 0:
@@ -529,8 +614,15 @@ class CompleteWorkoutAPIView(APIView):
                         if movement_has_valid_set:  # Add movement to unique list if at least one set is valid
                             valid_movement_ids.add(movement_id)
 
+            # Save sets and conditioning updates
             if new_sets:
                 Set.objects.bulk_create(new_sets)
+            
+            if sets_to_update:
+                Set.objects.bulk_update(sets_to_update, ['reps', 'weight'])
+            
+            if conditioning_updates:
+                ConditioningWorkout.objects.bulk_update(conditioning_updates, ['comments', 'rpe'])
 
             # 6️⃣ --- Award Points for Movement Tracking ---
             for movement_id in valid_movement_ids:

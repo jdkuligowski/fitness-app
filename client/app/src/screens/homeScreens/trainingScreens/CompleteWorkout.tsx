@@ -12,6 +12,7 @@ import {
     ScrollView,
     TextInput,
     Keyboard,
+    Modal,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
@@ -24,7 +25,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { Colours } from '@/app/src/components/styles';
-
+import { Video } from 'expo-av';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -38,28 +39,57 @@ export default function CompleteWorkout({ route, navigation }) {
     // State to track the sets for each movement
     const [movementLogs, setMovementLogs] = useState({});
     const [movementSummaryDetails, setMovementSummaryDetails] = useState({})
+    const [conditioningDetails, setConditioningDetails] = useState({});
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [selectedMovement, setSelectedMovement] = useState(null);
 
     useEffect(() => {
         const initialLogs = {};
         const initialSummaryDetails = {};
+        const initialConditioningDetails = {}; // Add state for conditioning-specific details
+
         workout.workout_sections.forEach((section) => {
-            section.section_movement_details.forEach((movement) => {
-                initialLogs[movement.id] = movement.workout_sets.length > 0
-                    ? movement.workout_sets
-                    : [
-                        { set_number: 1, reps: null, weight: null },
-                        { set_number: 2, reps: null, weight: null },
-                        { set_number: 3, reps: null, weight: null },
-                    ];
-                initialSummaryDetails[movement.id] = {
-                    movement_difficulty: movement.movement_difficulty ?? 0, // Use the correct name from the backend
-                    movement_comments: movement.movement_comment ?? '', // Use the correct name from the backend
-                };
-            });
+            if (section.section_name === "Conditioning" && section.conditioning_elements.length > 0) {
+                // Handle Conditioning section
+                section.conditioning_elements.forEach((conditioning) => {
+                    initialConditioningDetails[conditioning.id] = {
+                        comments: conditioning.comments || '', // Set initial comments
+                        rpe: conditioning.rpe || 0,           // Set initial RPE
+                    };
+
+                    // If conditioning details exist, handle movements inside them
+                    conditioning.conditioning_overview.conditioning_details.forEach((detail) => {
+                        initialLogs[detail.id] = [{ set_number: 1, reps: null, weight: null }];
+                        initialSummaryDetails[detail.id] = {
+                            movement_difficulty: 0,
+                            movement_comments: '',
+                        };
+                    });
+                });
+            } else {
+                // Handle non-conditioning sections
+                section.section_movement_details.forEach((movement) => {
+                    initialLogs[movement.id] = movement.workout_sets.length > 0
+                        ? movement.workout_sets
+                        : [
+                            { set_number: 1, reps: null, weight: null },
+                            { set_number: 2, reps: null, weight: null },
+                            { set_number: 3, reps: null, weight: null },
+                        ];
+                    initialSummaryDetails[movement.id] = {
+                        movement_difficulty: movement.movement_difficulty ?? 0,
+                        movement_comments: movement.movement_comment ?? '',
+                    };
+                });
+            }
         });
+
         setMovementLogs(initialLogs);
         setMovementSummaryDetails(initialSummaryDetails);
+        setConditioningDetails(initialConditioningDetails); // Set conditioning details state
     }, [workout]);
+
 
 
 
@@ -141,24 +171,48 @@ export default function CompleteWorkout({ route, navigation }) {
         }));
     };
 
+    const handleConditioningChange = (conditioningId, field, value) => {
+        setConditioningDetails((prevDetails) => ({
+            ...prevDetails,
+            [conditioningId]: {
+                ...prevDetails[conditioningId],
+                [field]: value,
+            },
+        }));
+    };
 
 
     const saveWorkout = async () => {
-        setIsBouncerLoading(true)
+        setIsBouncerLoading(true);
+
         const payload = {
-            sections: workout.workout_sections.map((section) => ({
-                section_id: section.id,
-                movements: section.section_movement_details.map((movement) => ({
-                    movement_id: movement.id,
-                    movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0, // Use the correct key from backend
-                    movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '', // Use the correct key from backend
-                    sets: movementLogs[movement.id]?.map((set) => ({
-                        set_number: set.set_number,
-                        reps: set.reps,
-                        weight: set.weight,
-                    })) || [],
-                })),
-            })),
+            sections: workout.workout_sections.map((section) => {
+                if (section.section_name === "Conditioning" && section.conditioning_elements.length > 0) {
+                    // Include conditioning-specific details
+                    return {
+                        section_id: section.id,
+                        conditioning_workouts: section.conditioning_elements.map((conditioning) => ({
+                            conditioning_id: conditioning.id,
+                            comments: conditioningDetails[conditioning.id]?.comments || '', // Conditioning comments
+                            rpe: conditioningDetails[conditioning.id]?.rpe || 0,           // Conditioning RPE
+                        })),
+                    };
+                }
+                // For non-conditioning sections
+                return {
+                    section_id: section.id,
+                    movements: section.section_movement_details.map((movement) => ({
+                        movement_id: movement.id,
+                        movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0,
+                        movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '',
+                        sets: movementLogs[movement.id]?.map((set) => ({
+                            set_number: set.set_number,
+                            reps: set.reps,
+                            weight: set.weight,
+                        })) || [],
+                    })),
+                };
+            }),
         };
 
         console.log('Payload:', JSON.stringify(payload, null, 2)); // Log payload for debugging
@@ -184,26 +238,37 @@ export default function CompleteWorkout({ route, navigation }) {
         } catch (error) {
             console.error('Error saving workout:', error);
             alert('Error saving workout. Please try again.');
+        } finally {
+            setIsBouncerLoading(false);
         }
-        setIsBouncerLoading(false)
     };
 
 
     const completeWorkout = async () => {
-        setIsBouncerLoading(true)
+        setIsBouncerLoading(true);
+
         const payload = {
             sections: workout.workout_sections.map((section) => ({
                 section_id: section.id,
                 movements: section.section_movement_details.map((movement) => ({
                     movement_id: movement.id,
-                    movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0, // Use the correct key from backend
-                    movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '', // Use the correct key from backend
+                    movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0,
+                    movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '',
                     sets: movementLogs[movement.id]?.map((set) => ({
                         set_number: set.set_number,
                         reps: set.reps,
                         weight: set.weight,
                     })) || [],
                 })),
+                ...(section.section_name === "Conditioning" && section.conditioning_elements.length > 0
+                    ? {
+                        conditioning_workouts: section.conditioning_elements.map((conditioning) => ({
+                            conditioning_id: conditioning.id,
+                            comments: conditioningDetails[conditioning.id]?.comments || '',
+                            rpe: conditioningDetails[conditioning.id]?.rpe || 0,
+                        })),
+                    }
+                    : {}),
             })),
         };
 
@@ -211,36 +276,33 @@ export default function CompleteWorkout({ route, navigation }) {
 
         try {
             const userId = await AsyncStorage.getItem('userId');
-            const response = await axios.put(`${ENV.API_URL}/api/saved_workouts/complete-workout/${workout.id}/`, payload, {
-                params: { user_id: userId }
-            });
-            setIsBouncerLoading(false)
-            navigation.navigate('TrainingOverview')
+            const response = await axios.put(
+                `${ENV.API_URL}/api/saved_workouts/complete-workout/${workout.id}/`,
+                payload,
+                { params: { user_id: userId } }
+            );
+            setIsBouncerLoading(false);
+            navigation.navigate('TrainingOverview');
             alert('Workout completed successfully!');
         } catch (error) {
             console.error('Error saving workout:', error);
             if (error.response && error.response.data) {
                 alert(`Error: ${error.response.data.error}`);
-                setIsBouncerLoading(false)
             } else {
                 alert('Error saving workout. Please try again.');
-                setIsBouncerLoading(false)
             }
+            setIsBouncerLoading(false);
         }
-
     };
 
+    const playVideo = (movementId) => {
+        setSelectedMovement(movementId);
+    };
 
-    // if (isLoading) {
-    //     return (
-    //         <View style={styles.loadingContainer}>
-    //             <Image
-    //                 source={require('../../../../../assets/images/bouncing-ball-loader-white.gif')} // Make sure this path is correct
-    //                 style={styles.loadingImage}
-    //             />
-    //         </View>
-    //     );
-    // }
+    const closeVideo = () => {
+        setSelectedMovement(null);
+    };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -278,22 +340,15 @@ export default function CompleteWorkout({ route, navigation }) {
                                 <View style={styles.line} />
                             </View>
 
-                            {/* Vertical ScrollView for Movements */}
-                            <ScrollView
-                                contentContainerStyle={styles.movementScrollContainer}
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {item.section_movement_details.map((movement, movementIndex) => (
-                                    <View key={movementIndex} style={styles.movementContainer}>
-                                        {/* Movement Subtitle */}
-                                        <Text style={styles.movementSubtitle}>{movement.movements.exercise}</Text>
-
+                            {item.section_name === "Conditioning" ? (
+                                <>
+                                    <View style={styles.conditioningContainer}>
                                         <View style={styles.tabs}>
                                             {['Summary', 'Log', 'History'].map((tab) => {
                                                 const tabColors = {
-                                                    'Summary': '#DFD7F3',  // Purple for active "Summary" tab
-                                                    'Log': '#D6F7F4',      // Teal for active "Log" tab
-                                                    'History': '#FFDCDD'   // Pink for active "History" tab
+                                                    'Summary': '#DFD7F3', // Purple for active "Summary" tab
+                                                    'Log': '#D6F7F4', // Teal for active "Log" tab
+                                                    'History': '#FFDCDD' // Pink for active "History" tab
                                                 };
 
                                                 return (
@@ -314,223 +369,399 @@ export default function CompleteWorkout({ route, navigation }) {
                                                             {tab}
                                                         </Text>
                                                     </TouchableOpacity>
-                                                )
+                                                );
                                             })}
                                         </View>
-
-
-                                        {/* Dynamic Tab Content */}
-                                        {activeTab === 'Summary' && (
-                                            <View style={styles.tabContent}>
-                                                <Image
-                                                    style={styles.movementImage}
-                                                // source={require('../../../../../assets/images/sample-exercise.png')} // Replace with actual image path
-                                                />
-                                                <Text style={styles.movementName}>
-                                                    {movement.movements.exercise}
-                                                </Text>
-                                                <Text style={styles.movementDescription}>
-                                                    {/* {`Perform ${movement.movement_order} reps with proper form.`} */}
-                                                </Text>
-                                            </View>
-                                        )}
-                                        {activeTab === 'Log' && (
-                                            <KeyboardAwareScrollView
-                                                contentContainerStyle={styles.scrollContent}
-                                                enableOnAndroid={true} // Ensure keyboard avoidance works on Android
-                                                extraScrollHeight={100} // Adjust to provide extra space when the keyboard appears
-                                            >
-                                                <View style={styles.tabContent}>
-                                                    <View style={styles.logContent}>
-                                                        {item.section_name !== 'Warmup' && (
-                                                            <View style={styles.logContentHeader}>
-                                                                <Text style={styles.exerciseLabel}>Set details</Text>
-                                                                {/* Hide the add set button for warmup */}
-                                                                <TouchableOpacity
-                                                                    style={styles.addSetButton}
-                                                                    onPress={() => handleAddSet(movement.id)}
-                                                                >
-                                                                    <Ionicons name="add-circle-outline" size={24} color="black" />
-                                                                </TouchableOpacity>
-                                                            </View>
-                                                        )}
-                                                        {/* Hide set details for warmup section */}
-                                                        {item.section_name !== 'Warmup' && movementLogs[movement.id]?.map((set, setIndex) => (
-                                                            <View key={setIndex} style={styles.setRow}>
-                                                                <Text style={styles.setNumber}>{setIndex + 1}</Text>
-                                                                <View style={styles.weightInput}>
-                                                                    <Text style={styles.weightText}>Weight</Text>
-                                                                    <View style={styles.weightInputRow}>
-                                                                        <TextInput
-                                                                            style={styles.input}
-                                                                            keyboardType="numeric"
-                                                                            value={set.weight !== null && set.weight !== undefined ? String(set.weight) : ''}
-                                                                            onChangeText={(value) => {
-                                                                                const numericValue = value === '' ? null : parseInt(value, 10);
-                                                                                handleSetChange(movement.id, setIndex, 'weight', numericValue);
-                                                                            }}
-                                                                        />
-                                                                        <Text style={styles.weightText}>KG</Text>
-                                                                    </View>
-                                                                </View>
-                                                                <Text>x</Text>
-                                                                <View style={styles.weightInput}>
-                                                                    <Text style={styles.weightText}>Reps</Text>
-                                                                    <View style={styles.weightInputRow}>
-                                                                        <TextInput
-                                                                            style={styles.input}
-                                                                            keyboardType="numeric"
-                                                                            value={set.reps !== null && set.reps !== undefined ? String(set.reps) : ''}
-                                                                            onChangeText={(value) => {
-                                                                                const numericValue = value.trim() === '' ? null : parseInt(value, 10);
-                                                                                handleSetChange(movement.id, setIndex, 'reps', numericValue);
-                                                                            }}
-                                                                        />
-                                                                    </View>
-                                                                </View>
-
-                                                                <TouchableOpacity
-                                                                    onPress={() => handleRemoveSet(movement.id, setIndex)}
-                                                                >
-                                                                    <Ionicons name="remove-circle-outline" size={24} color="black" />
-                                                                </TouchableOpacity>
+                                        <View style={styles.tabContent}>
+                                            {activeTab === 'Summary' && (
+                                                <View style={styles.summaryContent}>
+                                                    <Image
+                                                        style={styles.movementImage} />
+                                                    <View style={styles.conditioningDetails}>
+                                                        <Text style={styles.sectionTitle}>{item.conditioning_elements[0].conditioning_overview.name}</Text>
+                                                        <Text style={styles.conditioningDescription}>
+                                                            {item.conditioning_elements[0].conditioning_overview.notes}
+                                                        </Text>
+                                                        {item.conditioning_elements[0].conditioning_overview.conditioning_details.map((detail, index) => (
+                                                            <View key={index} style={styles.movementDetails}>
+                                                                <Text style={styles.movementDetail}>
+                                                                    {detail.detail && detail.detail !== "No detail provided" ? `${detail.detail} ` : ""}
+                                                                </Text>
+                                                                {/* <Text style={styles.movementName}>{detail.exercise}</Text> */}
+                                                                <Text style={styles.movementDetail}>{detail.exercise}</Text>
                                                             </View>
                                                         ))}
-
-                                                        {/* Comment Block */}
-                                                        <View style={styles.commentBlock}>
-                                                            <Text style={styles.exerciseLabel}>Comments</Text>
-                                                            <TextInput
-                                                                style={styles.commentInput}
-                                                                value={movementSummaryDetails[movement.id]?.movement_comments ?? ''}
-                                                                onChangeText={(value) => handleSummaryChange(movement.id, 'movement_comments', value)}
-                                                                placeholder="Enter your comments"
-                                                            />
-                                                        </View>
-
-                                                        {/* RPE Block */}
-                                                        <View style={styles.commentBlock}>
-                                                            <Text style={styles.exerciseLabel}>RPE: {movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}</Text>
-                                                            <Slider
-                                                                style={styles.slider}
-                                                                minimumValue={0}
-                                                                maximumValue={10}
-                                                                step={1}
-                                                                minimumTrackTintColor="#D6F7F4"
-                                                                value={movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}
-                                                                onValueChange={(value) => handleSummaryChange(movement.id, 'movement_difficulty', value)}
-                                                            />
-                                                        </View>
-
+                                                        {item.conditioning_elements[0].conditioning_overview.rest > 0 && (
+                                                            <View style={styles.movementDetails}>
+                                                                <Text style={styles.movementDetail}>
+                                                                    Rest for {item.conditioning_elements[0].conditioning_overview.rest} seconds between rounds
+                                                                </Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </View>
+                                            )}
+                                            {activeTab === 'Log' && (
+                                                <>
+                                                    <View style={styles.logContent}>
+                                                        {item.conditioning_elements.map((conditioning) => (
+                                                            <>
+                                                                <View key={conditioning.id} style={styles.commentBlock}>
+                                                                    {/* Comments */}
+                                                                    <Text style={styles.exerciseLabel}>Comments</Text>
+                                                                    <TextInput
+                                                                        style={styles.commentInput}
+                                                                        value={conditioningDetails[conditioning.id]?.comments || ''}
+                                                                        onChangeText={(value) => handleConditioningChange(conditioning.id, 'comments', value)}
+                                                                        placeholder="Enter your comments" />
+                                                                </View>
+                                                                <View style={styles.commentBlock}>
+                                                                    <Text style={styles.exerciseLabel}>RPE: {conditioningDetails[conditioning.id]?.rpe || 0}</Text>
+                                                                    <Slider
+                                                                        style={styles.slider}
+                                                                        minimumValue={0}
+                                                                        maximumValue={10}
+                                                                        step={1}
+                                                                        minimumTrackTintColor="#D6F7F4"
+                                                                        value={conditioningDetails[conditioning.id]?.rpe || 0}
+                                                                        onValueChange={(value) => handleConditioningChange(conditioning.id, 'rpe', value)} />
+                                                                </View>
+                                                            </>
+                                                        ))}
                                                         <TouchableOpacity style={styles.saveButton} onPress={() => saveWorkout()}>
                                                             <Text style={styles.saveButtonText}>Save details</Text>
                                                         </TouchableOpacity>
                                                     </View>
+                                                </>
+                                            )}
+                                            {activeTab === 'History' && (
+                                                <View>
+                                                    {/* Add History-specific UI for Conditioning */}
+                                                    <Text style={styles.placeholderText}>History content for conditioning</Text>
                                                 </View>
-                                            </KeyboardAwareScrollView>
-                                        )}
+                                            )}
+                                        </View>
+                                    </View>
+                                    <View style={styles.navigationContainer}>
+                                        <TouchableOpacity
+                                            style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
+                                            onPress={handlePrevious}
+                                            disabled={currentStage === 0}
+                                        >
+                                            <Ionicons name="arrow-back" size={24} color="white" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
+                                            <Text style={styles.finishButtonText}>Finish Workout</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.navButton,
+                                                currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
+                                            ]}
+                                            onPress={handleNext}
+                                            disabled={currentStage === workout.workout_sections.length - 1}
+                                        >
+                                            <Ionicons name="arrow-forward" size={24} color="white" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            ) : (
+                                < ScrollView
+                                    contentContainerStyle={styles.movementScrollContainer}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    {item.section_movement_details.map((movement, movementIndex) => (
+                                        <View key={movementIndex} style={styles.movementContainer}>
+                                            {/* Movement Subtitle */}
+                                            <Text style={styles.movementSubtitle}>{movement.movements.exercise}</Text>
 
-                                        {activeTab === 'History' && (
-                                            <View style={styles.tabContent}>
-                                                <View style={styles.historyContent}>
-                                                    <Text style={styles.exerciseLabel}>
-                                                        {movement.movements.exercise} history
-                                                    </Text>
+                                            <View style={styles.tabs}>
+                                                {['Summary', 'Log', 'History'].map((tab) => {
+                                                    const tabColors = {
+                                                        'Summary': '#DFD7F3',  // Purple for active "Summary" tab
+                                                        'Log': '#D6F7F4',      // Teal for active "Log" tab
+                                                        'History': '#FFDCDD'   // Pink for active "History" tab
+                                                    };
 
-                                                    {/* Get history for the current exercise ID */}
-                                                    {movementHistory && movementHistory[movement.movements.id] ? (
-                                                        movementHistory[movement.movements.id].length > 0 ? (
-                                                            movementHistory[movement.movements.id]
-                                                                .filter(dateGroup =>
-                                                                    dateGroup.sets.length > 0 && // Ensure the date has sets
-                                                                    dateGroup.sets.some(set => set.reps !== null && set.weight !== null) // Ensure at least one set has valid data
-                                                                )
-                                                                .map((dateGroup, index) => (
-                                                                    <View key={index} style={styles.historyItem}>
-                                                                        {/* Date */}
-                                                                        <View style={styles.dateBox}>
-                                                                            <Text style={styles.historyDate}>
-                                                                                {new Date(dateGroup.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                                            </Text>
-                                                                            <View style={styles.divider}></View>
-                                                                        </View>
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={tab}
+                                                            style={[
+                                                                styles.tab,
+                                                                { backgroundColor: activeTab === tab ? tabColors[tab] : '#FFFFFF' }, // White if inactive, color if active
+                                                            ]}
+                                                            onPress={() => setActiveTab(tab)}
+                                                        >
+                                                            <Text
+                                                                style={[
+                                                                    styles.tabText,
+                                                                    activeTab === tab && styles.activeTabText, // Apply active text style only to active tab
+                                                                ]}
+                                                            >
+                                                                {tab}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    )
+                                                })}
+                                            </View>
 
-                                                                        {/* Sets and Movement Difficulty */}
-                                                                        <View style={styles.allScoresContainer}>
-                                                                            {/* Sets */}
-                                                                            <View style={styles.setsContainer}>
-                                                                                {dateGroup.sets
-                                                                                    .filter(set => set.reps !== null && set.weight !== null) // Only show sets with valid values
-                                                                                    .sort((a, b) => a.set_number - b.set_number) // Sort sets in ascending order by set_number
-                                                                                    .map((set, setIndex) => (
-                                                                                        <View key={setIndex} style={styles.setItem}>
-                                                                                            <Text style={styles.setSubNumber}>{set.set_number}</Text>
-                                                                                            {set.weight !== null && set.weight !== undefined ? (
-                                                                                                <>
-                                                                                                    <Text style={styles.setValue}>{set.weight}</Text>
-                                                                                                    <Text style={styles.setMetric}>KG</Text>
-                                                                                                </>
-                                                                                            ) : null}
-                                                                                            <Text style={styles.setCross}>x</Text>
-                                                                                            {set.reps !== null && set.reps !== undefined ? (
-                                                                                                <>
-                                                                                                    <Text style={styles.setValue}>{set.reps}</Text>
-                                                                                                    <Text style={styles.setMetric}>Reps</Text>
-                                                                                                </>
-                                                                                            ) : null}
-                                                                                        </View>
-                                                                                    ))}
-                                                                            </View>
 
-                                                                            {/* Movement Difficulty */}
-                                                                            {dateGroup.movement_difficulty !== null && dateGroup.movement_difficulty !== undefined ? (
-                                                                                <View style={styles.scoreContainer}>
-                                                                                    <RPEGauge score={dateGroup.movement_difficulty} />
-                                                                                </View>
-                                                                            ) : null}
+                                            {/* Dynamic Tab Content */}
+                                            {/* Dynamic Tab Content */}
+                                            {activeTab === 'Summary' && (
+                                                <View style={styles.tabContent}>
+                                                    {movement.movements?.portrait_video_url && movement.movements?.landscape_thumbnail ? (
+                                                        <>
+                                                            {/* Thumbnail Button */}
+                                                            <TouchableOpacity
+                                                                onPress={() => setSelectedMovement(movement.movements)} // Set the current movement when thumbnail is clicked
+                                                            >
+                                                                <Image
+                                                                    style={styles.thumbnail}
+                                                                    source={{ uri: movement.movements.landscape_thumbnail }}
+                                                                />
+                                                            </TouchableOpacity>
+
+                                                            {/* Modal for Full-Screen Video */}
+                                                            {selectedMovement?.id === movement.movements.id && (
+                                                                <Modal
+                                                                    animationType="slide"
+                                                                    transparent={false}
+                                                                    visible={!!selectedMovement} // Only visible for the selected movement
+                                                                    onRequestClose={() => setSelectedMovement(null)} // Reset when closed
+                                                                >
+                                                                    <View style={styles.modalContainer}>
+                                                                        <Video
+                                                                            key={selectedMovement.portrait_video_url} // Ensures re-render when URL changes
+                                                                            source={{ uri: selectedMovement.portrait_video_url }}
+                                                                            style={styles.fullScreenVideo}
+                                                                            resizeMode="contain"
+                                                                            useNativeControls
+                                                                            shouldPlay
+                                                                            onError={(error) => console.error('Video Error:', error)}
+                                                                        />
+                                                                        {/* Close Button */}
+                                                                        <TouchableOpacity
+                                                                            style={styles.closeButton}
+                                                                            onPress={() => setSelectedMovement(null)} // Close modal
+                                                                        >
+                                                                            <Ionicons name="close" size={24} color="white" />
+                                                                        </TouchableOpacity>
+                                                                    </View>
+                                                                </Modal>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <View style={styles.thumbnail}>
+                                                            <Text style={styles.noVideoText}>Video coming soon</Text>
+                                                        </View>
+                                                    )}
+                                                    <Text style={styles.movementName}>{movement.movements.exercise}</Text>
+                                                </View>
+                                            )}
+
+
+
+
+
+                                            {activeTab === 'Log' && (
+                                                <KeyboardAwareScrollView
+                                                    contentContainerStyle={styles.scrollContent}
+                                                    enableOnAndroid={true} // Ensure keyboard avoidance works on Android
+                                                    extraScrollHeight={100} // Adjust to provide extra space when the keyboard appears
+                                                >
+                                                    <View style={styles.tabContent}>
+                                                        <View style={styles.logContent}>
+                                                            {item.section_name !== 'Warmup' && (
+                                                                <View style={styles.logContentHeader}>
+                                                                    <Text style={styles.exerciseLabel}>Set details</Text>
+                                                                    {/* Hide the add set button for warmup */}
+                                                                    <TouchableOpacity
+                                                                        style={styles.addSetButton}
+                                                                        onPress={() => handleAddSet(movement.id)}
+                                                                    >
+                                                                        <Ionicons name="add-circle-outline" size={24} color="black" />
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            )}
+                                                            {/* Hide set details for warmup section */}
+                                                            {item.section_name !== 'Warmup' && movementLogs[movement.id]?.map((set, setIndex) => (
+                                                                <View key={setIndex} style={styles.setRow}>
+                                                                    <Text style={styles.setNumber}>{setIndex + 1}</Text>
+                                                                    <View style={styles.weightInput}>
+                                                                        <Text style={styles.weightText}>Weight</Text>
+                                                                        <View style={styles.weightInputRow}>
+                                                                            <TextInput
+                                                                                style={styles.input}
+                                                                                keyboardType="numeric"
+                                                                                value={set.weight !== null && set.weight !== undefined ? String(set.weight) : ''}
+                                                                                onChangeText={(value) => {
+                                                                                    const numericValue = value === '' ? null : parseInt(value, 10);
+                                                                                    handleSetChange(movement.id, setIndex, 'weight', numericValue);
+                                                                                }}
+                                                                            />
+                                                                            <Text style={styles.weightText}>KG</Text>
                                                                         </View>
                                                                     </View>
-                                                                ))
+                                                                    <Text>x</Text>
+                                                                    <View style={styles.weightInput}>
+                                                                        <Text style={styles.weightText}>Reps</Text>
+                                                                        <View style={styles.weightInputRow}>
+                                                                            <TextInput
+                                                                                style={styles.input}
+                                                                                keyboardType="numeric"
+                                                                                value={set.reps !== null && set.reps !== undefined ? String(set.reps) : ''}
+                                                                                onChangeText={(value) => {
+                                                                                    const numericValue = value.trim() === '' ? null : parseInt(value, 10);
+                                                                                    handleSetChange(movement.id, setIndex, 'reps', numericValue);
+                                                                                }}
+                                                                            />
+                                                                        </View>
+                                                                    </View>
+
+                                                                    <TouchableOpacity
+                                                                        onPress={() => handleRemoveSet(movement.id, setIndex)}
+                                                                    >
+                                                                        <Ionicons name="remove-circle-outline" size={24} color="black" />
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            ))}
+
+                                                            {/* Comment Block */}
+                                                            <View style={styles.commentBlock}>
+                                                                <Text style={styles.exerciseLabel}>Comments</Text>
+                                                                <TextInput
+                                                                    style={styles.commentInput}
+                                                                    value={movementSummaryDetails[movement.id]?.movement_comments ?? ''}
+                                                                    onChangeText={(value) => handleSummaryChange(movement.id, 'movement_comments', value)}
+                                                                    placeholder="Enter your comments"
+                                                                />
+                                                            </View>
+
+                                                            {/* RPE Block */}
+                                                            <View style={styles.commentBlock}>
+                                                                <Text style={styles.exerciseLabel}>RPE: {movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}</Text>
+                                                                <Slider
+                                                                    style={styles.slider}
+                                                                    minimumValue={0}
+                                                                    maximumValue={10}
+                                                                    step={1}
+                                                                    minimumTrackTintColor="#D6F7F4"
+                                                                    value={movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}
+                                                                    onValueChange={(value) => handleSummaryChange(movement.id, 'movement_difficulty', value)}
+                                                                />
+                                                            </View>
+
+                                                            <TouchableOpacity style={styles.saveButton} onPress={() => saveWorkout()}>
+                                                                <Text style={styles.saveButtonText}>Save details</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                </KeyboardAwareScrollView>
+                                            )}
+
+                                            {activeTab === 'History' && (
+                                                <View style={styles.tabContent}>
+                                                    <View style={styles.historyContent}>
+                                                        <Text style={styles.exerciseLabel}>
+                                                            {movement.movements.exercise} history
+                                                        </Text>
+
+                                                        {/* Get history for the current exercise ID */}
+                                                        {movementHistory && movementHistory[movement.movements.id] ? (
+                                                            movementHistory[movement.movements.id].length > 0 ? (
+                                                                movementHistory[movement.movements.id]
+                                                                    .filter(dateGroup =>
+                                                                        dateGroup.sets.length > 0 && // Ensure the date has sets
+                                                                        dateGroup.sets.some(set => set.reps !== null && set.weight !== null) // Ensure at least one set has valid data
+                                                                    )
+                                                                    .map((dateGroup, index) => (
+                                                                        <View key={index} style={styles.historyItem}>
+                                                                            {/* Date */}
+                                                                            <View style={styles.dateBox}>
+                                                                                <Text style={styles.historyDate}>
+                                                                                    {new Date(dateGroup.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                                </Text>
+                                                                                <View style={styles.divider}></View>
+                                                                            </View>
+
+                                                                            {/* Sets and Movement Difficulty */}
+                                                                            <View style={styles.allScoresContainer}>
+                                                                                {/* Sets */}
+                                                                                <View style={styles.setsContainer}>
+                                                                                    {dateGroup.sets
+                                                                                        .filter(set => set.reps !== null && set.weight !== null) // Only show sets with valid values
+                                                                                        .sort((a, b) => a.set_number - b.set_number) // Sort sets in ascending order by set_number
+                                                                                        .map((set, setIndex) => (
+                                                                                            <View key={setIndex} style={styles.setItem}>
+                                                                                                <Text style={styles.setSubNumber}>{set.set_number}</Text>
+                                                                                                {set.weight !== null && set.weight !== undefined ? (
+                                                                                                    <>
+                                                                                                        <Text style={styles.setValue}>{set.weight}</Text>
+                                                                                                        <Text style={styles.setMetric}>KG</Text>
+                                                                                                    </>
+                                                                                                ) : null}
+                                                                                                <Text style={styles.setCross}>x</Text>
+                                                                                                {set.reps !== null && set.reps !== undefined ? (
+                                                                                                    <>
+                                                                                                        <Text style={styles.setValue}>{set.reps}</Text>
+                                                                                                        <Text style={styles.setMetric}>Reps</Text>
+                                                                                                    </>
+                                                                                                ) : null}
+                                                                                            </View>
+                                                                                        ))}
+                                                                                </View>
+
+                                                                                {/* Movement Difficulty */}
+                                                                                {dateGroup.movement_difficulty !== null && dateGroup.movement_difficulty !== undefined ? (
+                                                                                    <View style={styles.scoreContainer}>
+                                                                                        <RPEGauge score={dateGroup.movement_difficulty} />
+                                                                                    </View>
+                                                                                ) : null}
+                                                                            </View>
+                                                                        </View>
+                                                                    ))
+                                                            ) : (
+                                                                <Text style={styles.noHistoryText}>No history available</Text>
+                                                            )
                                                         ) : (
-                                                            <Text style={styles.noHistoryText}>No history available</Text>
-                                                        )
-                                                    ) : (
-                                                        <Text style={styles.noHistoryText}>No actual history available</Text>
-                                                    )}
+                                                            <Text style={styles.noHistoryText}>No actual history available</Text>
+                                                        )}
+                                                    </View>
                                                 </View>
-                                            </View>
-                                        )}
+                                            )}
 
 
 
 
+                                        </View>
+                                    ))}
+                                    <View />
+                                    {/* Navigation Buttons */}
+                                    <View style={styles.navigationContainer}>
+                                        <TouchableOpacity
+                                            style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
+                                            onPress={handlePrevious}
+                                            disabled={currentStage === 0}
+                                        >
+                                            <Ionicons name="arrow-back" size={24} color="white" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
+                                            <Text style={styles.finishButtonText}>Finish Workout</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.navButton,
+                                                currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
+                                            ]}
+                                            onPress={handleNext}
+                                            disabled={currentStage === workout.workout_sections.length - 1}
+                                        >
+                                            <Ionicons name="arrow-forward" size={24} color="white" />
+                                        </TouchableOpacity>
                                     </View>
-                                ))}
-                                <View />
-                                {/* Navigation Buttons */}
-                                <View style={styles.navigationContainer}>
-                                    <TouchableOpacity
-                                        style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
-                                        onPress={handlePrevious}
-                                        disabled={currentStage === 0}
-                                    >
-                                        <Ionicons name="arrow-back" size={24} color="white" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
-                                        <Text style={styles.finishButtonText}>Finish Workout</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.navButton,
-                                            currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
-                                        ]}
-                                        onPress={handleNext}
-                                        disabled={currentStage === workout.workout_sections.length - 1}
-                                    >
-                                        <Ionicons name="arrow-forward" size={24} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </ScrollView>
+                                </ScrollView>
+                            )}
                         </View>
 
                     )}
@@ -543,7 +774,7 @@ export default function CompleteWorkout({ route, navigation }) {
 
 
             </View>
-        </SafeAreaView>
+        </SafeAreaView >
 
     );
 }
@@ -677,13 +908,15 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRadius: 20,
     },
-    movementImage: {
+    thumbnail: {
         width: '93%',
         margin: 12,
         height: 200,
         borderRadius: 10,
         // marginBottom: 20,
         backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     movementName: {
         marginLeft: 20,
@@ -774,7 +1007,7 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         backgroundColor: '#D6F7F4',
-        flex: 1,
+        // flex: 1,
         marginHorizontal: 10,
         alignItems: 'center',
         paddingVertical: 15,
@@ -897,12 +1130,50 @@ const styles = StyleSheet.create({
         height: 50,
         borderRadius: 25,
         borderWidth: 5,
-        borderColor: '#B8373B', 
+        borderColor: '#B8373B',
         justifyContent: 'center',
         alignItems: 'center',
     },
     scoreText: {
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    conditioningDetails: {
+        marginHorizontal: 20,
+        marginVertical: 10,
+    },
+    conditioningDescription: {
+        marginTop: 10,
+    },
+    movementDetail: {
+        margin: 0,
+    },
+    videoContainer: {
+        position: 'relative',
+        width: '100%',
+        height: 800,
+        backgroundColor: 'black',
+    },
+    videoPlayer: {
+        width: '100%',
+        height: '100%',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullScreenVideo: {
+        width: '100%',
+        height: '100%',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        padding: 10,
+        borderRadius: 20,
     },
 });

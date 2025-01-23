@@ -60,6 +60,9 @@ INSTALLED_APPS = [
     'saved_runs',
     'saved_run_intervals',
     'saved_run_interval_times',
+    'conditioning_details',
+    'conditioning_summary',
+    'saved_conditioning',
 ]
 
 MIDDLEWARE = [

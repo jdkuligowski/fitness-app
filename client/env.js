@@ -1,10 +1,7 @@
 const ENV = {
     development: {
       API_URL: 'http://192.168.1.184:8000',
-    //   API_URL: 'http://127.0.0.1:8000',
-      // API_URL: 'http://192.168.1.178:8000',
-    // API_URL: 'https://fitness-web-app-cgaffcezeehkdmc4.uksouth-01.azurewebsites.net',
-
+      // API_URL: 'http://192.168.0.4:8000',
     },
     production: {
       API_URL: 'https://fitness-web-app-cgaffcezeehkdmc4.uksouth-01.azurewebsites.net',

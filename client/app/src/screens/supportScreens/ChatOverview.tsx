@@ -34,26 +34,26 @@ const ChatOverviewScreen = ({ route }) => {
     // Send a new message to the server
     const sendMessage = async () => {
         if (!newMessage.trim()) return;
-    
+
         const userId = await AsyncStorage.getItem("userId"); // Retrieve the user ID from local storage
-    
+
         try {
             const response = await axios.post(
                 `${ENV.API_URL}/api/chat/rooms/${roomId}/messages/?user_id=${userId}`,
                 { content: newMessage }
             );
-    
+
             // Prepend the new message for inverted FlatList
             const newMessages = [response.data, ...messages];
-    
+
             setMessages(newMessages); // Update state with new messages
             setNewMessage(''); // Clear input field
         } catch (error) {
             console.error('Error sending message:', error.response?.data || error.message);
         }
     };
-    
-    
+
+
 
 
     // Periodically reload messages
@@ -186,11 +186,14 @@ const ChatOverviewScreen = ({ route }) => {
                             data={messages}
                             renderItem={renderMessage}
                             keyExtractor={(item, index) => index.toString()}
-                            contentContainerStyle={styles.chatResponses}
-                            inverted={true}
+                            contentContainerStyle={[styles.chatResponses, { paddingBottom: 20 }]} // Add bottom padding for comfort
+                            inverted={true} // Inverted for chat-like behavior
                             scrollEnabled={true}
-                            scrollEventThrottle={16} 
-                            keyboardShouldPersistTaps="handled"
+                            keyboardShouldPersistTaps="handled" // Allow taps to pass through to FlatList
+                            initialNumToRender={20} // Render initial 20 items for fast load
+                            maxToRenderPerBatch={10} // Batch size for smooth scrolling
+                            updateCellsBatchingPeriod={50} // Smooth batch updates
+                            scrollEventThrottle={1}
                         />
                         <View style={styles.inputBox}>
                             <TextInput
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
     },
     chatResponses: {
         flexGrow: 1,
-    },  
+    },
     inputBox: {
         margin: 10,
         padding: 8,

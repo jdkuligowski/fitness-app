@@ -8,4 +8,9 @@ class Movement(models.Model):
     complexity = models.SmallIntegerField(default=None, null=True, blank=True)
     movement_type = models.CharField(max_length=50, null=True, blank=True)
     primary_body_part = models.CharField(max_length=100, null=True, blank=True)
+    equipment = models.CharField(max_length=30, null=True, blank=True)
+    landscape_video_url = models.CharField(max_length=250, null=True, blank=True)
+    portrait_video_url = models.CharField(max_length=250, null=True, blank=True)
+    landscape_thumbnail = models.CharField(max_length=250, null=True, blank=True)
+    
 

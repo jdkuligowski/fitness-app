@@ -13,6 +13,7 @@ const ITEM_WIDTH = 20; // Width of each slider item
 export default function GymSession() {
   const navigation = useNavigation();
   const [selectedWorkout, setSelectedWorkout] = useState(null);
+  const [selectedFinish, setSelectedFinish] = useState(null);
   const [selectedValue, setSelectedValue] = useState(50); // Default selected value
   const data = Array.from({ length: 100 }, (_, i) => i); // Minutes from 0 to 60
   const flatListRef = useRef(null); // Reference to FlatList
@@ -23,6 +24,14 @@ export default function GymSession() {
       flatListRef.current.scrollToIndex({ index: selectedValue, animated: true });
     }
   }, []);
+
+
+  // Ensure selectedFinish is "Conditioning" when selectedValue >= 68
+  useEffect(() => {
+    if (selectedValue >= 68) {
+      setSelectedFinish('Conditioning');
+    }
+  }, [selectedValue]);
 
 
   const renderItem = ({ item, index }) => (
@@ -115,6 +124,31 @@ export default function GymSession() {
               />
             </View>
           </View>
+          <View style={styles.workoutInfoDetails}>
+            <Text style={styles.workoutSubtitle}>Do you want to finish your workout with a pump or conditioning?</Text>
+            <View style={styles.workoutType}>
+              {['Pump', 'Conditioning'].map((option, index) => (
+                // {['Full body', 'Upper Body', 'Lower Body', 'Push', 'Pull', 'Back & bis', 'Chest & tris', 'Vanity'].map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.optionButton,
+                    selectedFinish === option && styles.selectedOption,
+                  ]}
+                  onPress={() => selectedValue < 68 && setSelectedFinish(option)}
+                >
+                  <View style={[
+                    styles.optionText,
+                    selectedFinish === option && styles.selectedOptionText,
+                  ]}
+                  ></View>
+                  <Text>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {selectedValue > 68 ? <Text style={styles.conditioningMessage}>This workout length will always finish with conditioning</Text> : null}
+
+          </View>
           {selectedWorkout ?
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -122,6 +156,7 @@ export default function GymSession() {
                 onPress={() =>
                   navigation.navigate("WorkoutDetails", {
                     selectedTime: selectedValue,
+                    selectedFinish,
                     selectedWorkout,
                     frequency: 'Sometimes',
                   })
@@ -143,16 +178,16 @@ export default function GymSession() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colours.primaryHeader, 
+    backgroundColor: Colours.primaryHeader,
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: Colours.primaryBackground, 
+    backgroundColor: Colours.primaryBackground,
     paddingBottom: 100,
   },
   header: {
     padding: 20,
-    backgroundColor: Colours.primaryHeader, 
+    backgroundColor: Colours.primaryHeader,
     height: 100,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
@@ -282,6 +317,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderRightWidth: 3,
     position: 'relative',
+    marginBottom: 30,
   },
   slider: {
     paddingHorizontal: '40%',
@@ -355,4 +391,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20, // Make the background circular
   },
+  conditioningMessage: {
+    fontSize: 14,
+  }
 });

@@ -34,13 +34,10 @@ export default function SuggestedRunningWorkouts({ route }) {
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
     const [showDatePicker, setShowDatePicker] = useState(false);
 
-
     // Fetch workouts from the server
     const fetchWorkouts = async () => {
-        // setIsBouncerLoading(true)
         try {
             const response = await axios.get(`${ENV.API_URL}/api/running_sessions/all/`);
-            // console.log('running workouts ->', response.data)
             setWorkouts(response.data);
             setIsLoading(false);
         } catch (error) {
@@ -56,87 +53,122 @@ export default function SuggestedRunningWorkouts({ route }) {
     // Calculate user's average pace per km in seconds
     const userPacePerKmInSeconds = user5kTimeInSeconds / 5;
 
-    // Calculate easy pace as 1 minute 15 seconds (75 seconds) slower than the user's pace
+    // Calculate easy pace as +1 minute 15 seconds (75 seconds) slower than the user's pace
     const warmupCooldownPaceInSeconds = userPacePerKmInSeconds + 75; // Easy pace
 
-    // Calculate interval duration
-    const calculateIntervalDuration = (interval) => {
-        let splitTimePerKm;
-
-        if (interval.target_pace.toLowerCase() === "easy") {
-            // If the target pace is "Easy," use the easy pace
-            splitTimePerKm = warmupCooldownPaceInSeconds;
-        } else {
-            const [baseTime, subString] = interval.target_pace.split(" sub ");
-            const adjustment = parseInt(subString, 10) || 0;
-            const baseTimeInSeconds = parseInt(baseTime, 10); // Extract the first number
-            console.log('5 km time secs:', user5kTimeInSeconds);
-
-            console.log('Per km time:', userPacePerKmInSeconds);
-
-            splitTimePerKm = userPacePerKmInSeconds - adjustment;
-            console.log('Split time:', splitTimePerKm);
-
-            // Ensure split time doesn't go below the base time
-            if (!isNaN(baseTimeInSeconds)) {
-                splitTimePerKm = Math.min(splitTimePerKm, baseTimeInSeconds * 60); // Convert minutes to seconds
-            }
+    /**
+     * Parses the target_pace from the DB.
+     * - If "Easy", returns warmupCooldownPaceInSeconds.
+     * - Otherwise, parses any integer (positive or negative) and adjusts from userPacePerKmInSeconds.
+     */
+    const calculateTargetPace = (targetPaceStr) => {
+        // Check if targetPaceStr is valid and a string
+        if (typeof targetPaceStr !== "string" || !targetPaceStr) {
+            console.warn("Invalid or missing target_pace:", targetPaceStr);
+            return userPacePerKmInSeconds; // Fallback to default pace
         }
 
+        const paceLower = targetPaceStr.trim().toLowerCase();
+        if (paceLower === "easy") {
+            return warmupCooldownPaceInSeconds; // Easy pace
+        }
+
+        const adjustment = parseInt(targetPaceStr, 10);
+        if (isNaN(adjustment)) {
+            console.warn(`Could not parse target pace: "${targetPaceStr}"`);
+            return userPacePerKmInSeconds; // Fallback to default pace
+        }
+
+        return userPacePerKmInSeconds - adjustment;
+    };
+
+
+    /**
+     * Calculate the total time for a single interval set (including rests).
+     */
+    const calculateIntervalDuration = (interval) => {
+        // 1) Calculate target pace in seconds
+        const splitTimePerKm = calculateTargetPace(interval.target_pace);
+
+        // 2) Multiply by distance * number of repeats
         const intervalTime = splitTimePerKm * interval.repeat_distance * interval.repeats;
+
+        // 3) Add rest time (for repeats-1, if applicable)
         const restTime = interval.rest_time || 0;
         const totalRestTime = (interval.repeats - 1) * restTime;
+
         return intervalTime + totalRestTime;
     };
 
-    // Calculate total workout duration
+    // Calculate total workout duration (in minutes)
     const calculateWorkoutDuration = (workout) => {
+        // Sum intervals
         const intervalsDuration = workout.intervals.reduce(
             (sum, interval) => sum + calculateIntervalDuration(interval),
             0
         );
 
+        // Warmup and cooldown
         const warmupTime = workout.warmup_distance * warmupCooldownPaceInSeconds;
         const coolDownTime = workout.cool_down_distance * warmupCooldownPaceInSeconds;
 
         const totalTimeInSeconds = intervalsDuration + warmupTime + coolDownTime;
-        console.log('Workout Duration (seconds):', totalTimeInSeconds);
-
+        // console.log('Cool down: ', totalTimeInSeconds)
+        // console.log('Warm up: ', warmupTime)
+        // console.log('Intervals: ', intervalsDuration)
+        // console.log('Workout time: ', totalTimeInSeconds)
         return totalTimeInSeconds / 60; // Convert to minutes
     };
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     };
 
-    // Calculate the target pace
-    const calculateTargetPace = (targetPace) => {
-        if (targetPace.toLowerCase() === "easy") {
-            return warmupCooldownPaceInSeconds; // Easy pace in seconds
-        }
-
-        const adjustment = parseInt(targetPace, 10) || 0; // Adjustment from DB
-        return userPacePerKmInSeconds - adjustment; // Target pace in seconds
-    };
-
-
-
-    // Filter workouts based on user input
+    /**
+     * Filter workouts based on user input.
+     * If "Easy", we skip the database filter and create a single run suggestion.
+     */
     const filterWorkouts = () => {
-        const filtered = workouts.filter((workout) => {
+        const totalTimeSec = selectedTime * 60; // Convert total time to seconds
+        const maxDistance = totalTimeSec / warmupCooldownPaceInSeconds; // Calculate max distance for the Easy run
+        console.log('max distance: ', maxDistance)
+        // Map through workouts and override data for "Easy" runs
+        const filtered = workouts.map((workout) => {
+            if (workout.session_type === "Easy") {
+                return {
+                    ...workout,
+                    isEasyRunItem: true, // Flag to identify it
+                    warmup_distance: 0, // No warmup
+                    cool_down_distance: 0, // No cooldown
+                    total_distance: maxDistance.toFixed(2), // Override with dynamically calculated distance
+                    intervals: [
+                        {
+                            ...workout.intervals[0], // Use the first interval structure if available
+                            repeat_variation: 1,
+                            repeats: 1, // Single interval
+                            repeat_distance: maxDistance.toFixed(2), // Override distance
+                            target_pace: warmupCooldownPaceInSeconds, // Override pace
+                            rest_time: 0, // No rest
+                        },
+                    ],
+                };
+            }
+            return workout; // Keep other workouts as-is
+        });
+
+        // Filter the workouts based on selected criteria
+        const finalFiltered = filtered.filter((workout) => {
             const duration = calculateWorkoutDuration(workout);
-
-            // If "Not sure" is selected, do not apply the type filter
-            const matchesType = selectedWorkout === "Not sure" || workout.session_type === selectedWorkout;
-
+            const matchesType =
+                selectedWorkout === "Not sure" || workout.session_type === selectedWorkout;
             return matchesType && duration <= selectedTime;
         });
 
-        console.log('Filtered workouts ->', filtered);
-        setFilteredWorkouts(filtered);
+        setFilteredWorkouts(finalFiltered);
     };
+
 
 
     useEffect(() => {
@@ -147,38 +179,63 @@ export default function SuggestedRunningWorkouts({ route }) {
         if (workouts.length > 0) {
             filterWorkouts();
         }
-    }, [workouts]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workouts, selectedWorkout]);
+
 
     const showModalForWorkout = (workout) => {
-        // Augment the intervals with calculated times
-        const augmentedIntervals = workout.intervals.map((interval) => {
-            const targetPaceInSeconds = calculateTargetPace(interval.target_pace);
-            const splitTimePerRepeat = targetPaceInSeconds * interval.repeat_distance;
-            return {
-                ...interval,
-                targetPaceInSeconds,
-                splitTimes: Array.from({ length: interval.repeats }, (_, i) => ({
-                    repeatNumber: i + 1,
-                    targetTime: splitTimePerRepeat, // Target time for each repeat in seconds
-                })),
+        let augmentedWorkout;
+
+        if (workout.isEasyRunItem) {
+            // For "Easy" run, override certain fields while keeping a consistent structure
+            const totalTimeSec = selectedTime * 60;
+            const maxDistance = totalTimeSec / warmupCooldownPaceInSeconds; // Dynamically calculate distance
+
+            const augmentedIntervals = [
+                {
+                    repeat_variation: 1,
+                    repeats: 1, // Single interval
+                    repeat_distance: maxDistance.toFixed(2), // Override distance
+                    targetPaceInSeconds: warmupCooldownPaceInSeconds, // Override pace
+                    rest_time: 0,
+                    splitTimes: [
+                        {
+                            repeat_number: 1,
+                            time_in_seconds: totalTimeSec,
+                            actual_time: null, // Placeholder for user input
+                            comments: null, // Placeholder for user input
+                        },
+                    ],
+                },
+            ];
+
+            augmentedWorkout = {
+                ...workout,
+                augmentedIntervals,
+                warmupPace: 0, // No warmup
+                cooldownPace: 0, // No cooldown
+                total_distance: maxDistance.toFixed(2), // Override total distance
             };
-        });
+        } else {
+            // For other workouts, augment intervals with calculated target pace
+            const augmentedIntervals = workout.intervals.map((interval) => ({
+                ...interval,
+                targetPaceInSeconds: calculateTargetPace(interval.target_pace),
+            }));
 
-        // Augment the workout with calculated warmup and cooldown times
-        const augmentedWorkout = {
-            ...workout,
-            augmentedIntervals,
-            warmupPace: warmupCooldownPaceInSeconds,
-            cooldownPace: warmupCooldownPaceInSeconds,
-        };
+            augmentedWorkout = {
+                ...workout,
+                augmentedIntervals,
+            };
+        }
 
-        setCurrentWorkout(augmentedWorkout); // Pass the augmented workout to the modal
+        setCurrentWorkout(augmentedWorkout);
     };
 
 
 
     const closeModal = () => {
-        setCurrentWorkout(null); // Reset the current workout when modal is closed
+        setCurrentWorkout(null);
         setShowDatePicker(false);
     };
 
@@ -197,6 +254,245 @@ export default function SuggestedRunningWorkouts({ route }) {
         </View>
     );
 
+    const renderWorkoutItem = ({ item }) => {
+        // If it's the synthetic "Easy Run" item
+        if (item.isEasyRunItem) {
+            return (
+                <View style={styles.workoutCard}>
+                    <View style={styles.workoutOverview}>
+                        <View style={styles.overviewBox}>
+                            <View style={styles.overviewHeader}>
+                                <View>
+                                    <Text style={styles.workoutTitle}>Easy Run</Text>
+                                    <View style={styles.workoutOverviewTime}>
+                                        <Ionicons name="time-outline" size={24} color="black" />
+                                        <Text style={styles.timeText}>
+                                            {selectedTime} mins total
+                                        </Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.profileButton}
+                                    onPress={() => showModalForWorkout(item)}
+                                >
+                                    <Ionicons name="heart-outline" color={"black"} size={20} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Simple stats */}
+                            <View style={styles.workoutSummaryArray}>
+                                <Text style={styles.workoutSummaryButton}>Easy</Text>
+                                <Text style={styles.workoutSummaryButton}>
+                                    No intervals
+                                </Text>
+                            </View>
+
+                            <View style={styles.trainerDetails}>
+                                <Image
+                                    style={styles.trainerImage}
+                                    source={require("../../../../../assets/images/gus_image.jpeg")}
+                                />
+                                <View style={styles.trainerDetailsBox}>
+                                    <Text style={styles.trainerName}>Gus Barton</Text>
+                                    <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.workoutActivity}>Recommended Easy Run</Text>
+
+                    {/* Show distance & pace details */}
+                    <View style={styles.workoutList}>
+                        <Text style={styles.movementDetail}>
+                            You can cover about{" "}
+                            {item.total_distance !== undefined ? (
+                                <Text style={{ fontWeight: "700" }}>
+                                    {parseFloat(item.total_distance).toFixed(2)} km
+                                </Text>
+                            ) : (
+                                <Text style={{ fontWeight: "700" }}>N/A</Text> // Fallback if maxDistance is missing
+                            )}{" "}
+                            in {selectedTime} min at an easy pace of{" "}
+                            <Text style={{ fontWeight: "700" }}>
+                                {formatTime(warmupCooldownPaceInSeconds)} /km
+                            </Text>.
+                        </Text>
+                    </View>
+
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={styles.submitButton}
+                            onPress={() => showModalForWorkout(item)}
+                        >
+                            <Text style={styles.submitButtonText}>Start Easy Run</Text>
+                            <View style={styles.submitArrow}>
+                                <Ionicons name="arrow-forward" size={24} color="black" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            );
+        }
+
+        // Otherwise, render a standard workout item from the DB
+        return (
+            <View style={styles.workoutCard}>
+                {/* ...all your existing code for a normal workout card... */}
+                <View style={styles.workoutOverview}>
+                    <View style={styles.overviewBox}>
+                        <View style={styles.overviewHeader}>
+                            <View>
+                                <Text style={styles.workoutTitle}>
+                                    {item.session_type} Workout
+                                </Text>
+                                <View style={styles.workoutOverviewTime}>
+                                    <Ionicons name="time-outline" size={24} color="black" />
+                                    <Text style={styles.timeText}>
+                                        Approx. {Math.round(calculateWorkoutDuration(item))} mins
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.profileButton}
+                                onPress={() => showModalForWorkout(item)}
+                            >
+                                <Ionicons name="heart-outline" color={"black"} size={20} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.workoutSummaryArray}>
+                            <Text style={styles.workoutSummaryButton}>{item.session_type}</Text>
+                            <Text style={styles.workoutSummaryButton}>Running session</Text>
+                        </View>
+
+                        <View style={styles.trainerDetails}>
+                            <Image
+                                style={styles.trainerImage}
+                                source={require("../../../../../assets/images/gus_image.jpeg")}
+                            />
+                            <View style={styles.trainerDetailsBox}>
+                                <Text style={styles.trainerName}>Gus Barton</Text>
+                                <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.dividerLine} />
+                <Text style={styles.workoutActivity}>Workout Summary</Text>
+                <Text style={styles.summaryDetail}>{item.session_name}</Text>
+                {item.notes === "NULL" ? null : (
+                    <Text style={styles.summaryDetail}>{item.notes}</Text>
+                )}
+
+                <ScrollView style={styles.workoutList}>
+                    {/* Warmup */}
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>Warmup</Text>
+                        <View style={styles.intervalContainer}>
+                            {item.warmup_distance < 1 ? (
+                                <View style={styles.timeBox}>
+                                    <Text style={styles.movementDetail}>
+                                        {item.warmup_distance * 1000}m at
+                                    </Text>
+                                    <IntervalTime
+                                        time={formatTime(warmupCooldownPaceInSeconds)}
+                                    />
+                                </View>
+                            ) : (
+                                <View style={styles.timeBox}>
+                                    <Text style={styles.movementDetail}>
+                                        {item.warmup_distance}km at
+                                    </Text>
+                                    <IntervalTime
+                                        time={formatTime(warmupCooldownPaceInSeconds)}
+                                    />
+                                </View>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Intervals */}
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>Intervals</Text>
+                        {item.intervals.length > 0 ? (
+                            item.intervals.map((interval, index) => {
+                                const targetPaceInSeconds = calculateTargetPace(
+                                    interval.target_pace
+                                );
+                                return (
+                                    <View key={index} style={styles.intervalContainer}>
+                                        <View style={styles.timeBox}>
+                                            <Text style={styles.movementDetail}>
+                                                {interval.repeats} x{" "}
+                                                {interval.repeat_distance < 1
+                                                    ? `${interval.repeat_distance * 1000}m`
+                                                    : `${interval.repeat_distance}km`}{" "}
+                                                at
+                                            </Text>
+                                            <IntervalTime
+                                                time={formatTime(targetPaceInSeconds)}
+                                            />
+                                        </View>
+                                        {interval.rest_time && (
+                                            <Text style={styles.movementDetail}>
+                                                Rest: {interval.rest_time} seconds between intervals
+                                            </Text>
+                                        )}
+                                    </View>
+                                );
+                            })
+                        ) : (
+                            <Text style={styles.movementDetail}>
+                                No intervals defined
+                            </Text>
+                        )}
+                    </View>
+
+                    {/* Cooldown */}
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>Cooldown</Text>
+                        <View style={styles.intervalContainer}>
+                            {item.cool_down_distance < 1 ? (
+                                <View style={styles.timeBox}>
+                                    <Text style={styles.movementDetail}>
+                                        {item.cool_down_distance * 1000}m at
+                                    </Text>
+                                    <IntervalTime
+                                        time={formatTime(warmupCooldownPaceInSeconds)}
+                                    />
+                                </View>
+                            ) : (
+                                <View style={styles.timeBox}>
+                                    <Text style={styles.movementDetail}>
+                                        {item.cool_down_distance}km at
+                                    </Text>
+                                    <IntervalTime
+                                        time={formatTime(warmupCooldownPaceInSeconds)}
+                                    />
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
+
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        style={styles.submitButton}
+                        onPress={() => showModalForWorkout(item)}
+                    >
+                        <Text style={styles.submitButtonText}>Start workout</Text>
+                        <View style={styles.submitArrow}>
+                            <Ionicons name="arrow-forward" size={24} color="black" />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -212,7 +508,6 @@ export default function SuggestedRunningWorkouts({ route }) {
                                 onPress={() => navigation.goBack()}
                             >
                                 <Text style={styles.submitButtonText}>Search again</Text>
-
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -220,12 +515,16 @@ export default function SuggestedRunningWorkouts({ route }) {
                     <>
                         <View style={styles.header}>
                             <View style={styles.topSection}>
-                                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                                <TouchableOpacity
+                                    style={styles.backButton}
+                                    onPress={() => navigation.goBack()}
+                                >
                                     <Ionicons name="arrow-back" size={24} color="black" />
                                 </TouchableOpacity>
-                                <Text style={styles.headingText}>Suggested running Workouts</Text>
+                                <Text style={styles.headingText}>Suggested Running Workouts</Text>
                             </View>
                         </View>
+
                         <FlatList
                             ref={flatListRef}
                             data={filteredWorkouts}
@@ -233,155 +532,36 @@ export default function SuggestedRunningWorkouts({ route }) {
                             pagingEnabled
                             keyExtractor={(item) => item.id.toString()}
                             showsHorizontalScrollIndicator={false}
-                            renderItem={({ item }) => (
-                                <View style={styles.workoutCard}>
-                                    <View style={styles.workoutOverview}>
-                                        <View style={styles.overviewBox}>
-                                            <View style={styles.overviewHeader}>
-                                                <View>
-                                                    <Text style={styles.workoutTitle}>{item.session_type} workout</Text>
-                                                    <View style={styles.workoutOverviewTime}>
-                                                        <Ionicons name="time-outline" size={24} color="black" />
-                                                        <Text style={styles.timeText}>Approx. {Math.round(calculateWorkoutDuration(item))} mins</Text>
-                                                    </View>
-                                                </View>
-                                                <TouchableOpacity
-                                                    style={styles.profileButton}
-                                                    onPress={() => showModalForWorkout(item)} // Set modal for current workout
-                                                >
-                                                    <Ionicons name="heart-outline" color={'black'} size={20} />
-                                                </TouchableOpacity>
-                                            </View>
-                                            <View style={styles.workoutSummaryArray}>
-                                                <Text style={styles.workoutSummaryButton}>{item.session_type}</Text>
-                                                <Text style={styles.workoutSummaryButton}>Running session</Text>
-                                                {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
-                                            </View>
-                                            <View style={styles.trainerDetails}>
-                                                <Image
-                                                    style={styles.trainerImage}
-                                                    source={require('../../../../../assets/images/gus_image.jpeg')} />
-                                                <View style={styles.trainerDetailsBox}>
-                                                    <Text style={styles.trainerName}>Gus Barton</Text>
-                                                    <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
-                                                </View>
-                                            </View>
-                                        </View>
-                                    </View>
-                                    <View style={styles.dividerLine}></View>
-                                    <Text style={styles.workoutActivity}>Workout Summary</Text>
-                                    <Text style={styles.summaryDetail}>{item.session_name}</Text>
-                                    {item.notes === 'NULL' ? '' :
-                                        <Text style={styles.summaryDetail}>{item.notes}</Text>
-                                    }
-                                    <ScrollView style={styles.workoutList}>
-                                        <View style={styles.sectionContainer}>
-                                            <Text style={styles.sectionTitle}>Warmup</Text>
-                                            <View style={styles.intervalContainer}>
-                                                {item.warmup_distance < 1 ? (
-                                                    <View style={styles.timeBox}>
-                                                        <Text style={styles.movementDetail}>
-                                                            {item.warmup_distance * 1000}m at
-                                                        </Text>
-                                                        <IntervalTime time={formatTime(warmupCooldownPaceInSeconds)} />
-                                                    </View>
-                                                ) : (
-                                                    <View style={styles.timeBox}>
-                                                        <Text style={styles.movementDetail}>
-                                                            {item.warmup_distance}km at
-                                                        </Text>
-                                                        <IntervalTime time={formatTime(warmupCooldownPaceInSeconds)} />
-                                                    </View>
-                                                )}
-                                            </View>
-                                        </View>
-                                        <View style={styles.sectionContainer}>
-                                            <Text style={styles.sectionTitle}>Intervals</Text>
-                                            {item.intervals.length > 0 ? (
-                                                item.intervals.map((interval, index) => {
-                                                    const targetPaceInSeconds = calculateTargetPace(interval.target_pace);
-                                                    return (
-                                                        <View key={index} style={styles.intervalContainer}>
-                                                            <View style={styles.timeBox}>
-                                                                <Text style={styles.movementDetail}>
-                                                                    {interval.repeats} x{" "}
-                                                                    {interval.repeat_distance < 1
-                                                                        ? `${interval.repeat_distance * 1000}m`
-                                                                        : `${interval.repeat_distance}km`}{" "}
-                                                                    at
-                                                                </Text>
-                                                                <IntervalTime time={formatTime(targetPaceInSeconds)} />
-                                                            </View>
-                                                            {interval.rest_time && (
-                                                                <Text style={styles.movementDetail}>
-                                                                    Rest: {interval.rest_time} seconds between intervals
-                                                                </Text>
-                                                            )}
-                                                        </View>
-                                                    );
-                                                })
-                                            ) : (
-                                                <Text style={styles.movementDetail}>No intervals defined</Text>
-                                            )}
-                                        </View>
-
-                                        <View style={styles.sectionContainer}>
-                                            <Text style={styles.sectionTitle}>Cooldown</Text>
-                                            <View style={styles.intervalContainer}>
-                                                {item.cool_down_distance < 1 ? (
-                                                    <View style={styles.timeBox}>
-                                                        <Text style={styles.movementDetail}>
-                                                            {item.cool_down_distance * 1000}m at
-                                                        </Text>
-                                                        <IntervalTime time={formatTime(warmupCooldownPaceInSeconds)} />
-                                                    </View>
-                                                ) : (
-                                                    <View style={styles.timeBox}>
-                                                        <Text style={styles.movementDetail}>
-                                                            {item.cool_down_distance}km at
-                                                        </Text>
-                                                        <IntervalTime time={formatTime(warmupCooldownPaceInSeconds)} />
-                                                    </View>
-                                                )}
-                                            </View>
-                                        </View>
-                                    </ScrollView>
-
-                                    <View style={styles.buttonContainer}>
-                                        <TouchableOpacity
-                                            style={styles.submitButton}
-                                        // onPress={() => saveAndStartWorkout(item)}
-                                        >
-                                            <Text style={styles.submitButtonText}>Start workout</Text>
-                                            <View style={styles.submitArrow}>
-                                                <Ionicons name="arrow-forward" size={24} color="black" />
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-
-                                </View>
-                            )} />
-                    </>
-                )}
-                {currentWorkout && (
-                    <Modal
-                        animationType="slide"
-                        transparent={true}
-                        visible={!!currentWorkout}
-                        onRequestClose={closeModal}
-                    >
-                        <SaveWorkoutModal
-                            currentWorkout={currentWorkout} // Pass the workout object
-                            onClose={closeModal} // Pass the close function
-                            selectedTime={Math.round(calculateWorkoutDuration(currentWorkout))} // Pass the selected time
-                            selectedWorkout={selectedWorkout} // Pass the selected workout name
-                            workoutPlan={currentWorkout} // Pass the current workout plan
-                            closeModal={closeModal} // Close function for modal
-                            frequency={0}
-                            modalRoute={'Discovery'}
-                            workoutType="Running"
+                            renderItem={renderWorkoutItem}
                         />
-                    </Modal>
+
+                        {currentWorkout && (
+                            <Modal
+                                animationType="slide"
+                                transparent={true}
+                                visible={!!currentWorkout}
+                                onRequestClose={closeModal}
+                            >
+                                <SaveWorkoutModal
+                                    currentWorkout={currentWorkout}
+                                    onClose={closeModal}
+                                    selectedTime={
+                                        Math.round(
+                                            currentWorkout.isEasyRunItem
+                                                ? selectedTime // for easy run, we just use the selectedTime
+                                                : calculateWorkoutDuration(currentWorkout)
+                                        )
+                                    }
+                                    selectedWorkout={selectedWorkout}
+                                    workoutPlan={currentWorkout}
+                                    closeModal={closeModal}
+                                    frequency={0}
+                                    modalRoute={"Discovery"}
+                                    workoutType="Running"
+                                />
+                            </Modal>
+                        )}
+                    </>
                 )}
             </View>
         </SafeAreaView>

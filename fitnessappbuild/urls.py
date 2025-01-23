@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/chat/', include('chat_message.urls')),
     path('api/running_sessions/', include('running_sessions.urls')),
     path('api/saved_runs/', include('saved_runs.urls')),
+    path('api/conditioning_workouts/', include('conditioning_summary.urls')),
 ]

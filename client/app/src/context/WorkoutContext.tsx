@@ -6,6 +6,8 @@ const WorkoutContext = createContext();
 
 export const WorkoutProvider = ({ children }) => {
   const [workoutData, setWorkoutData] = useState([]);
+  const [conditioningData, setConditioningData] = useState([]);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchWorkoutData = async () => {
@@ -41,8 +43,32 @@ export const WorkoutProvider = ({ children }) => {
     }
   };
 
+  const fetchConditioningData = async () => {
+    setIsLoading(true);
+    try {
+      const url = `${ENV.API_URL}/api/conditioning_workouts/all/`;
+      const response = await axios.get(url);
+      setConditioningData(response.data);
+      // console.log('conditioning data: ', JSON.stringify(response.data, null, 2))
+      
+    } catch (error) {
+      console.error('Error fetching conditioning data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <WorkoutContext.Provider value={{ workoutData, setWorkoutData, fetchWorkoutData, isLoading }}>
+    <WorkoutContext.Provider
+      value={{
+        workoutData,
+        setWorkoutData,
+        fetchWorkoutData,
+        conditioningData,
+        fetchConditioningData,
+        isLoading,
+      }}
+    >
       {children}
     </WorkoutContext.Provider>
   );

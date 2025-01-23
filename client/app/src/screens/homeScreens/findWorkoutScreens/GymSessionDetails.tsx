@@ -31,8 +31,8 @@ const strengthRulesMap = {
 export default function WorkoutScreen({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { selectedTime, selectedWorkout, frequency } = route.params;
-    const { workoutData, fetchWorkoutData, isLoading } = useWorkout();
+    const { selectedTime, selectedWorkout, frequency, selectedFinish } = route.params;
+    const { workoutData, fetchWorkoutData, isLoading, conditioningData, fetchConditioningData } = useWorkout();
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showCalendarModal, setShowCalendarModal] = useState(false); // Track Calendar modal visibility
@@ -81,7 +81,6 @@ export default function WorkoutScreen({ route }) {
     };
 
 
-
     // Filter workout data for a section
     const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
         if (!filters || !Array.isArray(filters)) {
@@ -89,50 +88,71 @@ export default function WorkoutScreen({ route }) {
             return [];
         }
 
-        const filteredMovements = filters.flatMap((filterSet) => {
-            if (!Array.isArray(filterSet)) {
-                // console.warn("Filter set is not an array. Wrapping it:", filterSet);
-                filterSet = [filterSet];
-            }
+        const normalizeAndSplit = (str) => {
+            if (typeof str !== "string") return [];
+            return str
+                .replace(/[\(\)]/g, "") // Remove parentheses
+                .replace(/\s+/g, " ") // Replace multiple spaces with a single space
+                .trim()
+                .toLowerCase()
+                .split(",")
+                .map((item) => item.trim());
+        };
 
-            return workoutData.filter((exercise) => {
-                const standardizedWorkoutType = workoutType.toLowerCase(); // Standardize workoutType
-                const exerciseBodyArea = exercise.body_area?.toLowerCase() || ""; // Standardize exercise body_area
+        // Apply all filters in conjunction
+        const filteredMovements = workoutData.filter((exercise) => {
+            const exerciseKeyValues = {};
 
-                // Check if this filter set explicitly targets Core
-                const isCoreFilter = filterSet.some(
-                    ({ key, value }) => key === "primary_body_part" && value.toLowerCase() === "core"
-                );
+            // Normalize all exercise values
+            Object.keys(exercise).forEach((key) => {
+                exerciseKeyValues[key] = normalizeAndSplit(exercise[key] || "");
+            });
 
-                // Determine if the body area filter should be applied
-                const isCorrectBodyArea =
-                    isCoreFilter || // If Core is in the filter, bypass body area filtering
-                    standardizedWorkoutType === "full body" || // Full Body skips body area filtering
-                    exerciseBodyArea.includes(standardizedWorkoutType); // Match Upper/Lower Body for others
+            // Check if the exercise satisfies all filters in all filter sets
+            const allFilterSetsPass = filters.every((filterSet) => {
+                if (!Array.isArray(filterSet)) filterSet = [filterSet];
 
-                // Apply all conditions in the filter set
-                const matchesFilters = filterSet.every(({ key, value, operator }) => {
-                    if (!exercise[key]) return false;
+                // Each filter set must pass
+                return filterSet.every(({ key, value, operator }) => {
+                    const exerciseValue = exerciseKeyValues[key]; // Normalized exercise values
+                    const filterValue = Array.isArray(value)
+                        ? value.map((v) => normalizeAndSplit(v)).flat()
+                        : normalizeAndSplit(value);
+
+                    if (!exerciseValue.length) {
+                        // console.warn(`Key "${key}" not found in exercise:`, exercise);
+                        return false;
+                    }
+
                     if (operator === "contains") {
-                        return Array.isArray(value)
-                            ? value.some((v) => exercise[key].includes(v))
-                            : exercise[key].includes(value);
+                        return filterValue.some((filterWord) =>
+                            exerciseValue.some((exerciseWord) => exerciseWord.includes(filterWord))
+                        );
                     }
+
                     if (operator === "equals") {
-                        return exercise[key] === value;
+                        return filterValue.every((filterWord) =>
+                            exerciseValue.some((exerciseWord) => exerciseWord === filterWord)
+                        );
                     }
+
+                    console.warn("Unknown operator:", operator);
                     return false;
                 });
-
-                return isCorrectBodyArea && matchesFilters;
             });
+
+            return allFilterSetsPass; // Include only exercises that pass all filters
         });
+
+        // console.log("Filtered Movements (Pre-Deduplication):", JSON.stringify(filteredMovements, null, 2));
 
         // Deduplicate, shuffle, and exclude already used exercises
         const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));
+        console.log("Unique Movements:", JSON.stringify(uniqueMovements, null, 2));
+
         return uniqueMovements
-            .sort(() => Math.random() - 0.5) // Shuffle for randomness
-            .filter((movement) => !usedExercises.has(movement)); // Exclude used exercises
+            .sort(() => Math.random() - 0.5) // Shuffle randomly
+            .filter((movement) => !usedExercises.has(movement)); // Exclude already used
     };
 
 
@@ -189,6 +209,7 @@ export default function WorkoutScreen({ route }) {
     };
 
     // Generate a single workout plan
+    // Generate a single workout plan
     const generateWorkoutPlan = () => {
         const allowedTimes = [30, 40, 50, 60, 75];
         const closestTime = allowedTimes.reduce((prev, curr) =>
@@ -225,6 +246,7 @@ export default function WorkoutScreen({ route }) {
             partLabel: commonRules.warmUpA.section,
             movements: warmUpA,
             sectionType: "single",
+            filters: commonRules.warmUpA.filters, // Attach filters for Warm-Up A
         });
 
         // Add Warm-Up B Section (up to 3 movements)
@@ -233,19 +255,28 @@ export default function WorkoutScreen({ route }) {
             partLabel: commonRules.warmUpB.section,
             movements: warmUpB,
             sectionType: "superset",
+            filters: "Warm-Up Filter Logic", // Example for Warm-Up B
         });
 
         // Add Main Workout Sections
         selectedRules.sections.forEach((sectionRule) => {
             const movements = [];
+            const sectionFilters = []; // Track filters applied in this section
 
-            sectionRule.filters.forEach((filterSet) => {
+            sectionRule.filters.forEach((filterSet, index) => {
+                console.log(`Applying filters for section: ${sectionRule.section}, FilterSet ${index}:`, filterSet);
+
                 const movementCandidates = filterWorkoutData(filterSet, usedExercises, selectedWorkout);
+                console.log(`Movement Candidates for FilterSet ${index}:`, movementCandidates);
+
                 if (movementCandidates.length > 0) {
                     const selectedMovement =
                         movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
+                    console.log(`Selected Movement for FilterSet ${index}:`, selectedMovement);
+
                     movements.push(selectedMovement);
                     usedExercises.add(selectedMovement);
+                    sectionFilters.push(filterSet); // Store applied filters
                 }
             });
 
@@ -253,11 +284,62 @@ export default function WorkoutScreen({ route }) {
                 partLabel: sectionRule.section,
                 movements,
                 sectionType: movements.length > 1 ? "superset" : "single",
+                filters: sectionFilters, // Attach filters to this section
             });
         });
 
+        // Add or Replace Conditioning Section
+        if (selectedFinish === "Conditioning") {
+            const conditioningSection = generateConditioningSection(usedExercises);
+
+            if (closestTime === 75) {
+                // Append conditioning as an additional section
+                plan.push(conditioningSection);
+            } else {
+                // Replace the last section with conditioning
+                plan[plan.length - 1] = conditioningSection;
+            }
+        }
+
         return plan.slice(0, 9);
     };
+
+    const generateConditioningSection = (usedExercises) => {
+        // Pick a random conditioning workout
+        const randomConditioningWorkout =
+            conditioningData[Math.floor(Math.random() * conditioningData.length)];
+
+        // Determine a single aerobic type for the workout
+        const aerobicOptions = ["Bike", "Row", "Ski"];
+        const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
+
+        // Map through the conditioning_details to extract detailed movements
+        const movements = randomConditioningWorkout.conditioning_details.map((movement) => {
+            let exercise = movement.exercise;
+            if (exercise.toLowerCase() === "aerobic") {
+                exercise = selectedAerobicType; // Use the selected aerobic type consistently
+            }
+            return {
+                movementOrder: movement.movement_order,
+                exercise,
+                detail: movement.detail || "No detail provided",
+            };
+        });
+
+        return {
+            partLabel: "Conditioning",
+            workoutId: randomConditioningWorkout.id, // Include the conditioning workout ID
+            workoutName: randomConditioningWorkout.name, // Include workout name
+            notes: randomConditioningWorkout.notes, // Include workout notes
+            movements, // Detailed movements with order, exercise, and details
+            sectionType: movements.length > 1 ? "superset" : "single",
+            rest: randomConditioningWorkout.rest, // Include rest time if applicable
+        };
+    };
+
+
+
+
 
     // Generate multiple workout plans
     const generateWorkoutPlans = () => {
@@ -272,13 +354,16 @@ export default function WorkoutScreen({ route }) {
     // Fetch data and generate workout plans
     useEffect(() => {
         fetchWorkoutData();
+        fetchConditioningData();
     }, []);
 
+
+
     useEffect(() => {
-        if (workoutData.length > 0) {
+        if (workoutData.length > 0 && conditioningData.length > 0) {
             generateWorkoutPlans();
         }
-    }, [workoutData]);
+    }, [workoutData, conditioningData]);
 
 
 
@@ -392,7 +477,7 @@ export default function WorkoutScreen({ route }) {
                 </View>
                 <FlatList
                     ref={flatListRef}
-                    data={[...workoutPlans, { reload: true }]} // Add a reload page
+                    data={[...workoutPlans, { reload: true }]}
                     horizontal
                     pagingEnabled
                     keyExtractor={(_, index) => index.toString()}
@@ -429,7 +514,7 @@ export default function WorkoutScreen({ route }) {
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
-                                                <Text style={styles.workoutSummaryButton}>Intermediate</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                                                 <Text style={styles.workoutSummaryButton}>Gym session</Text>
                                                 <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text>
                                             </View>
@@ -450,23 +535,48 @@ export default function WorkoutScreen({ route }) {
                                     <ScrollView style={styles.workoutList}>
                                         {item.map((section, index) => (
                                             <View key={index} style={styles.sectionContainer}>
-                                                <Text style={styles.sectionTitle}>{section.partLabel}</Text>
-                                                {section.movements.map((movement, i) => (
-                                                    <View key={i} style={styles.movementRow}>
-                                                        {section.partLabel === "Warmup" ? (
-                                                            <Text style={styles.movementDescription}>{movement}</Text>
-                                                        ) : (
-                                                            <Text>
-                                                                <Text style={styles.movementLabel}>{`Movement ${i + 1}: `}</Text>
+                                                {/* Check if the section is "Conditioning" */}
+                                                {section.partLabel === "Conditioning" ? (
+                                                    <>
+                                                        <Text style={styles.sectionTitle}>
+                                                            Conditioning: {section.workoutName || "Unnamed Conditioning Workout"}
+                                                        </Text>
+                                                        <View style={styles.movementsContainer}>
+                                                            {section.movements.map((movement, i) => (
+                                                                <View key={i} style={styles.movementRow}>
+                                                                    <Text style={styles.movementValue}>{`${movement.movementOrder}: `}</Text>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {movement.detail && movement.detail !== "No detail provided" ? `${movement.detail} ` : ""}
+                                                                    </Text>
+                                                                    <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
+                                                                </View>
+                                                            ))}
+                                                            {section.rest > 0 && (
+                                                                <View style={styles.movementRow}>
+                                                                    <Text style={styles.restDetail}>
+                                                                        Rest for {section.rest} seconds between rounds
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {/* Render non-conditioning sections */}
+                                                        <Text style={styles.sectionTitle}>{section.partLabel}</Text>
+                                                        {section.movements.map((movement, i) => (
+                                                            <View key={i} style={styles.movementRow}>
+                                                                <Text style={styles.movementValue}>{`${i + 1}: `}</Text>
                                                                 <Text style={styles.movementDetail}>{movement}</Text>
-                                                            </Text>
-                                                        )}
-                                                    </View>
-                                                ))}
-                                                <View style={styles.subDividerLine}></View>
+                                                            </View>
+                                                        ))}
+                                                    </>
+                                                )}
                                             </View>
                                         ))}
+
                                     </ScrollView>
+
                                     <View style={styles.buttonContainer}>
                                         <TouchableOpacity
                                             style={styles.submitButton}
@@ -499,7 +609,7 @@ export default function WorkoutScreen({ route }) {
                             closeModal={closeModal} // Close function for modal
                             frequency={frequency}
                             modalRoute={'Discovery'}
-                            workoutType="Gym" 
+                            workoutType="Gym"
                         />
                     </Modal>
                 )}
@@ -715,6 +825,7 @@ const styles = StyleSheet.create({
         marginVertical: 5, // Space between rows
         flexDirection: 'row',
         paddingLeft: 10,
+        alignItems: 'center',
     },
     movementTextBlock: {
         flexDirection: 'row',
@@ -726,6 +837,13 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         lineHeight: 24,
         width: '30%',
+    },
+    movementValue: {
+        fontSize: 16,
+        color: '#6456B1',
+        fontWeight: "500",
+        lineHeight: 24,
+        // width: '30%',
     },
     movementDetail: {
         fontSize: 16,

@@ -305,7 +305,7 @@ const strengthRules60 = {
                 section: "Strong 2", movements: 1,
                 filters: [
                     [
-                        { key: "movement_type", value: "Primary", operator: "contains" },
+                        // { key: "movement_type", value: "Primary", operator: "contains" },
                         { key: "movement", value: "Lunge", operator: "contains" },
                         { key: "primary_body_part", value: "Glute", operator: "contains" },
                     ],
@@ -372,7 +372,7 @@ const strengthRules60 = {
                 section: "Strong 2", movements: 1,
                 filters: [
                     [
-                        { key: "movement_type", value: "Primary", operator: "contains" },
+                        // { key: "movement_type", value: "Primary", operator: "contains" },
                         { key: "movement", value: "Lunge", operator: "contains" },
                         { key: "primary_body_part", value: "Quad", operator: "contains" },
                     ],

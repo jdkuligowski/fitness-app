@@ -68,8 +68,8 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
         try {
             const userId = await AsyncStorage.getItem("userId");
             const formattedDate = selectedDate.toISOString().split("T")[0];
-            console.log('workout to save: ', currentWorkout)
-            // Dynamically structure the payload based on the workout type
+            console.log('Workout to save:', currentWorkout);
+
             let payload = {
                 user_id: userId,
                 name: `${selectedWorkout}`,
@@ -80,42 +80,64 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             };
 
             if (workoutType === "Gym") {
-                payload.description = "Custom generated workout",
-                    payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-                    payload.sections = workoutPlan.map((section, index) => ({
-                        section_name: section.partLabel,
-                        section_order: index + 1,
-                        section_type: section.sectionType,
-                        movements: section.movements.map((movement, movementIndex) => ({
-                            movement_name: movement,
-                            movement_order: movementIndex + 1,
-                        })),
-                    }));
+                payload.description = "Custom generated workout";
+                payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
+
+                payload.sections = workoutPlan.map((section, index) => {
+                    if (section.partLabel === "Conditioning") {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            conditioning_workout: {
+                                conditioning_overview_id: section.workoutId,
+                                notes: section.notes,
+                                comments: null,
+                                rpe: null,
+                                movements: section.movements.map((movement, movementIndex) => ({
+                                    movement_order: movementIndex + 1,
+                                    movement_name: movement.exercise,
+                                    detail: movement.detail || null,
+                                })),
+                            },
+                        };
+                    } else {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            movements: section.movements.map((movement, movementIndex) => ({
+                                movement_name: movement,
+                                movement_order: movementIndex + 1,
+                            })),
+                        };
+                    }
+                });
             } else if (workoutType === "Running") {
                 payload.description = currentWorkout.session_name;
                 payload.complexity = 0; // Fixed complexity for running
                 payload.running_sessions = {
-                    running_session_id: currentWorkout.id, // ID of the selected running session
-                    rpe: workoutPlan.rpe || null, // User-provided RPE
-                    comments: workoutPlan.comments || null, // User comments
+                    running_session_id: currentWorkout.id,
+                    rpe: workoutPlan.rpe || null,
+                    comments: workoutPlan.comments || null,
                     workout_notes: workoutPlan.notes || null,
-                    suggested_warmup_pace: workoutPlan.warmupPace, // Pre-calculated warmup pace
-                    suggested_cooldown_pace: workoutPlan.cooldownPace, // Pre-calculated cooldown pace
+                    suggested_warmup_pace: workoutPlan.warmupPace,
+                    suggested_cooldown_pace: workoutPlan.cooldownPace,
                     warmup_distance: workoutPlan.warmup_distance,
                     cooldown_distance: workoutPlan.cool_down_distance,
                     total_distance: workoutPlan.total_distance,
                     saved_intervals: currentWorkout.augmentedIntervals.map((interval) => ({
-                        repeat_variation: interval.repeat_variation, // Variation of the interval
-                        repeats: interval.repeats, // Number of repeats
-                        repeat_distance: interval.repeat_distance, // Distance of each repeat
-                        target_interval: interval.targetPaceInSeconds, // Target pace for the interval
-                        comments: interval.comments || null, // User comments for the interval
-                        rest_time:interval.rest_time || null,
+                        repeat_variation: interval.repeat_variation,
+                        repeats: interval.repeats,
+                        repeat_distance: interval.repeat_distance,
+                        target_interval: interval.targetPaceInSeconds,
+                        comments: interval.comments || null,
+                        rest_time: interval.rest_time || null,
                         split_times: Array.from({ length: interval.repeats }, (_, index) => ({
-                            repeat_number: index + 1, // Generate repeat numbers from 1 to `repeats`
+                            repeat_number: index + 1,
                             time_in_seconds: interval.targetPaceInSeconds,
-                            actual_time: null, // Placeholder for user-provided actual time
-                            comments: null, // Placeholder for user-provided comments
+                            actual_time: null,
+                            comments: null,
                         })),
                     })),
                 };
@@ -133,6 +155,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             Alert.alert("Error", "There was an error saving your workout. Please try again.");
         }
     };
+
 
     const reSaveWorkout = async (workoutId, status = "Saved") => {
         try {
@@ -176,16 +199,37 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     status: status,
                     activity_type: workoutPlan.workout.activity_type,
                     scheduled_date: status === "Scheduled" ? formattedDate : null,
-                    sections: workoutPlan.workout.workout_sections.map((section, index) => ({
-                        section_name: section.section_name,
-                        section_order: index + 1,
-                        section_type: section.section_type,
-                        movements: (section.section_movement_details || []).map((movement, movementIndex) => ({
-                            movement_name: movement.movements?.exercise,
-                            movement_order: movementIndex + 1,
-                            movement_difficulty: movement.movement_difficulty || 0,
-                        })),
-                    })),
+                    sections: workoutPlan.workout.workout_sections.map((section, index) => {
+                        if (section.section_name === "Conditioning") {
+                            return {
+                                section_name: section.section_name,
+                                section_order: index + 1,
+                                section_type: section.section_type,
+                                conditioning_workout: {
+                                    conditioning_overview_id: section.conditioning_workout.conditioning_overview_id,
+                                    notes: section.conditioning_workout.notes,
+                                    rpe: section.conditioning_workout.rpe,
+                                    comments: section.conditioning_workout.comments,
+                                    movements: section.conditioning_workout.movements.map((movement, movementIndex) => ({
+                                        movement_order: movement.movement_order,
+                                        movement_name: movement.movement_name,
+                                        detail: movement.detail || null,
+                                    })),
+                                },
+                            };
+                        } else {
+                            return {
+                                section_name: section.section_name,
+                                section_order: index + 1,
+                                section_type: section.section_type,
+                                movements: (section.section_movement_details || []).map((movement, movementIndex) => ({
+                                    movement_name: movement.movements?.exercise,
+                                    movement_order: movementIndex + 1,
+                                    movement_difficulty: movement.movement_difficulty || 0,
+                                })),
+                            };
+                        }
+                    }),
                 };
             } else if (activityType === "Running") {
                 // Running workout logic
@@ -216,7 +260,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                             repeat_distance: interval.repeat_distance,
                             target_interval: interval.target_pace,
                             comments: interval.comments || null,
-                            rest_time:interval.rest_time || null,
+                            rest_time: interval.rest_time || null,
                             split_times: interval.split_times.map((split, index) => ({
                                 repeat_number: index + 1,
                                 time_in_seconds: split.time_in_seconds,

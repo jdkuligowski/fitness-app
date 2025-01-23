@@ -71,7 +71,7 @@ export default function RunningScreen() {
                             <View style={styles.workoutInfoDetails}>
                                 <Text style={styles.workoutSubtitle}>What kind of running session do you want to do?</Text>
                                 <View style={styles.workoutType}>
-                                    {['Intervals', 'Tempo', 'Not sure'].map((option, index) => (
+                                    {['Intervals', 'Tempo', 'Easy', 'Not sure'].map((option, index) => (
                                     // {['Intervals', 'Tempo', 'Long run', 'Not sure'].map((option, index) => (
                                         <TouchableOpacity
                                             key={index}
