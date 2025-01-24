@@ -97,7 +97,10 @@ export default function SupportOverview() {
 
                     </TouchableOpacity>
                     <View style={styles.divider}></View>
-                    <TouchableOpacity style={styles.supportRow}>
+                    <TouchableOpacity style={styles.supportRow}
+                        onPress={() => navigation.navigate("VideoOverview")}
+
+                    >
 
                         <View style={styles.supportLeft}>
                             <View

@@ -393,7 +393,7 @@ export default function WorkoutScreen({ route }) {
         setIsBouncerLoading(true);
         try {
             const userId = await AsyncStorage.getItem("userId");
-            if (!userId) throw new Error('User ID not found in AsyncStorage.');
+            if (!userId) throw new Error("User ID not found in AsyncStorage.");
 
             const formattedDate = new Date().toISOString().split("T")[0];
             const payload = {
@@ -402,63 +402,157 @@ export default function WorkoutScreen({ route }) {
                 description: "Custom generated workout",
                 duration: selectedTime,
                 complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-                status: 'Started',
+                status: "Started",
                 scheduled_date: formattedDate,
-                sections: workoutPlan.map((section, index) => ({
-                    section_name: section.partLabel,
-                    section_order: index + 1,
-                    section_type: section.sectionType,
-                    movements: section.movements.map((movement, movementIndex) => ({
-                        movement_name: movement,
-                        movement_order: movementIndex + 1,
-                    })),
-                })),
+                activity_type: 'Gym',
+                sections: workoutPlan.map((section, index) => {
+                    if (section.partLabel === "Conditioning") {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            conditioning_workout: {
+                                conditioning_overview_id: section.workoutId,
+                                notes: section.notes,
+                                comments: null,
+                                rpe: null,
+                                movements: section.movements.map((movement, movementIndex) => ({
+                                    movement_order: movementIndex + 1,
+                                    movement_name: movement.exercise,
+                                })),
+                            },
+                        };
+                    } else {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            movements: section.movements.map((movement, movementIndex) => ({
+                                movement_name: movement,
+                                movement_order: movementIndex + 1,
+                            })),
+                        };
+                    }
+                }),
             };
 
-            console.log('Payload for save and start:', JSON.stringify(payload, null, 2));
+            console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
 
             // 1️⃣ Save the workout
             const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
-            console.log('Response from save:', response.data);
+            console.log("Response from save:", JSON.stringify(response.data, null, 2));
 
             // Extract the ID of the saved workout
-            const savedWorkoutId = response.data?.workout_id;
+            const savedWorkoutId = response.data?.workout.id;
 
             if (!savedWorkoutId) {
-                console.error('Workout ID is undefined, check API response:', response.data);
-                Alert.alert('Error', 'Failed to save workout. Please try again.');
+                console.error("Workout ID is undefined, check API response:", response.data);
+                Alert.alert("Error", "Failed to save workout. Please try again.");
                 setIsBouncerLoading(false);
                 return;
             }
 
-            console.log('New Workout ID ->', savedWorkoutId);
+            console.log("New Workout ID ->", savedWorkoutId);
 
             // 2️⃣ Fetch workout details and movement history
-            const workoutDetailsResponse = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`, {
-                params: { user_id: userId }
-            });
+            const workoutDetailsResponse = await axios.get(
+                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
+                { params: { user_id: userId } }
+            );
 
             const { workout, movement_history } = workoutDetailsResponse.data;
-            console.log('Workout details ->', workout);
-            console.log('Movement history ->', movement_history);
+            console.log("Workout details ->", workout);
+            console.log("Movement history ->", movement_history);
+
             setIsBouncerLoading(false);
+
             // 3️⃣ Navigate directly to CompleteWorkout with all the data
-            navigation.navigate('Training', {
-                screen: 'CompleteWorkout',
+            navigation.navigate("Training", {
+                screen: "CompleteWorkout",
                 params: {
                     workout: workout,
-                    movementHistory: movement_history
-                }
+                    movementHistory: movement_history,
+                },
             });
-
-
-
         } catch (error) {
-            console.error('Error saving and starting workout:', error?.response?.data || error.message);
-            Alert.alert('Error', 'There was an error starting your workout. Please try again.');
+            console.error("Error saving and starting workout:", error?.response?.data || error.message);
+            Alert.alert("Error", "There was an error starting your workout. Please try again.");
             setIsBouncerLoading(false);
         }
     };
+
+
+
+    // const saveAndStartWorkout = async (workoutPlan) => {
+    //     setIsBouncerLoading(true);
+    //     try {
+    //         const userId = await AsyncStorage.getItem("userId");
+    //         if (!userId) throw new Error('User ID not found in AsyncStorage.');
+
+    //         const formattedDate = new Date().toISOString().split("T")[0];
+    //         const payload = {
+    //             user_id: userId,
+    //             name: `${selectedWorkout} Workout`,
+    //             description: "Custom generated workout",
+    //             duration: selectedTime,
+    //             complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
+    //             status: 'Started',
+    //             scheduled_date: formattedDate,
+    //             sections: workoutPlan.map((section, index) => ({
+    //                 section_name: section.partLabel,
+    //                 section_order: index + 1,
+    //                 section_type: section.sectionType,
+    //                 movements: section.movements.map((movement, movementIndex) => ({
+    //                     movement_name: movement,
+    //                     movement_order: movementIndex + 1,
+    //                 })),
+    //             })),
+    //         };
+
+    //         console.log('Payload for save and start:', JSON.stringify(payload, null, 2));
+
+    //         // 1️⃣ Save the workout
+    //         const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
+    //         console.log('Response from save:', response.data);
+
+    //         // Extract the ID of the saved workout
+    //         const savedWorkoutId = response.data?.workout_id;
+
+    //         if (!savedWorkoutId) {
+    //             console.error('Workout ID is undefined, check API response:', response.data);
+    //             Alert.alert('Error', 'Failed to save workout. Please try again.');
+    //             setIsBouncerLoading(false);
+    //             return;
+    //         }
+
+    //         console.log('New Workout ID ->', savedWorkoutId);
+
+    //         // 2️⃣ Fetch workout details and movement history
+    //         const workoutDetailsResponse = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`, {
+    //             params: { user_id: userId }
+    //         });
+
+    //         const { workout, movement_history } = workoutDetailsResponse.data;
+    //         console.log('Workout details ->', workout);
+    //         console.log('Movement history ->', movement_history);
+    //         setIsBouncerLoading(false);
+    //         // 3️⃣ Navigate directly to CompleteWorkout with all the data
+    //         navigation.navigate('Training', {
+    //             screen: 'CompleteWorkout',
+    //             params: {
+    //                 workout: workout,
+    //                 movementHistory: movement_history
+    //             }
+    //         });
+
+
+
+    //     } catch (error) {
+    //         console.error('Error saving and starting workout:', error?.response?.data || error.message);
+    //         Alert.alert('Error', 'There was an error starting your workout. Please try again.');
+    //         setIsBouncerLoading(false);
+    //     }
+    // };
 
 
 

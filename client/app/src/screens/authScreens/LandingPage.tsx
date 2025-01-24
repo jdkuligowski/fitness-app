@@ -25,7 +25,7 @@ export default function LandingPage() {
                         <TouchableOpacity
                             style={styles.continueButton}
                             onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.continueButtonText}>Continue</Text>
+                            <Text style={styles.continueButtonText}>Sign up</Text>
                             <View style={styles.buttonArrow}>
                                 <Ionicons name="arrow-forward" size={24} color="black" />
                             </View>

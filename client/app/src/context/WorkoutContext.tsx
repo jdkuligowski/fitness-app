@@ -1,17 +1,18 @@
 import React, { createContext, useContext, useState } from 'react';
 import axios from 'axios';
 import ENV from '../../../env'
-
+import { useLoader } from '../context/LoaderContext';
 const WorkoutContext = createContext();
 
 export const WorkoutProvider = ({ children }) => {
   const [workoutData, setWorkoutData] = useState([]);
   const [conditioningData, setConditioningData] = useState([]);
+  const { setIsBouncerLoading } = useLoader(); // Access loader functions
 
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchWorkoutData = async () => {
-    setIsLoading(true);
+    setIsBouncerLoading(true);
     console.log("Starting fetchWorkoutData...");
     
     try {
@@ -37,7 +38,7 @@ export const WorkoutProvider = ({ children }) => {
       }
     } finally {
       setTimeout(() => {
-        setIsLoading(false);
+        setIsBouncerLoading(false);
         console.log("Finished fetchWorkoutData. Loading state set to false.");
       }, 0); 
     }

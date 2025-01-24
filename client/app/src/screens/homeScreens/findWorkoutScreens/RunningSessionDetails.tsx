@@ -20,6 +20,7 @@ import { Colours } from "@/app/src/components/styles";
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -225,12 +226,104 @@ export default function SuggestedRunningWorkouts({ route }) {
 
             augmentedWorkout = {
                 ...workout,
+                warmupPace: warmupCooldownPaceInSeconds,
+                cooldownPace: warmupCooldownPaceInSeconds,
                 augmentedIntervals,
             };
         }
 
         setCurrentWorkout(augmentedWorkout);
     };
+
+
+    const saveAndStartRunningWorkout = async (workoutPlan) => {
+        setIsBouncerLoading(true);
+        try {
+            const userId = await AsyncStorage.getItem("userId");
+            if (!userId) throw new Error("User ID not found in AsyncStorage.");
+
+            const formattedDate = new Date().toISOString().split("T")[0];
+
+            console.log('Run to save and start:', JSON.stringify(workoutPlan, null, 2));
+
+            // Construct the payload
+            const payload = {
+                user_id: userId,
+                name: `${workoutPlan.session_name || "Running"} Workout`,
+                description: workoutPlan.session_name || "Running workout session",
+                duration: calculateWorkoutDuration(workoutPlan), // Total time in minutes
+                status: "Started",
+                scheduled_date: formattedDate,
+                activity_type: "Running",
+                running_sessions: {
+                    running_session_id: workoutPlan.id,
+                    warmup_distance: workoutPlan.warmup_distance,
+                    cooldown_distance: workoutPlan.cool_down_distance, // Corrected key
+                    total_distance: workoutPlan.total_distance,
+                    rpe: null,
+                    comments: null,
+                    suggested_warmup_pace: warmupCooldownPaceInSeconds,
+                    suggested_cooldown_pace: warmupCooldownPaceInSeconds,
+                    saved_intervals: workoutPlan.intervals.map((interval) => ({
+                        repeat_variation: interval.repeat_variation,
+                        repeats: interval.repeats,
+                        repeat_distance: interval.repeat_distance,
+                        target_interval: calculateTargetPace(interval.target_pace),
+                        comments: interval.comments || null,
+                        rest_time: interval.rest_time || null,
+                        split_times: Array.from({ length: interval.repeats }, (_, index) => ({
+                            repeat_number: index + 1,
+                            time_in_seconds: calculateTargetPace(interval.target_pace),
+                            actual_time: null,
+                            comments: null,
+                        })),
+                    })),
+                },
+            };
+
+            console.log("Payload for save and start (Running):", JSON.stringify(payload, null, 2));
+
+            // Save the workout
+            const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
+            console.log("Response from save (Running):", response.data);
+
+            // Extract the ID of the saved workout
+            const savedWorkoutId = response.data?.workout_id;
+
+            if (!savedWorkoutId) {
+                console.error("Workout ID is undefined, check API response:", response.data);
+                Alert.alert("Error", "Failed to save workout. Please try again.");
+                setIsBouncerLoading(false);
+                return;
+            }
+
+            console.log("New Running Workout ID ->", savedWorkoutId);
+
+            // Fetch workout details and intervals
+            const workoutDetailsResponse = await axios.get(
+                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
+                { params: { user_id: userId } }
+            );
+
+            const { workout } = workoutDetailsResponse.data;
+            console.log("Workout details (Running) ->", JSON.stringify(workout, null, 2));
+
+            setIsBouncerLoading(false);
+
+            // Navigate to the complete workout screen
+            navigation.navigate("Training", {
+                screen: "CompleteRunningWorkout",
+                params: {
+                    workout: workout,
+                },
+            });
+        } catch (error) {
+            console.error("Error saving and starting running workout:", error?.response?.data || error.message);
+            Alert.alert("Error", "There was an error starting your running workout. Please try again.");
+            setIsBouncerLoading(false);
+        }
+    };
+
 
 
 
@@ -325,7 +418,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
                             style={styles.submitButton}
-                            onPress={() => showModalForWorkout(item)}
+                            onPress={() => saveAndStartRunningWorkout(item)}
                         >
                             <Text style={styles.submitButtonText}>Start Easy Run</Text>
                             <View style={styles.submitArrow}>
@@ -482,7 +575,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity
                         style={styles.submitButton}
-                        onPress={() => showModalForWorkout(item)}
+                        onPress={() => saveAndStartRunningWorkout(item)}
                     >
                         <Text style={styles.submitButtonText}>Start workout</Text>
                         <View style={styles.submitArrow}>

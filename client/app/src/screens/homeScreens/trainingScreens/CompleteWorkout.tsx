@@ -375,23 +375,41 @@ export default function CompleteWorkout({ route, navigation }) {
                                         <View style={styles.tabContent}>
                                             {activeTab === 'Summary' && (
                                                 <View style={styles.summaryContent}>
-                                                    <Image
-                                                        style={styles.movementImage} />
+                                                    <Image style={styles.movementImage} />
                                                     <View style={styles.conditioningDetails}>
-                                                        <Text style={styles.sectionTitle}>{item.conditioning_elements[0].conditioning_overview.name}</Text>
-                                                        <Text style={styles.conditioningDescription}>
-                                                            {item.conditioning_elements[0].conditioning_overview.notes}
+                                                        <Text style={styles.sectionTitle}>
+                                                            {item.conditioning_elements[0]?.conditioning_overview?.name || "No name provided"}
                                                         </Text>
-                                                        {item.conditioning_elements[0].conditioning_overview.conditioning_details.map((detail, index) => (
-                                                            <View key={index} style={styles.movementDetails}>
-                                                                <Text style={styles.movementDetail}>
-                                                                    {detail.detail && detail.detail !== "No detail provided" ? `${detail.detail} ` : ""}
-                                                                </Text>
-                                                                {/* <Text style={styles.movementName}>{detail.exercise}</Text> */}
-                                                                <Text style={styles.movementDetail}>{detail.exercise}</Text>
-                                                            </View>
-                                                        ))}
-                                                        {item.conditioning_elements[0].conditioning_overview.rest > 0 && (
+                                                        <Text style={styles.conditioningDescription}>
+                                                            {item.conditioning_elements[0]?.conditioning_overview?.notes || "No description provided"}
+                                                        </Text>
+
+                                                        {/* Render each movement in the correct order */}
+                                                        {/* Render each movement with exercise and detail in the correct order */}
+                                                        {item.section_movement_details.map((movementDetail, index) => {
+                                                            const conditioningDetail = item.conditioning_elements[0]?.conditioning_overview?.conditioning_details?.find(
+                                                                (detail) => detail.movement_order === movementDetail.movement_order
+                                                            );
+
+                                                            return (
+                                                                <View key={index} style={styles.movementDetails}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {/* Show exercise from movement details */}
+                                                                        {movementDetail.movements.exercise || "No exercise provided"}
+                                                                    </Text>
+                                                                    {conditioningDetail && (
+                                                                        <Text style={styles.movementDetail}>
+                                                                            {/* Show detail from conditioning details */}
+                                                                            {conditioningDetail.detail || "No detail provided"}
+                                                                        </Text>
+                                                                    )}
+                                                                </View>
+                                                            );
+                                                        })}
+
+
+                                                        {/* Rest Details */}
+                                                        {item.conditioning_elements[0]?.conditioning_overview?.rest > 0 && (
                                                             <View style={styles.movementDetails}>
                                                                 <Text style={styles.movementDetail}>
                                                                     Rest for {item.conditioning_elements[0].conditioning_overview.rest} seconds between rounds
@@ -1143,7 +1161,7 @@ const styles = StyleSheet.create({
         marginVertical: 10,
     },
     conditioningDescription: {
-        marginTop: 10,
+        marginVertical: 10,
     },
     movementDetail: {
         margin: 0,
@@ -1176,4 +1194,9 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 20,
     },
+    movementDetails: {
+        flexDirection: 'row', 
+        marginBottom: 5,
+
+    }
 });

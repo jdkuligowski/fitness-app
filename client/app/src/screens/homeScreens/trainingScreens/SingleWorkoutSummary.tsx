@@ -68,6 +68,7 @@ export default function WorkoutSummary({ route, navigation }) {
                     movementHistory: movementHistory
                 });
             } else if ((userWorkouts.activity_type === 'Running')) {
+                console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2)); // Pretty print with 2 spaces
                 navigation.navigate('CompleteRunningWorkout', {
                     workout: userWorkouts,
                     // movementHistory: movementHistory

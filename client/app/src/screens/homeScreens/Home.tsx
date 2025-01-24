@@ -188,7 +188,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Search box */}
-          <View style={styles.overlayBox}>
+          {/* <View style={styles.overlayBox}>
             <View style={styles.homeSearchIcon}>
               <Ionicons name="search" size={20} color="#FFFFFF" />
             </View>
@@ -197,7 +197,7 @@ export default function HomeScreen() {
               placeholder="Search for workout"
               placeholderTextColor="#B0B0B0"
             />
-          </View>
+          </View> */}
 
           {/* First block: categoriess */}
           <View style={styles.categoryBlock}>
@@ -335,11 +335,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colours.primaryBackground,
+    paddingBottom: 50,
   },
   header: {
     padding: 20,
     backgroundColor: Colours.primaryHeader,
-    height: 175,
+    height: 130,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
   },

@@ -10,7 +10,7 @@ import { WorkoutProvider } from './app/src/context/WorkoutContext';
 import { AuthProvider } from './app/src/context/AuthContext';
 import { LoaderProvider } from './app/src/context/LoaderContext';
 import RootNavigator from './app/src/navigation/RootNavigator';
-import BouncingLoader from './app/src/components/BouncingLoader'; 
+import BouncingLoader from './app/src/components/BouncingLoader';
 
 // Prevent the splash screen from auto-hiding before assets load
 SplashScreen.preventAutoHideAsync();
@@ -48,14 +48,14 @@ export default function App() {
 
   return (
     <AuthProvider>
-    <WorkoutProvider>
       <LoaderProvider> {/* Wrap everything in LoaderProvider */}
-        <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootNavigator />
-          <BouncingLoader /> {/* The global loader is on top of everything */}
-        </NavigationContainer>
+        <WorkoutProvider>
+          <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <RootNavigator />
+            <BouncingLoader /> {/* The global loader is on top of everything */}
+          </NavigationContainer>
+        </WorkoutProvider>
       </LoaderProvider>
-    </WorkoutProvider>
-  </AuthProvider>
+    </AuthProvider>
   );
 }

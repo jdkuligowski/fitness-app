@@ -308,19 +308,21 @@ export default function RunningWorkout({ route, navigation }) {
                             {/* RPE Block for Running Session */}
                             <View style={styles.commentBlock}>
                                 <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
-                                <Slider
-                                    style={styles.slider}
-                                    minimumValue={0}
-                                    maximumValue={10}
-                                    step={1}
-                                    minimumTrackTintColor="#D6F7F4"
-                                    value={logData.session_rpe || 0}
-                                    onValueChange={(value) => {
-                                        const updatedLogData = { ...logData };
-                                        updatedLogData.session_rpe = value;
-                                        setLogData(updatedLogData);
-                                    }}
-                                />
+                                <View style={styles.sliderContainer}>
+                                    <Slider
+                                        style={styles.slider}
+                                        minimumValue={0}
+                                        maximumValue={10}
+                                        step={1}
+                                        minimumTrackTintColor="#D6F7F4"
+                                        value={logData.session_rpe || 0}
+                                        onValueChange={(value) => {
+                                            const updatedLogData = { ...logData };
+                                            updatedLogData.session_rpe = value;
+                                            setLogData(updatedLogData);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </ScrollView>
                     </KeyboardAvoidingView>
@@ -363,8 +365,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colours.primaryBackground,
     },
     scrollContainer: {
-        flexGrow: 1,
+        flex: 1,
         backgroundColor: Colours.primaryBackground,
+        paddingBottom: 10,
+        overflowY: 'hidden',
     },
     header: {
         padding: 20,
@@ -606,6 +610,7 @@ const styles = StyleSheet.create({
     },
     commentBlock: {
         marginTop: 10,
+        marginBottom: 20,
     },
     commentInput: {
         width: '100%',
@@ -617,11 +622,22 @@ const styles = StyleSheet.create({
         padding: 10,
         fontSize: 10,
     },
+    sliderContainer: {
+        marginTop: 10,
+        marginBottom: 30, // Prevent overlap with elements below
+    },
     slider: {
         width: '90%',
         height: 40,
         alignSelf: 'center',
+        marginBottom: 20,
         // backgroundColor: '#D6F7F4',
+    },
+    thumb: {
+        height: 30, // Increase the size for better visibility
+        width: 30,
+        borderRadius: 15,
+        backgroundColor: '#000', // Thumb button color
     },
     loadingContainer: {
         flex: 1,

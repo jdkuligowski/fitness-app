@@ -98,11 +98,8 @@ class SaveWorkoutView(APIView):
                 conditioning_workout = section_data['conditioning_workout']
                 conditioning_overview_id = conditioning_workout.get('conditioning_overview_id')
 
-                if not conditioning_overview_id:
-                    return Response(
-                        {'error': 'conditioning_overview_id is required for Conditioning sections'},
-                        status=400
-                    )
+                if conditioning_overview_id is None:  # Use None to check for missing values
+                    return Response({"error": "conditioning_overview_id is required for Conditioning sections"}, status=400)
 
                 try:
                     conditioning_overview = ConditioningOverview.objects.get(id=conditioning_overview_id)
