@@ -39,7 +39,7 @@ export default function TrainingOverview() {
         level: '',
         time: null
     });
-    const workoutOptions = ['Gym session', 'Running'];
+    const workoutOptions = ['Gym session', 'Running', 'Mobility'];
     // const workoutOptions = ['Gym session', 'Running', 'Rowing', 'Mobility', 'Bodyweight'];
     const typeOptions = ['Full Body', 'Lower Body', 'Upper Body'];
     // const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
@@ -383,7 +383,9 @@ export default function TrainingOverview() {
                                                             ? '#EFE8FF'
                                                             : item.activity_type === 'Running'
                                                                 ? '#D2E4EA'
-                                                                : 'black',
+                                                                : item.activity_type === 'Mobility'
+                                                                    ? '#FFDDDE'
+                                                                    : 'black'
                                                 },
                                             ]}
                                         >
@@ -469,7 +471,9 @@ export default function TrainingOverview() {
                                                                     ? '#EFE8FF'
                                                                     : item.activity_type === 'Running'
                                                                         ? '#D2E4EA'
-                                                                        : 'black',
+                                                                        : item.activity_type === 'Mobility'
+                                                                            ? '#FFDDDE'
+                                                                            : 'black'
                                                         },
                                                     ]}
                                                 >
@@ -546,7 +550,9 @@ export default function TrainingOverview() {
                                                             ? '#EFE8FF'
                                                             : item.activity_type === 'Running'
                                                                 ? '#D2E4EA'
-                                                                : 'black',
+                                                                : item.activity_type === 'Mobility'
+                                                                    ? '#FFDDDE'
+                                                                    : 'black'
                                                 },
                                             ]}
                                         >

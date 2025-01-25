@@ -216,9 +216,15 @@ export default function HomeScreen() {
               </View>
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Running')}>
-                  <Ionicons name="heart-outline" size={20} color="#E87EA1" />
+                  <Ionicons name="heart-outline" size={20} color="#D2E4EA" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Running</Text>
+              </View>
+              <View style={styles.activity}>
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Mobility')}>
+                  <Ionicons name="body-outline" size={20} color="#E87EA1" />
+                </TouchableOpacity>
+                <Text style={styles.activityText}>Mobility</Text>
               </View>
               {/* <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton}>
@@ -226,12 +232,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Rowing</Text>
               </View>
-              <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton}>
-                  <Ionicons name="body-outline" size={20} color="#65C8BF" />
-                </TouchableOpacity>
-                <Text style={styles.activityText}>Mobility</Text>
-              </View>
+
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton}>
                   <Ionicons name="flash-outline" size={20} color="#ECE847" />
@@ -267,11 +268,13 @@ export default function HomeScreen() {
                     styles.popularWorkout,
                     {
                       backgroundColor:
-                      workout.activity_type === 'Gym'
+                        workout.activity_type === 'Gym'
                           ? '#EFE8FF'
                           : workout.activity_type === 'Running'
                             ? '#D2E4EA'
-                            : 'black',
+                            : workout.activity_type === 'Mobility'
+                              ? '#FFEEEF'
+                              : 'black',
                     },
                   ]}
                   onPress={() =>

@@ -8,7 +8,8 @@ import SaveWorkoutModal from '../screens/modalScreens/SaveWorkoutModal'
 import SingleWorkoutSummary from '../screens/homeScreens/trainingScreens/SingleWorkoutSummary'
 import RunningSession from '../screens/homeScreens/findWorkoutScreens/RunningSession'
 import RunningSessionDetails from '../screens/homeScreens/findWorkoutScreens/RunningSessionDetails'
-
+import MobilitySession from '../screens/homeScreens/findWorkoutScreens/MobilitySession'
+import MobilitySessionDetails from '../screens/homeScreens/findWorkoutScreens/MobilitySessionDetails'
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,8 @@ export default function HomeStackNavigator() {
       {/* <Stack.Screen name="Training overview" component={TrainingOverview} options={{ headerShown: false }} /> */}
       <Stack.Screen name="Running" component={RunningSession} options={{ headerShown: false }} />
       <Stack.Screen name="Gym" component={GymSession} options={{ headerShown: false }} />
+      <Stack.Screen name="Mobility" component={MobilitySession} options={{ headerShown: false }} />
+      <Stack.Screen name="MobilitySessionDetails" component={MobilitySessionDetails} options={{ headerShown: false }} />
       <Stack.Screen name="WorkoutDetails" component={GymSessionDetails} options={{ headerShown: false }} />
       <Stack.Screen name="RunningSessionDetails" component={RunningSessionDetails} options={{ headerShown: false }} />
       <Stack.Screen 

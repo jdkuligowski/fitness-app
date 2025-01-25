@@ -63,6 +63,10 @@ INSTALLED_APPS = [
     'conditioning_details',
     'conditioning_summary',
     'saved_conditioning',
+    'mobility_overview',
+    'mobility_details',
+    'saved_mobility',
+    'saved_mobility_details',
 ]
 
 MIDDLEWARE = [

@@ -28,6 +28,10 @@ from saved_run_interval_times.models import SavedRunningSplitTime
 from saved_runs.serializers.populated import PopulatedSavedRunningSessionSerializer
 from saved_conditioning.models import ConditioningWorkout
 from conditioning_summary.models import ConditioningOverview
+from mobility_overview.models import MobilityWorkout
+from mobility_details.models import MobilityWorkoutDetails
+from saved_mobility.models import SavedMobilitySession
+from saved_mobility_details.models import SavedMobilityDetails
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -57,6 +61,8 @@ class SaveWorkoutView(APIView):
                     return self._save_gym_workout(data, user)
                 elif workout_type == 'Running':
                     return self._save_running_workout(data, user)
+                elif workout_type == 'Mobility':
+                    return self._save_mobility_workout(data, user)
                 else:
                     return Response({'error': f'Unsupported workout type: {workout_type}'}, status=400)
 
@@ -215,6 +221,58 @@ class SaveWorkoutView(APIView):
                 )
 
         return Response({'message': 'Running workout saved successfully', 'workout_id': workout.id}, status=201)
+
+    def _save_mobility_workout(self, data, user):
+        # Determine workout number
+        if data.get('workout_number'):
+            workout_number = data['workout_number']
+        else:
+            workout_number = self._get_workout_number(user)
+
+        # Create the base Workout instance
+        workout = Workout.objects.create(
+            name=data['name'],
+            workout_number=workout_number,
+            description=data['description'],
+            duration=data['duration'],
+            complexity=0,  # Fixed complexity for mobility
+            status=data.get('status', 'Saved'),
+            scheduled_date=data.get('scheduled_date'),
+            owner=user,
+            activity_type="Mobility",
+        )
+
+        # Create SavedMobilitySession
+        mobility_session_data = data.get('mobility_sessions')
+        if not mobility_session_data:
+            return Response({'error': 'Mobility session data is required'}, status=400)
+
+        saved_mobility_session = SavedMobilitySession.objects.create(
+            workout=workout,
+            number_of_movements=mobility_session_data.get('number_of_movements'),
+            session_video=mobility_session_data.get('session_video'),
+            rpe=mobility_session_data.get('rpe'),
+            comments=mobility_session_data.get('comments'),
+        )
+
+        # Save mobility details
+        for detail_data in mobility_session_data.get('saved_details', []):
+            movement_name = detail_data.get('movement_name')
+            try:
+                movement = Movement.objects.get(exercise=movement_name)
+            except Movement.DoesNotExist:
+                return Response(
+                    {'error': f"Movement '{movement_name}' does not exist"},
+                    status=400
+                )
+            SavedMobilityDetails.objects.create(
+                details=saved_mobility_session,
+                order=detail_data.get('order'),
+                duration=detail_data.get('duration'),
+                movements=movement,
+            )
+
+        return Response({'message': 'Mobility workout saved successfully', 'workout_id': workout.id}, status=201)
 
 
     def _get_workout_number(self, user):

@@ -30,4 +30,6 @@ urlpatterns = [
     path('api/running_sessions/', include('running_sessions.urls')),
     path('api/saved_runs/', include('saved_runs.urls')),
     path('api/conditioning_workouts/', include('conditioning_summary.urls')),
+    path('api/mobility_workouts/', include('mobility_overview.urls')),
+    path('api/saved_mobility/', include('saved_mobility.urls')),
 ]

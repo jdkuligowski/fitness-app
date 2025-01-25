@@ -791,6 +791,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
+        backgroundColor: '#E4EAEC',
 
     },
     workoutInfoTile: {

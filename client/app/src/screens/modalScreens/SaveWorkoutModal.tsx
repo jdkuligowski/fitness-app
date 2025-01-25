@@ -141,6 +141,19 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         })),
                     })),
                 };
+            } else if (workoutType === "Mobility") {
+                payload.description = currentWorkout.summary || "Mobility session";
+                payload.complexity = 0; // Fixed complexity for mobility
+                payload.mobility_sessions = {
+                    session_id: currentWorkout.id,
+                    number_of_movements: currentWorkout.number_of_movements,
+                    comments: null,
+                    saved_details: currentWorkout.details.map((detail) => ({
+                        order: detail.order,
+                        duration: detail.duration,
+                        movement_name: detail.exercise,
+                    })),
+                };
             }
 
             const response = await axios.post(

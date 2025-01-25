@@ -7,13 +7,14 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Modal, Dimensions,
+    Modal, Dimensions, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ENV from '../../../../../env'
 import { Colours } from '@/app/src/components/styles';
+import { Video } from "expo-av";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -23,6 +24,7 @@ export default function WorkoutSummary({ route, navigation }) {
     const [userWorkouts, setUserWorkouts] = useState(null); // Store the workout data
     const [isLoading, setIsLoading] = useState(true); // Loading state for fetching workout data
     const [movementHistory, setMovementHistory] = useState(null)
+    const [selectedMovement, setSelectedMovement] = useState(null);
 
     // Fetch workout data
     useEffect(() => {
@@ -68,8 +70,14 @@ export default function WorkoutSummary({ route, navigation }) {
                     movementHistory: movementHistory
                 });
             } else if ((userWorkouts.activity_type === 'Running')) {
-                console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2)); // Pretty print with 2 spaces
+                console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2));
                 navigation.navigate('CompleteRunningWorkout', {
+                    workout: userWorkouts,
+                    // movementHistory: movementHistory
+                });
+            } else if ((userWorkouts.activity_type === 'Mobility')) {
+                console.log("Mobility workout to start ->", JSON.stringify(userWorkouts, null, 2));
+                navigation.navigate('CompleteMobilityWorkout', {
                     workout: userWorkouts,
                     // movementHistory: movementHistory
                 });
@@ -119,7 +127,17 @@ export default function WorkoutSummary({ route, navigation }) {
                 </View>
 
                 {/* Workout Overview */}
-                <View style={styles.workoutCard}>
+                <View style={[styles.workoutCard,
+                {
+                    backgroundColor:
+                        userWorkouts.activity_type === 'Gym'
+                            ? '#F3F1FF'
+                            : userWorkouts.activity_type === 'Running'
+                                ? '#E4EAEC'
+                                : userWorkouts.activity_type === 'Mobility'
+                                    ? '#FFEEEF'
+                                    : 'black',
+                }]}>
 
                     <View style={styles.workoutOverview}>
                         <View style={[styles.overviewBox,
@@ -129,7 +147,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                     ? '#EFE8FF'
                                     : userWorkouts.activity_type === 'Running'
                                         ? '#D2E4EA'
-                                        : 'black',
+                                        : userWorkouts.activity_type === 'Mobility'
+                                            ? '#FFDDDE'
+                                            : 'black',
                         }]}>
                             <View style={styles.overviewHeader}>
                                 <Text style={styles.workoutTitle}>{userWorkouts.name}</Text>
@@ -168,7 +188,7 @@ export default function WorkoutSummary({ route, navigation }) {
                                     {section.section_movement_details.map((movement, i) => (
                                         <View key={i} style={styles.movementRow}>
                                             <Text>
-                                                <Text style={styles.movementLabel}>{`Movement ${i + 1}: `}</Text>
+                                                <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
                                                 <Text style={styles.movementDetail}>{movement.movements.exercise}</Text>
                                             </Text>
                                         </View>
@@ -265,6 +285,48 @@ export default function WorkoutSummary({ route, navigation }) {
                                     </View>
                                 ))}
                             </>
+                        ) : userWorkouts.activity_type === "Mobility" ? (
+                            // Mobility Layout
+                            <>
+                                <Text style={styles.summaryMessage}>
+                                    {userWorkouts.mobility_sessions.length > 0 && userWorkouts.mobility_sessions[0].mobility_details.length > 0
+                                        ? `Work through these ${userWorkouts.mobility_sessions[0].mobility_details.length} movements, spending ${userWorkouts.mobility_sessions[0].mobility_details[0].duration} minute${userWorkouts.mobility_sessions[0].mobility_details[0].duration > 1 ? 's' : ''} on each.`
+                                        : "No mobility session details available."}
+                                </Text>
+                                {userWorkouts.mobility_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        <Text style={styles.sectionTitle}>Mobility Session</Text>
+                                        {session.mobility_details.map((detail, i) => (
+                                            <View key={i} style={styles.movementRow}>
+                                                <View style={styles.movementLeft}>
+                                                    <Text>
+                                                        <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                        <Text style={styles.movementDetail}>{detail.movements.exercise}</Text>
+                                                        {detail.duration && (
+                                                            <Text style={styles.movementDetail}></Text>
+                                                        )}
+                                                    </Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        if (detail.movements.portrait_video_url) {
+                                                            setSelectedMovement({
+                                                                ...detail,
+                                                                portrait_video_url: detail.movements.portrait_video_url,
+                                                            });
+                                                        } else {
+                                                            Alert.alert("No video available", "This movement doesn't have an associated video.");
+                                                        }
+                                                    }}
+                                                >
+                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                        {/* <View style={styles.subDividerLine}></View> */}
+                                    </View>
+                                ))}
+                            </>
                         ) : (
                             <Text style={styles.movementDetail}>Unknown activity type</Text>
                         )}
@@ -284,6 +346,35 @@ export default function WorkoutSummary({ route, navigation }) {
                         </TouchableOpacity>
                     </View>
                 </View>
+                {selectedMovement && (
+                    <Modal
+                        animationType="slide"
+                        transparent={false}
+                        visible={!!selectedMovement}
+                        onRequestClose={() => setSelectedMovement(null)}
+                    >
+                        <View style={styles.videoModalContainer}>
+                            {selectedMovement?.portrait_video_url ? (
+                                <Video
+                                    source={{ uri: selectedMovement.portrait_video_url }}
+                                    style={styles.fullScreenVideo}
+                                    resizeMode="contain"
+                                    useNativeControls
+                                    shouldPlay
+                                    onError={(error) => console.error("Video Error:", error)}
+                                />
+                            ) : (
+                                <Text style={styles.noVideoText}>Video coming soon</Text>
+                            )}
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setSelectedMovement(null)}
+                            >
+                                <Ionicons name="close" size={30} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </Modal>
+                )}
             </View>
         </SafeAreaView>
     );
@@ -484,6 +575,11 @@ const styles = StyleSheet.create({
         color: "#",
         marginVertical: 5,
     },
+    summaryMessage: {
+        fontSize: 16,
+        // marginHorizontal: 20,
+        marginBottom: 20,
+    },
     partLabel: {
         fontWeight: 600,
     },
@@ -491,6 +587,13 @@ const styles = StyleSheet.create({
         marginVertical: 5, // Space between rows
         flexDirection: 'row',
         paddingLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    movementLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '85%',
     },
     movementTextBlock: {
         flexDirection: 'row',
@@ -591,5 +694,49 @@ const styles = StyleSheet.create({
         backgroundColor: '#D2E4EA',
         borderRadius: 5,
         padding: 3,
+    },
+    videoModalContainer: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    fullScreenVideo: {
+        width: "100%",
+        height: "100%",
+    },
+    closeButton: {
+        position: "absolute",
+        top: 40,
+        right: 20,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        borderRadius: 20,
+        padding: 10,
+    },
+    thumbnail: {
+        width: 100,
+        height: 100,
+        marginBottom: 10,
+        borderRadius: 8,
+        backgroundColor: "#DDD",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    noVideoText: {
+        fontSize: 14,
+        color: "gray",
+    },
+    overlay: {
+        position: "absolute",
+        justifyContent: 'center',
+        alignItems: 'center',
+        top: 120,
+        width: '70%',
+        // left: 0,
+        // right: 0,
+        borderRadius: 5,
+        backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+        padding: 10,
+        zIndex: 10, // Ensure it appears above the video
     },
 });

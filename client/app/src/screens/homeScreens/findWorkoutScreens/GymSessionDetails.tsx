@@ -18,6 +18,7 @@ import strengthRules40 from '../../../components/workoutRules/strengthRules40'
 import strengthRules50 from '../../../components/workoutRules/strengthRules50'
 import strengthRules60 from '../../../components/workoutRules/strengthRules60'
 import commonRules from '../../../components/workoutRules/commonRules'
+import { Video } from 'expo-av';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -38,6 +39,7 @@ export default function WorkoutScreen({ route }) {
     const [showCalendarModal, setShowCalendarModal] = useState(false); // Track Calendar modal visibility
     const [selectedDate, setSelectedDate] = useState(new Date()); // Track selected date
     const [modalRoute, setModalRoute] = useState('')
+    const [selectedMovement, setSelectedMovement] = useState(null); // For video modal
 
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
 
@@ -348,7 +350,7 @@ export default function WorkoutScreen({ route }) {
             plans.push(generateWorkoutPlan());
         }
         setWorkoutPlans(plans);
-        console.log("Generated workout plans:", plans);
+        console.log("Generated workout plans:", JSON.stringify(plans, null, 2));
     };
 
     // Fetch data and generate workout plans
@@ -482,80 +484,9 @@ export default function WorkoutScreen({ route }) {
     };
 
 
-
-    // const saveAndStartWorkout = async (workoutPlan) => {
-    //     setIsBouncerLoading(true);
-    //     try {
-    //         const userId = await AsyncStorage.getItem("userId");
-    //         if (!userId) throw new Error('User ID not found in AsyncStorage.');
-
-    //         const formattedDate = new Date().toISOString().split("T")[0];
-    //         const payload = {
-    //             user_id: userId,
-    //             name: `${selectedWorkout} Workout`,
-    //             description: "Custom generated workout",
-    //             duration: selectedTime,
-    //             complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-    //             status: 'Started',
-    //             scheduled_date: formattedDate,
-    //             sections: workoutPlan.map((section, index) => ({
-    //                 section_name: section.partLabel,
-    //                 section_order: index + 1,
-    //                 section_type: section.sectionType,
-    //                 movements: section.movements.map((movement, movementIndex) => ({
-    //                     movement_name: movement,
-    //                     movement_order: movementIndex + 1,
-    //                 })),
-    //             })),
-    //         };
-
-    //         console.log('Payload for save and start:', JSON.stringify(payload, null, 2));
-
-    //         // 1️⃣ Save the workout
-    //         const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
-    //         console.log('Response from save:', response.data);
-
-    //         // Extract the ID of the saved workout
-    //         const savedWorkoutId = response.data?.workout_id;
-
-    //         if (!savedWorkoutId) {
-    //             console.error('Workout ID is undefined, check API response:', response.data);
-    //             Alert.alert('Error', 'Failed to save workout. Please try again.');
-    //             setIsBouncerLoading(false);
-    //             return;
-    //         }
-
-    //         console.log('New Workout ID ->', savedWorkoutId);
-
-    //         // 2️⃣ Fetch workout details and movement history
-    //         const workoutDetailsResponse = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`, {
-    //             params: { user_id: userId }
-    //         });
-
-    //         const { workout, movement_history } = workoutDetailsResponse.data;
-    //         console.log('Workout details ->', workout);
-    //         console.log('Movement history ->', movement_history);
-    //         setIsBouncerLoading(false);
-    //         // 3️⃣ Navigate directly to CompleteWorkout with all the data
-    //         navigation.navigate('Training', {
-    //             screen: 'CompleteWorkout',
-    //             params: {
-    //                 workout: workout,
-    //                 movementHistory: movement_history
-    //             }
-    //         });
-
-
-
-    //     } catch (error) {
-    //         console.error('Error saving and starting workout:', error?.response?.data || error.message);
-    //         Alert.alert('Error', 'There was an error starting your workout. Please try again.');
-    //         setIsBouncerLoading(false);
-    //     }
-    // };
-
-
-
+    const findMovementByExercise = (exerciseName) => {
+        return workoutData.find((movement) => movement.exercise === exerciseName);
+    };
 
 
     return (
@@ -660,8 +591,20 @@ export default function WorkoutScreen({ route }) {
                                                         <Text style={styles.sectionTitle}>{section.partLabel}</Text>
                                                         {section.movements.map((movement, i) => (
                                                             <View key={i} style={styles.movementRow}>
-                                                                <Text style={styles.movementValue}>{`${i + 1}: `}</Text>
-                                                                <Text style={styles.movementDetail}>{movement}</Text>
+                                                                <View style={styles.movementLeft}>
+                                                                    <Text style={styles.movementValue}>{`${i + 1}: `}</Text>
+                                                                    <Text style={styles.movementDetail}>{movement}</Text>
+                                                                </View>
+                                                                <TouchableOpacity onPress={() => {
+                                                                    const movementFilter = findMovementByExercise(movement);
+                                                                    if (movementFilter) {
+                                                                        setSelectedMovement(movementFilter);
+                                                                    } else {
+                                                                        Alert.alert("No video found", "This movement doesn't have an associated video.");
+                                                                    }
+                                                                }}>
+                                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                                </TouchableOpacity>
                                                             </View>
                                                         ))}
                                                     </>
@@ -707,13 +650,41 @@ export default function WorkoutScreen({ route }) {
                         />
                     </Modal>
                 )}
-
-
+                {selectedMovement && (
+                    <Modal
+                        animationType="slide"
+                        transparent={false}
+                        visible={!!selectedMovement}
+                        onRequestClose={() => setSelectedMovement(null)}
+                    >
+                        <View style={styles.modalContainer}>
+                            {/* <View style={styles.overlay}>
+                                <Text style={styles.overlayText}>{selectedMovement.exercise}</Text>
+                            </View> */}
+                            {selectedMovement?.portrait_video_url ? (
+                                <Video
+                                    source={{ uri: selectedMovement.portrait_video_url }}
+                                    style={styles.fullScreenVideo}
+                                    resizeMode="contain"
+                                    useNativeControls
+                                    shouldPlay
+                                    onError={(error) => console.error("Video Error:", error)}
+                                />
+                            ) : (
+                                <Text style={styles.noVideoText}>Video coming soon</Text>
+                            )}
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setSelectedMovement(null)}
+                            >
+                                <Ionicons name="close" size={30} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </Modal>
+                )}
             </View>
         </SafeAreaView>
     );
-
-
 }
 
 const styles = StyleSheet.create({
@@ -844,6 +815,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
+        backgroundColor: '#F3F1FF',
 
     },
     workoutInfoTile: {
@@ -920,6 +892,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingLeft: 10,
         alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    movementLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '85%',
     },
     movementTextBlock: {
         flexDirection: 'row',
@@ -1073,5 +1051,55 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 25,
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    fullScreenVideo: {
+        width: "100%",
+        height: "100%",
+    },
+    closeButton: {
+        position: "absolute",
+        top: 40,
+        right: 20,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        borderRadius: 20,
+        padding: 10,
+    },
+    thumbnail: {
+        width: 100,
+        height: 100,
+        marginBottom: 10,
+        borderRadius: 8,
+        backgroundColor: "#DDD",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    noVideoText: {
+        fontSize: 14,
+        color: "gray",
+    },
+    overlay: {
+        position: "absolute",
+        justifyContent: 'center',
+        alignItems: 'center',
+        top: 120,
+        width: '70%',
+        // left: 0,
+        // right: 0,
+        borderRadius: 5,
+        backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+        padding: 10,
+        zIndex: 10, // Ensure it appears above the video
+    },
+    overlayText: {
+        color: "white",
+        fontSize: 14,
+        textAlign: "center",
+        fontWeight: "bold",
     },
 });
