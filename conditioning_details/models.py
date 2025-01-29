@@ -14,6 +14,6 @@ class ConditioningDetail(models.Model):
     movement_order = models.PositiveIntegerField(default=None, null=True, blank=True)  # Order of movements in the workout
     exercise = models.CharField(max_length=255, blank=True, null=True)  # Name of the exercise
     detail = models.CharField(max_length=255, blank=True, null=True)  # Details like '60s', '10 reps', etc.
-
+    
     def __str__(self):
         return f"{self.conditioning_overview.name} - {self.exercise}"

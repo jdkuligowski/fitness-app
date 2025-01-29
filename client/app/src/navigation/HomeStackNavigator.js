@@ -1,7 +1,7 @@
 // src/navigation/HomeStackNavigator.js
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/homeScreens/Home';
-import TrainingOverview from '../screens/homeScreens/trainingScreens/trainingOverview'
+import WorkoutCategories from '../screens/homeScreens/findWorkoutScreens/WorkoutCategories'
 import GymSession from '../screens/homeScreens/findWorkoutScreens/GymSession'
 import GymSessionDetails from '../screens/homeScreens/findWorkoutScreens/GymSessionDetails'
 import SaveWorkoutModal from '../screens/modalScreens/SaveWorkoutModal'
@@ -17,7 +17,7 @@ export default function HomeStackNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-      {/* <Stack.Screen name="Training overview" component={TrainingOverview} options={{ headerShown: false }} /> */}
+      <Stack.Screen name="Workout categories" component={WorkoutCategories} options={{ headerShown: false }} />
       <Stack.Screen name="Running" component={RunningSession} options={{ headerShown: false }} />
       <Stack.Screen name="Gym" component={GymSession} options={{ headerShown: false }} />
       <Stack.Screen name="Mobility" component={MobilitySession} options={{ headerShown: false }} />

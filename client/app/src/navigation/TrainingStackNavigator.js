@@ -13,6 +13,7 @@ export default function TrainingStackNavigator() {
       <TrainingStack.Screen name="TrainingOverview" component={TrainingOverview} options={{ headerShown: false }} />
       <TrainingStack.Screen name="TrainingDetails" component={SingleWorkoutSummary} options={{ headerShown: false }} />
       <TrainingStack.Screen name="CompleteWorkout" component={CompleteWorkout} options={{ headerShown: false }} />
+      <TrainingStack.Screen name="CompleteRunningWorkout" component={CompleteRunningWorkout} options={{ headerShown: false }} />
       <TrainingStack.Screen name="CompleteMobilityWorkout" component={CompleteMobilityWorkout} options={{ headerShown: false }} />
     </TrainingStack.Navigator>
   );

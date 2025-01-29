@@ -202,7 +202,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                     splitTimes: [
                         {
                             repeat_number: 1,
-                            time_in_seconds: totalTimeSec,
+                            time_in_seconds: selectedTime,
                             actual_time: null, // Placeholder for user input
                             comments: null, // Placeholder for user input
                         },
@@ -249,9 +249,11 @@ export default function SuggestedRunningWorkouts({ route }) {
             // Construct the payload
             const payload = {
                 user_id: userId,
-                name: `${workoutPlan.session_name || "Running"} Workout`,
+                name: `${workoutPlan.session_name || "Running"}`,
                 description: workoutPlan.session_name || "Running workout session",
-                duration: calculateWorkoutDuration(workoutPlan), // Total time in minutes
+                duration: workoutPlan.session_type === "Easy"
+                    ? selectedTime
+                    : calculateWorkoutDuration(workoutPlan), // Total time in minutes
                 status: "Started",
                 scheduled_date: formattedDate,
                 activity_type: "Running",
@@ -268,12 +270,16 @@ export default function SuggestedRunningWorkouts({ route }) {
                         repeat_variation: interval.repeat_variation,
                         repeats: interval.repeats,
                         repeat_distance: interval.repeat_distance,
-                        target_interval: calculateTargetPace(interval.target_pace),
+                        target_interval: workoutPlan.session_type === "Easy"
+                            ? warmupCooldownPaceInSeconds
+                            : calculateTargetPace(interval.target_pace),
                         comments: interval.comments || null,
                         rest_time: interval.rest_time || null,
                         split_times: Array.from({ length: interval.repeats }, (_, index) => ({
                             repeat_number: index + 1,
-                            time_in_seconds: calculateTargetPace(interval.target_pace),
+                            time_in_seconds: workoutPlan.session_type === "Easy"
+                                ? warmupCooldownPaceInSeconds
+                                : calculateTargetPace(interval.target_pace),
                             actual_time: null,
                             comments: null,
                         })),
@@ -315,6 +321,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                 screen: "CompleteRunningWorkout",
                 params: {
                     workout: workout,
+                    activityType: workout.activity_type,
                 },
             });
         } catch (error) {
@@ -675,12 +682,7 @@ const styles = StyleSheet.create({
     },
     header: {
         padding: 20,
-        // backgroundColor: '#FFF4F4',
-        // height: 175,
-        // borderBottomLeftRadius: 50,
-        // borderBottomRightRadius: 50,
         width: '100%',
-        // zIndex: 1,
     },
     topSection: {
         flexDirection: 'row',

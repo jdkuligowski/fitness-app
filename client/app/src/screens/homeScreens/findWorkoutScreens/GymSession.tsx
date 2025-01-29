@@ -15,7 +15,7 @@ export default function GymSession() {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [selectedFinish, setSelectedFinish] = useState(null);
   const [selectedValue, setSelectedValue] = useState(50); // Default selected value
-  const data = Array.from({ length: 100 }, (_, i) => i); // Minutes from 0 to 60
+  const data = Array.from({ length: 80 }, (_, i) => i); // Minutes from 0 to 60
   const flatListRef = useRef(null); // Reference to FlatList
 
   useEffect(() => {

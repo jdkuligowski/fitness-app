@@ -371,7 +371,7 @@ export default function TrainingOverview() {
                                         key={item.id || index}
                                         style={styles.workoutOverview}
                                         onPress={() =>
-                                            navigation.navigate('TrainingDetails', { workoutId: item.id })
+                                            navigation.navigate('TrainingDetails', { workoutId: item.id, activityType: item.activity_type })
                                         }
                                     >
                                         <View
@@ -459,7 +459,7 @@ export default function TrainingOverview() {
                                                 key={item.id || index}
                                                 style={styles.workoutOverview}
                                                 onPress={() =>
-                                                    navigation.navigate('TrainingDetails', { workoutId: item.id })
+                                                    navigation.navigate('TrainingDetails', { workoutId: item.id, activityType: item.activity_type })
                                                 }
                                             >
                                                 <View
@@ -538,7 +538,7 @@ export default function TrainingOverview() {
                                         key={item.id || index}
                                         style={styles.workoutOverview}
                                         onPress={() =>
-                                            navigation.navigate('TrainingDetails', { workoutId: item.id })
+                                            navigation.navigate('TrainingDetails', { workoutId: item.id, activityType: item.activity_type })
                                         }
                                     >
                                         <View

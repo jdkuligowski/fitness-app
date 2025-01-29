@@ -17,12 +17,13 @@ import ENV from '../../../../../env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLoader } from '@/app/src/context/LoaderContext';
+import RPEGauge from "@/app/src/components/RPEGauge";
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 
 export default function RunningWorkout({ route, navigation }) {
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { workout } = route.params; // Receive the workout data as a parameter
+    const { workout, completeWorkouts } = route.params; // Receive the workout data as a parameter
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [logData, setLogData] = useState({
         session_comments: workout.running_sessions[0]?.comments || "", // Default to an empty string
@@ -64,7 +65,9 @@ export default function RunningWorkout({ route, navigation }) {
                 rpe: logData.session_rpe || null, // Only update RPE if provided
                 comments: logData.session_comments || null, // Only update comments if provided
                 intervals: logData.intervals.map((interval) => ({
+                    id: interval.id, // Include the interval ID
                     split_times: interval.split_times.map((split) => ({
+                        id: split.id, // Include the split time ID
                         repeat_number: split.repeat_number,
                         actual_time: split.actual_mins * 60 + split.actual_secs, // Convert minutes and seconds to total seconds
                     })),
@@ -104,11 +107,20 @@ export default function RunningWorkout({ route, navigation }) {
 
                 <View style={styles.header}>
                     <View style={styles.topSection}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.navigate("Training", {
+                                screen: "TrainingDetails",
+                                params: {
+                                    workoutId: workout.id,
+                                    activityType: workout.activity_type,
+                                },
+                            })}
+                        >
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
                         <View style={styles.headerTextBlock}>
-                            <Text style={styles.headingText}>{workout?.name}</Text>
+                            <Text style={styles.headingText}>{workout?.description}</Text>
                             <View style={styles.workoutOverviewTime}>
                                 <Ionicons name="time-outline" size={24} color="black" />
                                 <Text style={styles.timeText}>{workout?.duration} mins</Text>
@@ -148,49 +160,15 @@ export default function RunningWorkout({ route, navigation }) {
                 {activeTab === "Summary" &&
                     <ScrollView style={styles.tabContent}>
                         <Text style={styles.workoutActivity}>Workout Summary</Text>
-                        <Text style={styles.summaryDetail}>{workout.description}</Text>
-                        {workout.running_sessions.map((session, index) => (
-                            session.workout_notes ? (
-                                <Text key={`notes-${index}`} style={styles.summaryDetail}>
-                                    {session.workout_notes}
-                                </Text>
-                            ) : null
-                        ))}
-                        {/* Warmup Section */}
-                        {workout.running_sessions.map((session, index) => (
-                            <View key={index} style={styles.sectionContainer}>
-                                <Text style={styles.workoutActivity}>Warmup</Text>
-                                <View style={styles.intervalContainer}>
-                                    {session.warmup_distance < 1 ? (
-                                        <View style={styles.timeBox}>
-                                            <Text style={styles.movementDetail}>
-                                                {session.warmup_distance * 1000}m at
-                                            </Text>
-                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
-                                        </View>
-                                    ) : (
-                                        <View style={styles.timeBox}>
-                                            <Text style={styles.movementDetail}>
-                                                {session.warmup_distance}km at
-                                            </Text>
-                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-                        ))}
-
-                        {/* Intervals Section */}
-                        <View style={styles.sectionContainer}>
-                            <Text style={styles.workoutActivity}>Intervals</Text>
-                            {workout.running_sessions.map((session, sessionIndex) => (
+                        {workout.description === "Easy run" ?
+                            workout.running_sessions.map((session, sessionIndex) => (
                                 <View key={sessionIndex}>
                                     {session.saved_intervals && session.saved_intervals.length > 0 ? (
                                         session.saved_intervals.map((interval, intervalIndex) => (
                                             <View key={intervalIndex} style={styles.intervalContainer}>
                                                 <View style={styles.timeBox}>
                                                     <Text style={styles.movementDetail}>
-                                                        {interval.repeats} x{" "}
+                                                        {workout.description} -{" "}
                                                         {interval.repeat_distance < 1
                                                             ? `${interval.repeat_distance * 1000}m`
                                                             : `${interval.repeat_distance}km`}{" "}
@@ -209,32 +187,102 @@ export default function RunningWorkout({ route, navigation }) {
                                         <Text style={styles.movementDetail}>No intervals defined</Text>
                                     )}
                                 </View>
+                            )) :
+                            workout.running_sessions.map((session, index) => (
+                                session.workout_notes ? (
+                                    <>
+                                        <Text style={styles.summaryDetail}>{workout.description}</Text>
+                                        <Text key={`notes-${index}`} style={styles.summaryDetail}>
+                                            {session.workout_notes}
+                                        </Text>
+                                    </>
+                                ) : null
                             ))}
-                        </View>
-
-                        {/* Cooldown Section */}
-                        {workout.running_sessions.map((session, index) => (
-                            <View key={index} style={styles.sectionContainer}>
-                                <Text style={styles.workoutActivity}>Cooldown</Text>
-                                <View style={styles.intervalContainer}>
-                                    {session.cooldown_distance < 1 ? (
-                                        <View style={styles.timeBox}>
-                                            <Text style={styles.movementDetail}>
-                                                {session.cooldown_distance * 1000}m at
-                                            </Text>
-                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                        {workout.description === "Easy run" ?
+                            <Text></Text>
+                            :
+                            <View>
+                                {/* Warmup Section */}
+                                {workout.running_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        <Text style={styles.workoutActivity}>Warmup</Text>
+                                        <View style={styles.intervalContainer}>
+                                            {session.warmup_distance < 1 ? (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.warmup_distance * 1000}m at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.warmup_distance}km at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                </View>
+                                            )}
                                         </View>
-                                    ) : (
-                                        <View style={styles.timeBox}>
-                                            <Text style={styles.movementDetail}>
-                                                {session.cooldown_distance}km at
-                                            </Text>
-                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                    </View>
+                                ))
+                                }
+                                {/* Intervals Section */}
+                                <View style={styles.sectionContainer}>
+                                    <Text style={styles.workoutActivity}>Intervals</Text>
+                                    {workout.running_sessions.map((session, sessionIndex) => (
+                                        <View key={sessionIndex}>
+                                            {session.saved_intervals && session.saved_intervals.length > 0 ? (
+                                                session.saved_intervals.map((interval, intervalIndex) => (
+                                                    <View key={intervalIndex} style={styles.intervalContainer}>
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {interval.repeats} x{" "}
+                                                                {interval.repeat_distance < 1
+                                                                    ? `${interval.repeat_distance * 1000}m`
+                                                                    : `${interval.repeat_distance}km`}{" "}
+                                                                at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(interval.target_pace)} />
+                                                        </View>
+                                                        {interval.rest_time && (
+                                                            <Text style={styles.movementDetail}>
+                                                                Rest: {interval.rest_time} seconds between intervals
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.movementDetail}>No intervals defined</Text>
+                                            )}
                                         </View>
-                                    )}
+                                    ))}
                                 </View>
+
+                                {/* Cooldown Section */}
+                                {workout.running_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        <Text style={styles.workoutActivity}>Cooldown</Text>
+                                        <View style={styles.intervalContainer}>
+                                            {session.cooldown_distance < 1 ? (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.cooldown_distance * 1000}m at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.timeBox}>
+                                                    <Text style={styles.movementDetail}>
+                                                        {session.cooldown_distance}km at
+                                                    </Text>
+                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+                                ))}
                             </View>
-                        ))}
+                        }
                     </ScrollView>
                 }
 
@@ -248,12 +296,22 @@ export default function RunningWorkout({ route, navigation }) {
                             {/* Intervals Input */}
                             {logData.intervals.map((interval, intervalIndex) => (
                                 <View key={intervalIndex} style={styles.intervalContainer}>
-                                    <Text style={styles.intervalTitle}>
-                                        Interval {intervalIndex + 1} ({interval.repeat_distance} km x {interval.repeats})
-                                    </Text>
+                                    {workout.description === "Easy run" ?
+                                        <Text style={styles.intervalTitle}>
+                                            Log easy run
+                                        </Text>
+                                        :
+                                        <Text style={styles.intervalTitle}>
+                                            Interval {intervalIndex + 1} ({interval.repeat_distance} km x {interval.repeats})
+                                        </Text>
+                                    }
                                     {interval.split_times.map((split, splitIndex) => (
                                         <View key={splitIndex} style={styles.splitContainer}>
-                                            <Text style={styles.splitLabel}>Split {split.repeat_number}:</Text>
+                                            {workout.description === "Easy run" ?
+                                                <Text style={styles.splitLabel}>Pace:</Text>
+                                                :
+                                                <Text style={styles.splitLabel}>Split {split.repeat_number}:</Text>
+                                            }
                                             <View style={styles.timeInputContainer}>
                                                 <TextInput
                                                     style={[styles.input, styles.timeInput]}
@@ -328,6 +386,110 @@ export default function RunningWorkout({ route, navigation }) {
                     </KeyboardAvoidingView>
                 }
 
+                {activeTab === 'History' && (
+                    <ScrollView style={styles.tabContent} keyboardShouldPersistTaps="handled">
+                        <View style={styles.detailsContent}>
+                            {/* Iterate through completeWorkouts */}
+                            {completeWorkouts && completeWorkouts.length > 0 ? (
+                                completeWorkouts.map((workout, workoutIndex) => (
+                                    <View key={workoutIndex} style={styles.historyItem}>
+
+                                        {/* Iterate through running sessions */}
+                                        {workout.running_sessions && workout.running_sessions.length > 0 ? (
+                                            workout.running_sessions.map((session, sessionIndex) => (
+                                                <View key={sessionIndex} style={styles.historyItem}>
+                                                    {/* Display the session's date */}
+                                                    <View style={styles.dateBox}>
+                                                        <Text style={styles.historyDate}>
+                                                            {new Date(workout.completed_date || session.created_at).toLocaleDateString('en-US', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                            })}
+                                                        </Text>
+                                                        <View style={styles.divider}></View>
+                                                    </View>
+                                                    <View style={styles.detailWrapper}>
+                                                        <View style={styles.intervalWrapper}>
+
+                                                            {/* Intervals */}
+                                                            {session.saved_intervals && session.saved_intervals.length > 0 ? (
+                                                                session.saved_intervals.map((interval, intervalIndex) => (
+                                                                    <View key={intervalIndex} style={styles.intervalBlock}>
+                                                                        {/* Subheader for each interval block */}
+                                                                        {interval.repeat_distance < 1 ? (
+                                                                            <Text style={styles.intervalHistoryTitle}>
+                                                                                Block {intervalIndex + 1}: {interval.repeat_distance * 1000}m
+                                                                            </Text>
+                                                                        ) : (
+                                                                            <Text style={styles.intervalHistoryTitle}>
+                                                                                Block {intervalIndex + 1}: {interval.repeat_distance}km
+                                                                            </Text>
+                                                                        )}
+
+                                                                        <View style={styles.resultsBox}>
+                                                                            {/* Split Times */}
+                                                                            {interval.split_times && interval.split_times.length > 0 ? (
+                                                                                <View style={styles.splitHistoryContainer}>
+                                                                                    {interval.split_times.map((split, splitIndex) => (
+                                                                                        <View key={splitIndex} style={styles.setItem}>
+                                                                                            {interval.split_times.length === 1 ?
+                                                                                                <Text style={styles.setSubNumber}>
+                                                                                                </Text>
+                                                                                                :
+                                                                                                <Text style={styles.setSubNumber}>
+                                                                                                    {splitIndex + 1}
+                                                                                                </Text>
+                                                                                            }
+                                                                                            <Text style={styles.splitDetail}>
+                                                                                                Target: {Math.floor(split.target_time / 60)}:
+                                                                                                {String(split.target_time % 60).padStart(2, '0')} | Actual:{" "}
+                                                                                                {split.actual_time
+                                                                                                    ? `${Math.floor(split.actual_time / 60)}:${String(split.actual_time % 60).padStart(2, '0')}`
+                                                                                                    : "No data"}
+                                                                                            </Text>
+                                                                                        </View>
+                                                                                    ))}
+                                                                                </View>
+                                                                            ) : (
+                                                                                <Text style={styles.noSplitText}>No split times available</Text>
+                                                                            )}
+
+                                                                        </View>
+                                                                    </View>
+                                                                ))
+                                                            ) : (
+                                                                <Text style={styles.noIntervalText}>No intervals available</Text>
+                                                            )}
+                                                        </View>
+                                                        {session.rpe && (
+                                                            <View style={styles.scoreContainer}>
+                                                                <RPEGauge score={session.rpe} />
+                                                            </View>
+                                                        )}
+                                                    </View>
+
+                                                    {/* Comments */}
+                                                    <Text style={styles.commentsHistoryTitle}>Workout comments</Text>
+                                                    {session.comments ? (
+                                                        <Text style={styles.rpeText}>{session.comments}</Text>
+                                                    ) : (
+                                                        <Text style={styles.rpeText}>No comments made for this workout</Text>
+                                                    )}
+                                                </View>
+                                            ))
+                                        ) : (
+                                            <Text style={styles.noSessionText}>No running sessions available</Text>
+                                        )}
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={styles.noHistoryText}>No completed workouts available</Text>
+                            )}
+                        </View>
+                    </ScrollView>
+                )}
+
+
 
                 {/* Navigation Buttons */}
                 <View style={styles.navigationContainer}>
@@ -355,7 +517,7 @@ export default function RunningWorkout({ route, navigation }) {
                 </View>
                 {/* {activeTab === "History" && renderHistory()} */}
             </View>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
@@ -663,7 +825,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     historyItem: {
-        marginBottom: 10,
+        marginBottom: 20,
         // borderBottomWidth: 1,
         // borderBottomColor: '#ddd',
         // paddingBottom: 10,
@@ -695,8 +857,8 @@ const styles = StyleSheet.create({
     setItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '48%',
+        // justifyContent: 'space-between',
+        width: '95%',
         marginBottom: 10,
     },
     setSubNumber: {
@@ -707,7 +869,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         textAlign: 'center',
         backgroundColor: '#FFDCDD',
-        // marginRight: 5,
+        marginRight: 5,
     },
     setValue: {
         fontWeight: 600,
@@ -761,6 +923,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 8,
     },
+    splitHistoryContainer: {
+        flexDirection: 'column',
+
+    },
     timeInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -790,5 +956,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 700,
         marginBottom: 10,
+    },
+    intervalHistoryTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        marginBottom: 10,
+    },
+    commentsHistoryTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        marginBottom: 10,
+        color: '#D32F2F',
+    },
+    resultsBox: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    detailWrapper: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
 });

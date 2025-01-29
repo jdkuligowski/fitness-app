@@ -324,19 +324,17 @@ class GetUpcomingWorkouts(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-# Get single gym workouts
 class GetSingleWorkoutView(APIView):
     """
     Get a single workout and return all related workout details along with 
-    the last 4 movement histories for each movement within the workout.
+    the last 3 movement histories for each movement within the workout.
     """
 
     def get(self, request, workout_id):
         user_id = request.query_params.get('user_id')
 
         try:
-            # 1️⃣ --- Get Workout and Related Data ---
+            # Fetch the workout and its related data
             try:
                 workout = Workout.objects.prefetch_related(
                     Prefetch(
@@ -344,124 +342,343 @@ class GetSingleWorkoutView(APIView):
                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
                     )
                 ).select_related('owner').get(id=workout_id, owner=user_id)
+                print(f"Fetched workout {workout_id} for user {user_id}")
             except Workout.DoesNotExist:
-                logger.error(f"Workout with id {workout_id} does not exist for user {user_id}")
+                print(f"Workout {workout_id} does not exist for user {user_id}")
                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-            except Exception as e:
-                logger.error(f"Error querying workout: {str(e)}")
-                return Response({'error': f'Error querying workout: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # 2️⃣ --- Serialize Workout Data (already optimized with prefetch/select_related) ---
-            try:
-                serializer = PopulatedWorkoutSerializer(workout)
-                workout_data = serializer.data
-            except Exception as e:
-                logger.error(f"Error serializing workout data: {str(e)}")
-                return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Serialize workout data
+            serializer = PopulatedWorkoutSerializer(workout)
+            workout_data = serializer.data
 
-            # 3️⃣ --- Extract Movement IDs for History Query ---
-            try:
-                movement_ids = [
-                    movement['movements']['id']
-                    for section in workout_data['workout_sections']
-                    for movement in section['section_movement_details']
-                    if movement.get('movements')
-                ]
-            except Exception as e:
-                logger.error(f"Error extracting movement IDs: {str(e)}")
-                return Response({'error': f'Error extracting movement IDs: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Extract movement IDs for history query
+            movement_ids = [
+                movement['movements']['id']
+                for section in workout_data['workout_sections']
+                for movement in section['section_movement_details']
+                if movement.get('movements')
+            ]
+            print(f"Movement IDs extracted: {movement_ids}")
 
-            # 4️⃣ --- Get Movement History for the Last 4 Completed Dates ---
-            try:
-                movement_history = {}
-                if movement_ids:
-                    # ✅ Get the last 4 completed workout dates (batch for all movements)
-                    last_4_dates = (
-                        Workout.objects.filter(
-                            owner=user_id,
-                            status="Completed"
-                        )
-                        .values('completed_date')
-                        .distinct()
-                        .order_by('-completed_date')[:4]  # ✅ Last 4 completed dates for this user
+            if not movement_ids:
+                print("No movement IDs found for this workout.")
+                return Response({"workout": workout_data, "movement_history": {}}, status=status.HTTP_200_OK)
+
+            # Get the last 3 workouts for each movement
+            movement_history = {}
+
+            for movement_id in movement_ids:
+                print(f"Fetching history for movement ID {movement_id}")
+
+                # Fetch the last 3 completed workouts for this movement
+                last_3_workouts = (
+                    Workout.objects.filter(
+                        workout_sections__section_movement_details__movements__id=movement_id,
+                        owner=user_id,
+                        status="Completed"
                     )
+                    .distinct()
+                    .order_by('-completed_date')[:3]
+                )
 
-                    last_4_dates_list = [item['completed_date'] for item in last_4_dates]
-
-                    # ✅ Query all relevant sets in ONE query for these last 4 dates
-                    history_records = Set.objects.filter(
-                        section_movement__movements__id__in=movement_ids,
-                        section_movement__section__workout__completed_date__in=last_4_dates_list
+                for workout in last_3_workouts:
+                    workout_sets = Set.objects.filter(
+                        section_movement__movements__id=movement_id,
+                        section_movement__section__workout=workout
                     ).select_related(
                         'section_movement__movements',
                         'section_movement__section__workout'
-                    ).order_by(
-                        'section_movement__movements__id',
-                        '-section_movement__section__workout__completed_date'
-                    ).values(
-                        'section_movement__movements__id',
-                        'section_movement__movement_difficulty',
-                        'section_movement__section__workout__completed_date',
-                        'set_number',
-                        'reps',
-                        'weight',
-                    )
+                    ).order_by('set_number')
 
-                    # Group sets by movement ID and workout date
-                    for record in history_records:
-                        movement_id = record['section_movement__movements__id']
-                        workout_date = record['section_movement__section__workout__completed_date']
+                    sets_data = [
+                        {
+                            "set_number": workout_set.set_number,
+                            "reps": workout_set.reps,
+                            "weight": workout_set.weight
+                        }
+                        for workout_set in workout_sets
+                    ]
 
-                        if movement_id not in movement_history:
-                            movement_history[movement_id] = {}
+                    if movement_id not in movement_history:
+                        movement_history[movement_id] = []
 
-                        if workout_date not in movement_history[movement_id]:
-                            movement_history[movement_id][workout_date] = {
-                                "workout_date": workout_date,
-                                "movement_difficulty": record['section_movement__movement_difficulty'],
-                                "sets": []
-                            }
+                    movement_history[movement_id].append({
+                        "workout_id": workout.id,
+                        "completed_date": workout.completed_date,
+                        "movement_difficulty": workout_sets[0].section_movement.movement_difficulty if workout_sets else None,
+                        "sets": sets_data
+                    })
 
-                        movement_history[movement_id][workout_date]["sets"].append({
-                            "set_number": record['set_number'],
-                            "reps": record['reps'],
-                            "weight": record['weight'],
-                        })
+            # Sort each movement's workout history by date
+            for movement_id in movement_history:
+                movement_history[movement_id].sort(key=lambda x: x['completed_date'], reverse=True)
 
-                    # Flatten the dictionary into a list for easier usage
-                    movement_history = {
-                        movement_id: list(workout_data.values())
-                        for movement_id, workout_data in movement_history.items()
-                    }
+            print(f"Processed movement history: {movement_history}")
 
-            except Exception as e:
-                logger.error(f"Error querying movement history: {str(e)}")
-                return Response({'error': f'Error querying movement history: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # 5️⃣ --- Return Response (Workout Data + Movement History) ---
             return Response({
                 "workout": workout_data,
                 "movement_history": movement_history
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
+            print(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
+# class GetSingleWorkoutView(APIView):
+#     """
+#     Get a single workout and return all related workout details along with 
+#     the last 3 movement histories for each movement within the workout.
+#     """
+
+#     def get(self, request, workout_id):
+#         user_id = request.query_params.get('user_id')
+
+#         try:
+#             # Fetch the workout and its related data
+#             try:
+#                 workout = Workout.objects.prefetch_related(
+#                     Prefetch(
+#                         'workout_sections__section_movement_details',
+#                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
+#                     )
+#                 ).select_related('owner').get(id=workout_id, owner=user_id)
+#                 print(f"Fetched workout {workout_id} for user {user_id}")
+#             except Workout.DoesNotExist:
+#                 print(f"Workout {workout_id} does not exist for user {user_id}")
+#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+
+#             # Serialize workout data
+#             serializer = PopulatedWorkoutSerializer(workout)
+#             workout_data = serializer.data
+
+#             # Extract movement IDs for history query
+#             movement_ids = [
+#                 movement['movements']['id']
+#                 for section in workout_data['workout_sections']
+#                 for movement in section['section_movement_details']
+#                 if movement.get('movements')
+#             ]
+#             print(f"Movement IDs extracted: {movement_ids}")
+
+#             if not movement_ids:
+#                 print("No movement IDs found for this workout.")
+#                 return Response({"workout": workout_data, "movement_history": {}}, status=status.HTTP_200_OK)
+
+#             # Get the last 3 workouts for each movement
+#             movement_history = {}
+
+#             for movement_id in movement_ids:
+#                 print(f"Fetching history for movement ID {movement_id}")
+
+#                 # Query the last 3 workouts where this movement appears
+#                 history_records = list(Set.objects.filter(
+#                     section_movement__movements__id=movement_id,
+#                     section_movement__section__workout__owner=user_id,
+#                     section_movement__section__workout__status="Completed"
+#                 ).select_related(
+#                     'section_movement__movements',
+#                     'section_movement__section__workout'
+#                 ).order_by(
+#                     '-section_movement__section__workout__completed_date',
+#                     'section_movement__section__workout__id'
+#                 ).values(
+#                     'section_movement__movements__id',
+#                     'section_movement__section__workout__id',
+#                     'section_movement__section__workout__completed_date',
+#                     'set_number',
+#                     'reps',
+#                     'weight',
+#                     'section_movement__movement_difficulty'
+#                 )[:3])
+
+#                 print(f"History records for movement ID {movement_id}: {history_records}")
+
+#                 # Process records for the movement
+#                 for record in history_records:
+#                     movement_id = record['section_movement__movements__id']
+#                     workout_id = record['section_movement__section__workout__id']
+#                     completed_date = record['section_movement__section__workout__completed_date']
+
+#                     if movement_id not in movement_history:
+#                         movement_history[movement_id] = []
+
+#                     # Find or create a workout entry for this movement
+#                     workout_entry = next(
+#                         (entry for entry in movement_history[movement_id] if entry['workout_id'] == workout_id),
+#                         None
+#                     )
+#                     if not workout_entry:
+#                         workout_entry = {
+#                             "workout_id": workout_id,
+#                             "completed_date": completed_date,
+#                             "movement_difficulty": record['section_movement__movement_difficulty'],
+#                             "sets": []
+#                         }
+#                         movement_history[movement_id].append(workout_entry)
+
+#                     # Add the set details
+#                     workout_entry['sets'].append({
+#                         "set_number": record['set_number'],
+#                         "reps": record['reps'],
+#                         "weight": record['weight']
+#                     })
+
+#             # Sort each movement's workout history by date
+#             for movement_id in movement_history:
+#                 movement_history[movement_id].sort(key=lambda x: x['completed_date'], reverse=True)
+
+#             print(f"Processed movement history: {movement_history}")
+
+#             return Response({
+#                 "workout": workout_data,
+#                 "movement_history": movement_history
+#             }, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             print(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
+#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# # Get single gym workouts
+# class GetSingleWorkoutView(APIView):
+#     """
+#     Get a single workout and return all related workout details along with 
+#     the last 4 movement histories for each movement within the workout.
+#     """
+
+#     def get(self, request, workout_id):
+#         user_id = request.query_params.get('user_id')
+
+#         try:
+#             # 1️⃣ --- Get Workout and Related Data ---
+#             try:
+#                 workout = Workout.objects.prefetch_related(
+#                     Prefetch(
+#                         'workout_sections__section_movement_details',
+#                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
+#                     )
+#                 ).select_related('owner').get(id=workout_id, owner=user_id)
+#             except Workout.DoesNotExist:
+#                 logger.error(f"Workout with id {workout_id} does not exist for user {user_id}")
+#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+#             except Exception as e:
+#                 logger.error(f"Error querying workout: {str(e)}")
+#                 return Response({'error': f'Error querying workout: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#             # 2️⃣ --- Serialize Workout Data (already optimized with prefetch/select_related) ---
+#             try:
+#                 serializer = PopulatedWorkoutSerializer(workout)
+#                 workout_data = serializer.data
+#             except Exception as e:
+#                 logger.error(f"Error serializing workout data: {str(e)}")
+#                 return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#             # 3️⃣ --- Extract Movement IDs for History Query ---
+#             try:
+#                 movement_ids = [
+#                     movement['movements']['id']
+#                     for section in workout_data['workout_sections']
+#                     for movement in section['section_movement_details']
+#                     if movement.get('movements')
+#                 ]
+#             except Exception as e:
+#                 logger.error(f"Error extracting movement IDs: {str(e)}")
+#                 return Response({'error': f'Error extracting movement IDs: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#             # 4️⃣ --- Get Movement History for the Last 4 Completed Dates ---
+#             try:
+#                 movement_history = {}
+#                 if movement_ids:
+#                     # ✅ Get the last 4 completed workout dates (batch for all movements)
+#                     last_4_dates = (
+#                         Workout.objects.filter(
+#                             owner=user_id,
+#                             status="Completed"
+#                         )
+#                         .values('completed_date')
+#                         .distinct()
+#                         .order_by('-completed_date')[:4]  # ✅ Last 4 completed dates for this user
+#                     )
+
+#                     last_4_dates_list = [item['completed_date'] for item in last_4_dates]
+
+#                     # ✅ Query all relevant sets in ONE query for these last 4 dates
+#                     history_records = Set.objects.filter(
+#                         section_movement__movements__id__in=movement_ids,
+#                         section_movement__section__workout__completed_date__in=last_4_dates_list
+#                     ).select_related(
+#                         'section_movement__movements',
+#                         'section_movement__section__workout'
+#                     ).order_by(
+#                         'section_movement__movements__id',
+#                         '-section_movement__section__workout__completed_date'
+#                     ).values(
+#                         'section_movement__movements__id',
+#                         'section_movement__movement_difficulty',
+#                         'section_movement__section__workout__completed_date',
+#                         'set_number',
+#                         'reps',
+#                         'weight',
+#                     )
+
+#                     # Group sets by movement ID and workout date
+#                     for record in history_records:
+#                         movement_id = record['section_movement__movements__id']
+#                         workout_date = record['section_movement__section__workout__completed_date']
+
+#                         if movement_id not in movement_history:
+#                             movement_history[movement_id] = {}
+
+#                         if workout_date not in movement_history[movement_id]:
+#                             movement_history[movement_id][workout_date] = {
+#                                 "workout_date": workout_date,
+#                                 "movement_difficulty": record['section_movement__movement_difficulty'],
+#                                 "sets": []
+#                             }
+
+#                         movement_history[movement_id][workout_date]["sets"].append({
+#                             "set_number": record['set_number'],
+#                             "reps": record['reps'],
+#                             "weight": record['weight'],
+#                         })
+
+#                     # Flatten the dictionary into a list for easier usage
+#                     movement_history = {
+#                         movement_id: list(workout_data.values())
+#                         for movement_id, workout_data in movement_history.items()
+#                     }
+
+#             except Exception as e:
+#                 logger.error(f"Error querying movement history: {str(e)}")
+#                 return Response({'error': f'Error querying movement history: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#             # 5️⃣ --- Return Response (Workout Data + Movement History) ---
+#             return Response({
+#                 "workout": workout_data,
+#                 "movement_history": movement_history
+#             }, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             logger.error(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
+#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class GetSingleRunningWorkoutView(APIView):
     """
-    Get a single running workout and return all related running session details,
-    including intervals and split times.
+    Get a single running workout and return:
+    - All related running session details, including intervals and split times.
+    - The last 3 completed workouts with the same description.
+    - The last 3 completed running workouts generally.
     """
 
     def get(self, request, workout_id):
         user_id = request.query_params.get('user_id')
 
         try:
-            # Fetch the Workout object with related running sessions and intervals
+            # Fetch the main workout
             try:
                 workout = Workout.objects.prefetch_related(
                     Prefetch(
@@ -490,10 +707,124 @@ class GetSingleRunningWorkoutView(APIView):
             except Exception as e:
                 return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            return Response(serialized_workout, status=status.HTTP_200_OK)
+            # Fetch last 3 workouts with the same description
+            try:
+                similar_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Running",
+                    description=workout.description,  # Match on description
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+                similar_workouts_data = PopulatedWorkoutSerializer(similar_workouts, many=True).data
+            except Exception as e:
+                return Response({'error': f'Error fetching similar workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Fetch last 3 running workouts generally
+            try:
+                recent_running_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Running",
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+                recent_running_workouts_data = PopulatedWorkoutSerializer(recent_running_workouts, many=True).data
+            except Exception as e:
+                return Response({'error': f'Error fetching recent running workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Return the response with all the data
+            return Response({
+                "workout": serialized_workout,
+                "similar_workouts": similar_workouts_data,
+                "recent_running_workouts": recent_running_workouts_data,
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GetSingleMobilityWorkoutView(APIView):
+    """
+    Get a single mobility workout and return:
+    - All related mobility session details, including movements.
+    - The last 3 completed workouts with the same description.
+    - The last 3 completed mobility workouts generally.
+    """
+
+    def get(self, request, workout_id):
+        user_id = request.query_params.get('user_id')
+        print('User id: ', user_id)
+        try:
+            # Fetch the main workout
+            try:
+                workout = Workout.objects.prefetch_related(
+                    Prefetch(
+                        'mobility_sessions',
+                        queryset=SavedMobilitySession.objects.prefetch_related(
+                            Prefetch(
+                                'mobility_details',
+                                queryset=SavedMobilityDetails.objects.select_related('movements')
+                            )
+                        )
+                    )
+                ).get(id=workout_id, owner=user_id)
+
+                print(f"Fetched Workout: {workout}")
+                print(f"Workout Activity Type: {workout.activity_type}")
+
+                # Debug Mobility Sessions
+                mobility_sessions = workout.mobility_sessions.all()
+                print(f"Mobility Sessions Count: {mobility_sessions.count()}")
+
+                for session in mobility_sessions:
+                    print(f"Session ID: {session.id}, Saved Details Count: {session.saved_details.count()}")
+
+            except Workout.DoesNotExist:
+                return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+            # Ensure it's a mobility workout
+            if workout.activity_type != "Mobility":
+                return Response({'error': 'This endpoint only handles mobility workouts.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the workout and mobility session data
+            try:
+                serializer = PopulatedWorkoutSerializer(workout)
+                serialized_workout = serializer.data
+            except Exception as e:
+                return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Fetch last 3 workouts with the same description
+            try:
+                similar_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Mobility",
+                    description=workout.description,  # Match on description
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+                similar_workouts_data = PopulatedWorkoutSerializer(similar_workouts, many=True).data
+            except Exception as e:
+                return Response({'error': f'Error fetching similar workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Fetch last 3 mobility workouts generally
+            try:
+                recent_mobility_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Mobility",
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+                recent_mobility_workouts_data = PopulatedWorkoutSerializer(recent_mobility_workouts, many=True).data
+            except Exception as e:
+                return Response({'error': f'Error fetching recent mobility workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Return the response with all the data
+            return Response({
+                "workout": serialized_workout,
+                # "similar_workouts": similar_workouts_data,
+                # "recent_mobility_workouts": recent_mobility_workouts_data,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
     
@@ -501,7 +832,7 @@ class GetSingleRunningWorkoutView(APIView):
 class UpdateWorkoutStatusView(APIView):
     def patch(self, request, workout_id):
         """
-        Update the status of a workout.
+        Update the status of a workout, but do not overwrite "Completed" status.
         """
         try:
             workout = Workout.objects.get(id=workout_id)
@@ -512,10 +843,15 @@ class UpdateWorkoutStatusView(APIView):
         if new_status not in ['Started', 'Completed', 'Scheduled']:
             return Response({'error': 'Invalid status. Allowed values are: "Started", "Completed", "Scheduled".'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Prevent overwriting if the workout is already completed
+        if workout.status == 'Completed':
+            return Response({'message': 'Workout is already completed and cannot be changed to another status.'}, status=status.HTTP_200_OK)
+
         workout.status = new_status
         workout.save()
 
         return Response({'message': f'Workout status updated to {new_status}'}, status=status.HTTP_200_OK)
+
 
 
 # Deleting workout from saved

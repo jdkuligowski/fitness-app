@@ -22,12 +22,13 @@ import axios from 'axios';
 import ENV from '../../../../../env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider'
+import RPEGauge from "@/app/src/components/RPEGauge";
 
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function MobilityWorkout({ route, navigation }) {
-    const { workout } = route.params; // Receive the workout data as a parameter
+    const { workout, completeWorkouts } = route.params; // Receive the workout data as a parameter
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0); // Track current video for FlatList
@@ -278,11 +279,55 @@ export default function MobilityWorkout({ route, navigation }) {
                         </KeyboardAvoidingView>
                     )}
 
-                    {activeTab === "History" && (
-                        <View style={styles.historyContent}>
-                            <Text style={styles.placeholderText}>View your history here</Text>
+                    {activeTab === 'History' && (
+                        <View style={styles.detailsContent}>
+                            {/* Iterate through completeWorkouts */}
+                            {completeWorkouts && completeWorkouts.length > 0 ? (
+                                completeWorkouts.map((workout, workoutIndex) => (
+                                    <View key={workoutIndex} style={styles.historyItem}>
+                                        {/* Display the workout's date */}
+                                        <View style={styles.dateBox}>
+                                            <Text style={styles.historyDate}>
+                                                {new Date(workout.completed_date).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })}
+                                            </Text>
+                                            <View style={styles.divider}></View>
+                                        </View>
+
+                                        {/* Display RPE and Comments */}
+                                        <View style={styles.detailWrapper}>
+                                            {workout.mobility_sessions && workout.mobility_sessions.length > 0 ? (
+                                                workout.mobility_sessions.map((session, sessionIndex) => (
+                                                    <View key={sessionIndex} style={styles.sessionBlock}>
+                                                        <View style={styles.commentHistoryBlock}>
+                                                            <Text style={styles.commentsHistoryTitle}>Workout comments</Text>
+                                                            {session.comments ? (
+                                                                <Text style={styles.rpeText}>{session.comments}</Text>
+                                                            ) : (
+                                                                <Text style={styles.rpeText}>No comments available</Text>
+                                                            )}
+                                                        </View>
+                                                        {session.rpe && (
+                                                            <View style={styles.scoreContainer}>
+                                                                <RPEGauge score={session.rpe} />
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.noSessionText}>No mobility sessions available</Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={styles.noHistoryText}>No completed mobility workouts available</Text>
+                            )}
                         </View>
                     )}
+
                 </ScrollView>
                 {/* Navigation Buttons */}
                 <View style={styles.navigationContainer}>
@@ -794,4 +839,17 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 25,
     },
+    commentsHistoryTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        marginBottom: 5,
+        color: '#D32F2F',
+    },
+    sessionBlock: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    commentHistoryBlock: {
+        width: '70%',
+    }
 });

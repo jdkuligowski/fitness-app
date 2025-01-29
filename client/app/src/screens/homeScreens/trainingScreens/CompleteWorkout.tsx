@@ -32,6 +32,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 export default function CompleteWorkout({ route, navigation }) {
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
     const { workout, movementHistory } = route.params; // Get the workout data from the previous screen
+    console.log('Movement history: ', JSON.stringify(movementHistory, null, 2))
     const [currentStage, setCurrentStage] = useState(0); // Current workout stage index
     const [activeTab, setActiveTab] = useState('Summary'); // Active tab for Summary, Log, History
     const flatListRef = useRef(null); // Ref for FlatList to programmatically scroll
@@ -295,13 +296,6 @@ export default function CompleteWorkout({ route, navigation }) {
         }
     };
 
-    const playVideo = (movementId) => {
-        setSelectedMovement(movementId);
-    };
-
-    const closeVideo = () => {
-        setSelectedMovement(null);
-    };
 
 
     return (
@@ -691,14 +685,14 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                 movementHistory[movement.movements.id]
                                                                     .filter(dateGroup =>
                                                                         dateGroup.sets.length > 0 && // Ensure the date has sets
-                                                                        dateGroup.sets.some(set => set.reps !== null && set.weight !== null) // Ensure at least one set has valid data
+                                                                        dateGroup.sets.some(set => set.reps !== 0 && set.weight !== 0) // Ensure at least one set has valid data
                                                                     )
                                                                     .map((dateGroup, index) => (
                                                                         <View key={index} style={styles.historyItem}>
                                                                             {/* Date */}
                                                                             <View style={styles.dateBox}>
                                                                                 <Text style={styles.historyDate}>
-                                                                                    {new Date(dateGroup.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                                                 </Text>
                                                                                 <View style={styles.divider}></View>
                                                                             </View>
@@ -708,7 +702,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                                 {/* Sets */}
                                                                                 <View style={styles.setsContainer}>
                                                                                     {dateGroup.sets
-                                                                                        .filter(set => set.reps !== null && set.weight !== null) // Only show sets with valid values
+                                                                                        .filter(set => set.reps > 0 && set.weight > 0) // Only show sets with valid values
                                                                                         .sort((a, b) => a.set_number - b.set_number) // Sort sets in ascending order by set_number
                                                                                         .map((set, setIndex) => (
                                                                                             <View key={setIndex} style={styles.setItem}>
@@ -731,7 +725,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                                 </View>
 
                                                                                 {/* Movement Difficulty */}
-                                                                                {dateGroup.movement_difficulty !== null && dateGroup.movement_difficulty !== undefined ? (
+                                                                                {dateGroup.movement_difficulty !== 0 && dateGroup.movement_difficulty !== 0 ? (
                                                                                     <View style={styles.scoreContainer}>
                                                                                         <RPEGauge score={dateGroup.movement_difficulty} />
                                                                                     </View>

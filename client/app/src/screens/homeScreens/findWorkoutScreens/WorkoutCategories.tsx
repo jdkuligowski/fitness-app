@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Dimensions, Button } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
@@ -11,16 +11,25 @@ const SLIDER_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = 20; // Width of each slider item
 
 
-export default function RunningScreen() {
+export default function WorkoutCategories({ route }) {
   const navigation = useNavigation();
 
   const exerciseData = [
-    { name: 'Running', icon: 'heart-outline', colour: '#E0DCF6' },
-    { name: 'Gym', icon: 'barbell-outline', colour: '#FFE0E1' },
-    { name: 'Rowing', icon: 'boat-outline', colour: '#E0F4DE' },
-    { name: 'Mobility', icon: 'person-outline', colour: '#F5EAE0' },
-    { name: 'HIIT', icon: 'flash-outline', colour: '#DEF3F4' },
+    { name: 'Gym', icon: 'barbell-outline', colour: '#EFE8FF' },
+
+    { name: 'Running', icon: 'heart-outline', colour: '#D2E4EA' },
+    // { name: 'Rowing', icon: 'boat-outline', colour: '#E0F4DE' },
+    { name: 'Mobility', icon: 'person-outline', colour: '#FFDDDE' },
+    // { name: 'HIIT', icon: 'flash-outline', colour: '#DEF3F4' },
   ];
+
+  // Get initials from the user's name
+  const getUserInitials = () => {
+    if (!userData) return '';
+    const firstInitial = userData.first_name?.charAt(0) || '';
+    const lastInitial = userData.last_name?.charAt(0) || '';
+    return `${firstInitial}${lastInitial}`;
+  };
 
 
   return (
@@ -28,17 +37,13 @@ export default function RunningScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
 
         <View style={styles.header}>
-          <View style={styles.topSection}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.profileButton}>
-              <Ionicons name="notifications-outline" color={'black'} size={20} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Personalized Message */}
-          <Text style={styles.headingText}>Hey James, what workout do you want to do</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headingText}>What kind of workout do you fancy?</Text>
         </View>
         <View style={styles.exerciseTypeArray}>
 
@@ -75,20 +80,18 @@ export default function RunningScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colours.primaryHeader, 
+    backgroundColor: Colours.primaryBackground,
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: Colours.primaryBackground, 
+    backgroundColor: Colours.primaryBackground,
   },
   header: {
     padding: 20,
-    backgroundColor: Colours.primaryHeader, 
-    height: 175,
-    borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 100,
     width: '100%',
-    // zIndex: 1,
   },
   topSection: {
     flexDirection: 'row',
@@ -117,12 +120,11 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
   },
   headingText: {
-    width: '100%',
     fontSize: 20,
-    marginTop: 25,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: 'black',
-    flex: 1, // Makes the text take remaining space
+    marginLeft: 10,
+    width: '90%',
   },
   exerciseTypeArray: {
     marginTop: 0,

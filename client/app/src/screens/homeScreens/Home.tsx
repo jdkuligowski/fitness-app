@@ -281,7 +281,8 @@ export default function HomeScreen() {
                     navigation.navigate('Training', {
                       screen: 'TrainingDetails',
                       params: {
-                        workoutId: workout.id
+                        workoutId: workout.id,
+                        activityType: workout.activity_type
                       }
                     })
                   }

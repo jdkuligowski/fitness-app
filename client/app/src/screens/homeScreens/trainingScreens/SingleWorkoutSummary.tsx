@@ -20,69 +20,94 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 
 export default function WorkoutSummary({ route, navigation }) {
-    const { workoutId } = route.params; // Get the workout ID passed as a parameter
+    const { workoutId, activityType } = route.params; // Get the workout ID passed as a parameter
     const [userWorkouts, setUserWorkouts] = useState(null); // Store the workout data
     const [isLoading, setIsLoading] = useState(true); // Loading state for fetching workout data
     const [movementHistory, setMovementHistory] = useState(null)
     const [selectedMovement, setSelectedMovement] = useState(null);
+    const [recentWorkouts, setRecentWorkouts] = useState(null); // For running workouts
+    const [similarWorkouts, setSimilarWorkouts] = useState(null); // For running workouts
 
     // Fetch workout data
     useEffect(() => {
         const fetchWorkout = async () => {
             try {
                 const userId = await AsyncStorage.getItem('userId');
-                const response = await axios.get(`${ENV.API_URL}/api/saved_workouts/get-single-workout/${workoutId}/`, {
+
+                if (!userId) {
+                    throw new Error('User ID not found in storage.');
+                }
+                console.log('activity type: ', activityType)
+                let endpoint = '';
+                if (activityType === 'Gym') {
+                    endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-workout/${workoutId}/`;
+                } else if (activityType === 'Running') {
+                    endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-running-workout/${workoutId}/`;
+                } else if (activityType === 'Mobility') {
+                    endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-mobility-workout/${workoutId}/`;
+                } else {
+                    throw new Error(`Unsupported activity type: ${activityType}`);
+                }
+                const response = await axios.get(endpoint, {
                     params: { user_id: userId }
                 });
 
-                const { workout, movement_history } = response.data; // Destructure the response
-                setUserWorkouts(workout); // Set workout data
-                setMovementHistory(movement_history); // Set movement history data
-                console.log('Workout data ->', JSON.stringify(workout, null, 2));
-                // console.log('Workout data ->', workout);
-                console.log('Movement history ->', movement_history);
-                setIsLoading(false)
+                
+
+                if (activityType === 'Gym') {
+                    const { workout, movement_history } = response.data;
+                    setUserWorkouts(workout);
+                    setMovementHistory(movement_history);
+                    console.log('Running workouts: ', JSON.stringify(response.data, null, 2))
+                } else if (activityType === 'Running') {
+                    const { workout, similar_workouts, recent_running_workouts } = response.data;
+                    setUserWorkouts(workout);
+                    setSimilarWorkouts(similar_workouts);
+                    setRecentWorkouts(recent_running_workouts);
+                    console.log('Running workouts: ', JSON.stringify(response.data, null, 2))
+                } else if (activityType === 'Mobility') {
+                    const { workout, similar_mobility_workouts } = response.data;
+                    setUserWorkouts(workout);
+                    setSimilarWorkouts(similar_mobility_workouts);
+                    console.log('Mobility workouts: ', JSON.stringify(response.data, null, 2))
+                }
+                setIsLoading(false);
             } catch (error) {
                 console.error('Error fetching workout:', error.message);
+                Alert.alert('Error', 'An error occurred while loading the workout. Please try again.');
+                setIsLoading(false);
             }
         };
 
-        if (workoutId) fetchWorkout();
-    }, [workoutId]);
-
+        if (workoutId && activityType) fetchWorkout();
+    }, [workoutId, activityType]);
 
     const startWorkout = async () => {
         setIsLoading(true);
         try {
-            // Check if the workout is already completed
-
-            const response = await axios.patch(`${ENV.API_URL}/api/saved_workouts/update-workout-status/${workoutId}/`, {
+            // Update workout status to "Started"
+            await axios.patch(`${ENV.API_URL}/api/saved_workouts/update-workout-status/${workoutId}/`, {
                 status: 'Started'
             });
-            console.log('Workout status updated:', response.data);
 
-
-
-            // Navigate to CompleteWorkout regardless of status
-            if (userWorkouts.activity_type === 'Gym') {
+            // Navigate to the appropriate workout screen
+            if (activityType === 'Gym') {
                 navigation.navigate('CompleteWorkout', {
                     workout: userWorkouts,
                     movementHistory: movementHistory
                 });
-            } else if ((userWorkouts.activity_type === 'Running')) {
-                console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2));
+            } else if (activityType === 'Running') {
                 navigation.navigate('CompleteRunningWorkout', {
                     workout: userWorkouts,
-                    // movementHistory: movementHistory
+                    completeWorkouts: similarWorkouts,
+                    recentWorkouts: recentWorkouts,
                 });
-            } else if ((userWorkouts.activity_type === 'Mobility')) {
-                console.log("Mobility workout to start ->", JSON.stringify(userWorkouts, null, 2));
+            } else if (activityType === 'Mobility') {
                 navigation.navigate('CompleteMobilityWorkout', {
                     workout: userWorkouts,
-                    // movementHistory: movementHistory
+                    completeWorkouts: similarWorkouts,
                 });
-            }
-
+            } 
         } catch (error) {
             console.error('Error updating workout status:', error.message);
             alert('An error occurred while starting the workout. Please try again.');
@@ -90,6 +115,47 @@ export default function WorkoutSummary({ route, navigation }) {
             setIsLoading(false);
         }
     };
+
+
+    // const startWorkout = async () => {
+    //     setIsLoading(true);
+    //     try {
+    //         // Check if the workout is already completed
+
+    //         const response = await axios.patch(`${ENV.API_URL}/api/saved_workouts/update-workout-status/${workoutId}/`, {
+    //             status: 'Started'
+    //         });
+    //         console.log('Workout status updated:', response.data);
+
+
+
+    //         // Navigate to CompleteWorkout regardless of status
+    //         if (userWorkouts.activity_type === 'Gym') {
+    //             navigation.navigate('CompleteWorkout', {
+    //                 workout: userWorkouts,
+    //                 movementHistory: movementHistory
+    //             });
+    //         } else if ((userWorkouts.activity_type === 'Running')) {
+    //             console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2));
+    //             navigation.navigate('CompleteRunningWorkout', {
+    //                 workout: userWorkouts,
+    //                 // movementHistory: movementHistory
+    //             });
+    //         } else if ((userWorkouts.activity_type === 'Mobility')) {
+    //             console.log("Mobility workout to start ->", JSON.stringify(userWorkouts, null, 2));
+    //             navigation.navigate('CompleteMobilityWorkout', {
+    //                 workout: userWorkouts,
+    //                 // movementHistory: movementHistory
+    //             });
+    //         }
+
+    //     } catch (error) {
+    //         console.error('Error updating workout status:', error.message);
+    //         alert('An error occurred while starting the workout. Please try again.');
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
 
     const IntervalTime = ({ time }) => (
@@ -120,7 +186,12 @@ export default function WorkoutSummary({ route, navigation }) {
             <View style={styles.scrollContainer}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.navigate("Training", {
+                            screen: "TrainingOverview",
+                        })}
+                    >
                         <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
                     <Text style={styles.headingText}>{userWorkouts.name}</Text>
@@ -199,47 +270,15 @@ export default function WorkoutSummary({ route, navigation }) {
                         ) : userWorkouts.activity_type === "Running" ? (
                             // Running Layout
                             <>
-                                <Text style={styles.summaryDetail}>{userWorkouts.description}</Text>
-                                {userWorkouts.running_sessions.map((session, index) => (
-                                    session.workout_notes ? (
-                                        <Text key={`notes-${index}`} style={styles.summaryDetail}>
-                                            {session.workout_notes}
-                                        </Text>
-                                    ) : null
-                                ))}
-                                {userWorkouts.running_sessions.map((session, index) => (
-                                    <View key={index} style={styles.sectionContainer}>
-                                        <Text style={styles.sectionTitle}>Warmup</Text>
-                                        <View style={styles.intervalContainer}>
-                                            {session.warmup_distance < 1 ? (
-                                                <View style={styles.timeBox}>
-                                                    <Text style={styles.movementDetail}>
-                                                        {session.warmup_distance * 1000}m at
-                                                    </Text>
-                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
-                                                </View>
-                                            ) : (
-                                                <View style={styles.timeBox}>
-                                                    <Text style={styles.movementDetail}>
-                                                        {session.warmup_distance}km at
-                                                    </Text>
-                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
-                                                </View>
-                                            )}
-                                        </View>
-                                    </View>
-                                ))}
-
-                                <View style={styles.sectionContainer}>
-                                    <Text style={styles.sectionTitle}>Intervals</Text>
-                                    {userWorkouts.running_sessions.map((session, sessionIndex) => (
+                                {userWorkouts.description === "Easy run" ?
+                                    userWorkouts.running_sessions.map((session, sessionIndex) => (
                                         <View key={sessionIndex}>
                                             {session.saved_intervals && session.saved_intervals.length > 0 ? (
                                                 session.saved_intervals.map((interval, intervalIndex) => (
                                                     <View key={intervalIndex} style={styles.intervalContainer}>
                                                         <View style={styles.timeBox}>
                                                             <Text style={styles.movementDetail}>
-                                                                {interval.repeats} x{" "}
+                                                                {userWorkouts.description} -{" "}
                                                                 {interval.repeat_distance < 1
                                                                     ? `${interval.repeat_distance * 1000}m`
                                                                     : `${interval.repeat_distance}km`}{" "}
@@ -258,32 +297,97 @@ export default function WorkoutSummary({ route, navigation }) {
                                                 <Text style={styles.movementDetail}>No intervals defined</Text>
                                             )}
                                         </View>
-                                    ))}
-                                </View>
+                                    ))
+                                    :
+                                    <>
+                                        <Text style={styles.summaryDetail}>{userWorkouts.description}</Text>
 
+                                        {userWorkouts.running_sessions.map((session, index) => (
+                                            session.workout_notes ? (
+                                                <Text key={`notes-${index}`} style={styles.summaryDetail}>
+                                                    {session.workout_notes}
+                                                </Text>
+                                            ) : null
+                                        ))}
+                                        {userWorkouts.running_sessions.map((session, index) => (
+                                            <View key={index} style={styles.sectionContainer}>
+                                                <Text style={styles.sectionTitle}>Warmup</Text>
+                                                <View style={styles.intervalContainer}>
+                                                    {session.warmup_distance < 1 ? (
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {session.warmup_distance * 1000}m at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {session.warmup_distance}km at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        ))}
 
-                                {userWorkouts.running_sessions.map((session, index) => (
-                                    <View key={index} style={styles.sectionContainer}>
-                                        <Text style={styles.sectionTitle}>Cool down</Text>
-                                        <View style={styles.intervalContainer}>
-                                            {session.cooldown_distance < 1 ? (
-                                                <View style={styles.timeBox}>
-                                                    <Text style={styles.movementDetail}>
-                                                        {session.cooldown_distance * 1000}m at
-                                                    </Text>
-                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                        <View style={styles.sectionContainer}>
+                                            <Text style={styles.sectionTitle}>Intervals</Text>
+                                            {userWorkouts.running_sessions.map((session, sessionIndex) => (
+                                                <View key={sessionIndex}>
+                                                    {session.saved_intervals && session.saved_intervals.length > 0 ? (
+                                                        session.saved_intervals.map((interval, intervalIndex) => (
+                                                            <View key={intervalIndex} style={styles.intervalContainer}>
+                                                                <View style={styles.timeBox}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {interval.repeats} x{" "}
+                                                                        {interval.repeat_distance < 1
+                                                                            ? `${interval.repeat_distance * 1000}m`
+                                                                            : `${interval.repeat_distance}km`}{" "}
+                                                                        at
+                                                                    </Text>
+                                                                    <IntervalTime time={formatTime(interval.target_pace)} />
+                                                                </View>
+                                                                {interval.rest_time && (
+                                                                    <Text style={styles.movementDetail}>
+                                                                        Rest: {interval.rest_time} seconds between intervals
+                                                                    </Text>
+                                                                )}
+                                                            </View>
+                                                        ))
+                                                    ) : (
+                                                        <Text style={styles.movementDetail}>No intervals defined</Text>
+                                                    )}
                                                 </View>
-                                            ) : (
-                                                <View style={styles.timeBox}>
-                                                    <Text style={styles.movementDetail}>
-                                                        {session.cooldown_distance}km at
-                                                    </Text>
-                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
-                                                </View>
-                                            )}
+                                            ))}
                                         </View>
-                                    </View>
-                                ))}
+
+
+                                        {userWorkouts.running_sessions.map((session, index) => (
+                                            <View key={index} style={styles.sectionContainer}>
+                                                <Text style={styles.sectionTitle}>Cool down</Text>
+                                                <View style={styles.intervalContainer}>
+                                                    {session.cooldown_distance < 1 ? (
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {session.cooldown_distance * 1000}m at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.timeBox}>
+                                                            <Text style={styles.movementDetail}>
+                                                                {session.cooldown_distance}km at
+                                                            </Text>
+                                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </>
+                                }
                             </>
                         ) : userWorkouts.activity_type === "Mobility" ? (
                             // Mobility Layout
@@ -738,5 +842,9 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
         padding: 10,
         zIndex: 10, // Ensure it appears above the video
+    },
+    intervalTimeText: {
+        fontSize: 16,
+        fontWeight: 600,
     },
 });

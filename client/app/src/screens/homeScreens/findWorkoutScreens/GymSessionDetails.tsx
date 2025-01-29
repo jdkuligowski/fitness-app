@@ -17,6 +17,7 @@ import strengthRules30 from '../../../components/workoutRules/strengthRules30'
 import strengthRules40 from '../../../components/workoutRules/strengthRules40'
 import strengthRules50 from '../../../components/workoutRules/strengthRules50'
 import strengthRules60 from '../../../components/workoutRules/strengthRules60'
+import strengthRules75 from '../../../components/workoutRules/strengthRules60'
 import commonRules from '../../../components/workoutRules/commonRules'
 import { Video } from 'expo-av';
 
@@ -27,6 +28,7 @@ const strengthRulesMap = {
     40: strengthRules40,
     50: strengthRules50,
     60: strengthRules60,
+    75: strengthRules60,
 };
 
 export default function WorkoutScreen({ route }) {
@@ -261,7 +263,7 @@ export default function WorkoutScreen({ route }) {
         });
 
         // Add Main Workout Sections
-        selectedRules.sections.forEach((sectionRule) => {
+        selectedRules.sections.forEach((sectionRule, sectionIndex) => {
             const movements = [];
             const sectionFilters = []; // Track filters applied in this section
 
@@ -281,6 +283,13 @@ export default function WorkoutScreen({ route }) {
                     sectionFilters.push(filterSet); // Store applied filters
                 }
             });
+
+            // Ensure "Back Squat" appears in the first section
+            if (sectionIndex === 0 && !movements.includes("Back Squat")) {
+                console.log("Ensuring Back Squat is in the first section.");
+                movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
+                usedExercises.add("Back Squat");
+            }
 
             plan.push({
                 partLabel: sectionRule.section,
@@ -488,6 +497,10 @@ export default function WorkoutScreen({ route }) {
         return workoutData.find((movement) => movement.exercise === exerciseName);
     };
 
+    const findConditioningByExercise = (movement) => {
+        return workoutData.find((data) => data.exercise.trim().toLowerCase() === movement.exercise.trim().toLowerCase());
+    };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -567,15 +580,29 @@ export default function WorkoutScreen({ route }) {
                                                             Conditioning: {section.workoutName || "Unnamed Conditioning Workout"}
                                                         </Text>
                                                         <View style={styles.movementsContainer}>
-                                                            {section.movements.map((movement, i) => (
-                                                                <View key={i} style={styles.movementRow}>
-                                                                    <Text style={styles.movementValue}>{`${movement.movementOrder}: `}</Text>
-                                                                    <Text style={styles.movementDetail}>
-                                                                        {movement.detail && movement.detail !== "No detail provided" ? `${movement.detail} ` : ""}
-                                                                    </Text>
-                                                                    <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
-                                                                </View>
-                                                            ))}
+                                                            {section.movements.map((movement, i) => {
+                                                                const movementFilter = findConditioningByExercise(movement);
+                                                                return (
+                                                                    <View key={i} style={styles.movementRow}>
+                                                                        <View style={styles.movementLeft}>
+                                                                            <Text style={styles.movementValue}>{`${movement.movementOrder}: `}</Text>
+                                                                            <Text style={styles.movementDetail}>
+                                                                                {movement.detail && movement.detail !== "No detail provided" ? `${movement.detail} ` : ""}
+                                                                            </Text>
+                                                                            <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
+                                                                        </View>
+                                                                        <TouchableOpacity onPress={() => {
+                                                                            if (movementFilter) {
+                                                                                setSelectedMovement(movementFilter);
+                                                                            } else {
+                                                                                Alert.alert("No video found", "This movement doesn't have an associated video.");
+                                                                            }
+                                                                        }}>
+                                                                            <Ionicons name="play-circle" size={24} color="black" />
+                                                                        </TouchableOpacity>
+                                                                    </View>
+                                                                );
+                                                            })}
                                                             {section.rest > 0 && (
                                                                 <View style={styles.movementRow}>
                                                                     <Text style={styles.restDetail}>
@@ -589,30 +616,32 @@ export default function WorkoutScreen({ route }) {
                                                     <>
                                                         {/* Render non-conditioning sections */}
                                                         <Text style={styles.sectionTitle}>{section.partLabel}</Text>
-                                                        {section.movements.map((movement, i) => (
-                                                            <View key={i} style={styles.movementRow}>
-                                                                <View style={styles.movementLeft}>
-                                                                    <Text style={styles.movementValue}>{`${i + 1}: `}</Text>
-                                                                    <Text style={styles.movementDetail}>{movement}</Text>
+                                                        {section.movements.map((movement, i) => {
+                                                            const movementFilter = findMovementByExercise(movement);
+                                                            return (
+                                                                <View key={i} style={styles.movementRow}>
+                                                                    <View style={styles.movementLeft}>
+                                                                        <Text style={styles.movementValue}>{`${i + 1}: `}</Text>
+                                                                        <Text style={styles.movementDetail}>{movement}</Text>
+                                                                    </View>
+                                                                    <TouchableOpacity onPress={() => {
+                                                                        if (movementFilter) {
+                                                                            setSelectedMovement(movementFilter);
+                                                                        } else {
+                                                                            Alert.alert("No video found", "This movement doesn't have an associated video.");
+                                                                        }
+                                                                    }}>
+                                                                        <Ionicons name="play-circle" size={24} color="black" />
+                                                                    </TouchableOpacity>
                                                                 </View>
-                                                                <TouchableOpacity onPress={() => {
-                                                                    const movementFilter = findMovementByExercise(movement);
-                                                                    if (movementFilter) {
-                                                                        setSelectedMovement(movementFilter);
-                                                                    } else {
-                                                                        Alert.alert("No video found", "This movement doesn't have an associated video.");
-                                                                    }
-                                                                }}>
-                                                                    <Ionicons name="play-circle" size={24} color="black" />
-                                                                </TouchableOpacity>
-                                                            </View>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </>
                                                 )}
                                             </View>
                                         ))}
-
                                     </ScrollView>
+
 
                                     <View style={styles.buttonContainer}>
                                         <TouchableOpacity
@@ -892,7 +921,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingLeft: 10,
         alignItems: 'center',
-        justifyContent: 'space-between',
+        // justifyContent: 'space-between',
     },
     movementLeft: {
         flexDirection: 'row',

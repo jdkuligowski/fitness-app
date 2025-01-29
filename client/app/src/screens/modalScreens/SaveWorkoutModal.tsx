@@ -72,7 +72,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
 
             let payload = {
                 user_id: userId,
-                name: `${selectedWorkout}`,
+                // name: `${selectedWorkout}`,
                 duration: selectedTime,
                 status: status,
                 scheduled_date: status === "Scheduled" ? formattedDate : null,
@@ -80,6 +80,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             };
 
             if (workoutType === "Gym") {
+                payload.name =`${selectedWorkout}`,
                 payload.description = "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
 
@@ -114,6 +115,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     }
                 });
             } else if (workoutType === "Running") {
+                payload.name = currentWorkout.session_name;
                 payload.description = currentWorkout.session_name;
                 payload.complexity = 0; // Fixed complexity for running
                 payload.running_sessions = {
@@ -143,6 +145,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 };
             } else if (workoutType === "Mobility") {
                 payload.description = currentWorkout.summary || "Mobility session";
+                payload.name = `${selectedWorkout}`;
                 payload.complexity = 0; // Fixed complexity for mobility
                 payload.mobility_sessions = {
                     session_id: currentWorkout.id,
@@ -246,16 +249,16 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 };
             } else if (activityType === "Running") {
                 // Running workout logic
-                const runningSession = workoutPlan.running_sessions[0]; // Assuming only one running session
+                const runningSession = workoutPlan.workout.running_sessions[0]; // Assuming only one running session
                 payload = {
                     user_id: userId,
-                    name: workoutPlan.name || "Unnamed Workout",
-                    workout_number: workoutPlan.workout_number,
-                    description: workoutPlan.description || "No description",
-                    duration: workoutPlan.duration || 0,
-                    complexity: workoutPlan.complexity || 0,
+                    name: workoutPlan.workout.name || "Unnamed Workout",
+                    workout_number: workoutPlan.workout.workout_number,
+                    description: workoutPlan.workout.description || "No description",
+                    duration: workoutPlan.workout.duration || 0,
+                    complexity: workoutPlan.workout.complexity || 0,
                     status: status,
-                    activity_type: workoutPlan.activity_type,
+                    activity_type: workoutPlan.workout.activity_type,
                     scheduled_date: status === "Scheduled" ? formattedDate : null,
                     running_sessions: {
                         running_session_id: runningSession.running_session || null,
