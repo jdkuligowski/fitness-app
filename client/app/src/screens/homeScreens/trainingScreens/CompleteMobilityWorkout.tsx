@@ -90,7 +90,16 @@ export default function MobilityWorkout({ route, navigation }) {
                 {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.topSection}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.navigate("Training", {
+                                screen: "TrainingDetails",
+                                params: {
+                                    workoutId: workout.id,
+                                    activityType: workout.activity_type,
+                                },
+                            })}
+                        >
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
                         <View style={styles.headerTextBlock}>

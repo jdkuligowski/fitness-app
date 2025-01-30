@@ -11,7 +11,7 @@ class SavedMobilityDetails(models.Model):
         db_index=True,
     )
     order = models.FloatField(null=True, blank=True)  
-    duration = models.FloatField(null=True, blank=True)  
+    duration = models.CharField(max_length=10, blank=True, null=True)
     movements = models.ForeignKey(
         'movements.Movement',
         related_name='mobility_movement_details',

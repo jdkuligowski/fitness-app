@@ -150,6 +150,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 payload.mobility_sessions = {
                     session_id: currentWorkout.id,
                     number_of_movements: currentWorkout.number_of_movements,
+                    session_type: workoutPlan.session_type,
                     comments: null,
                     saved_details: currentWorkout.details.map((detail) => ({
                         order: detail.order,

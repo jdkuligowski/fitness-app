@@ -253,18 +253,21 @@ class SaveWorkoutView(APIView):
             session_video=mobility_session_data.get('session_video'),
             rpe=mobility_session_data.get('rpe'),
             comments=mobility_session_data.get('comments'),
+            session_type=mobility_session_data.get('session_type'),
         )
 
-        # Save mobility details
+        skipped_movements = []  # Track movements that are missing
+
+        # Save mobility details (but skip missing movements)
         for detail_data in mobility_session_data.get('saved_details', []):
-            movement_name = detail_data.get('movement_name')
+            movement_name = detail_data.get('movement_name').strip()  # Trim whitespace
+
             try:
-                movement = Movement.objects.get(exercise=movement_name)
+                movement = Movement.objects.get(exercise__iexact=movement_name)  # Case-insensitive lookup
             except Movement.DoesNotExist:
-                return Response(
-                    {'error': f"Movement '{movement_name}' does not exist"},
-                    status=400
-                )
+                skipped_movements.append(movement_name)
+                continue  # Skip this movement and move to the next one
+
             SavedMobilityDetails.objects.create(
                 details=saved_mobility_session,
                 order=detail_data.get('order'),
@@ -272,7 +275,13 @@ class SaveWorkoutView(APIView):
                 movements=movement,
             )
 
-        return Response({'message': 'Mobility workout saved successfully', 'workout_id': workout.id}, status=201)
+        response_data = {'message': 'Mobility workout saved successfully', 'workout_id': workout.id}
+
+        # If any movements were skipped, include a warning in the response
+        if skipped_movements:
+            response_data['warning'] = f"Skipped movements: {', '.join(skipped_movements)} (not found in database)."
+
+        return Response(response_data, status=201)
 
 
     def _get_workout_number(self, user):

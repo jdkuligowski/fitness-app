@@ -13,6 +13,7 @@ class SavedMobilitySession(models.Model):
     session_video = models.CharField(max_length=256, null=True, blank=True)  
     rpe = models.PositiveSmallIntegerField(null=True, blank=True)  
     comments = models.TextField(null=True, blank=True)  
+    session_type = models.CharField(max_length=15, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)  
     updated_at = models.DateTimeField(auto_now=True) 
     

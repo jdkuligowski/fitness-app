@@ -7,3 +7,5 @@ class MobilityWorkout(models.Model):
     duration = models.FloatField(null=True, blank=True)
     summary = models.CharField(max_length=200, blank=True, null=True)
     number_of_movements = models.FloatField(null=True, blank=True)
+    session_type = models.CharField(max_length=15, blank=True, null=True)
+    

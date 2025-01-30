@@ -47,13 +47,27 @@ export default function SuggestedMobilityWorkouts({ route }) {
                 setIsLoading(true);
                 await fetchWorkoutData(); // Load movement data
                 const response = await axios.get(`${ENV.API_URL}/api/mobility_workouts/all/`);
-                const sortedWorkouts = response.data.map((workout) => ({
-                    ...workout,
-                    details: workout.details.sort((a, b) => a.order - b.order), // Sort details by order
-                }));
-                setMobilityWorkouts(sortedWorkouts);
+
+                // Filter workouts based on selectedTime and selectedWorkout
+                const filteredWorkouts = response.data
+                    .filter(workout => {
+                        // If "Full Body" or "Not Sure" is selected, skip the filters
+                        if (selectedWorkout.trim().toLowerCase() === "full body" || selectedWorkout.trim().toLowerCase() === "not sure") {
+                            return true; // Include all workouts
+                        }
+
+                        // Otherwise, apply filtering based on time and workout name
+                        return workout.duration <= selectedTime &&
+                            workout.body_area.trim().toLowerCase() === selectedWorkout.trim().toLowerCase();
+                    })
+                    .map(workout => ({
+                        ...workout,
+                        details: workout.details.sort((a, b) => a.order - b.order), // Sort details by order
+                    }));
+
+                setMobilityWorkouts(filteredWorkouts);
                 setMovementData(workoutData); // Ensure movements are saved
-                console.log('Movements: ', workoutData)
+                console.log('Filtered Workouts:', filteredWorkouts);
                 setIsLoading(false);
             } catch (error) {
                 console.error("Error loading data:", error);
@@ -63,7 +77,8 @@ export default function SuggestedMobilityWorkouts({ route }) {
         };
 
         loadData();
-    }, []);
+    }, [selectedTime, selectedWorkout]); // ✅ Depend on selectedTime & selectedWorkout
+
 
 
     const showModalForWorkout = (workout) => {
@@ -82,11 +97,11 @@ export default function SuggestedMobilityWorkouts({ route }) {
         try {
             const userId = await AsyncStorage.getItem("userId");
             if (!userId) throw new Error("User ID not found in AsyncStorage.");
-    
+
             const formattedDate = new Date().toISOString().split("T")[0];
-    
+
             console.log('Mobility workout to save and start:', JSON.stringify(workoutPlan, null, 2));
-    
+
             // Construct the payload
             const payload = {
                 user_id: userId,
@@ -100,8 +115,9 @@ export default function SuggestedMobilityWorkouts({ route }) {
                     session_id: workoutPlan.id,
                     rpe: null,
                     comments: null,
+                    session_type: workoutPlan.session_type,
                     number_of_movements: workoutPlan.number_of_movements,
-                    mobility_details: workoutPlan.mobility_details.map((detail) => ({
+                    saved_details: workoutPlan.details.map((detail) => ({
                         order: detail.order,
                         duration: detail.duration,
                         movement_name: detail.exercise,
@@ -109,36 +125,36 @@ export default function SuggestedMobilityWorkouts({ route }) {
                     })),
                 },
             };
-    
+
             console.log("Payload for save and start (Mobility):", JSON.stringify(payload, null, 2));
-    
+
             // Save the workout
             const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
             console.log("Response from save (Mobility):", response.data);
-    
+
             // Extract the ID of the saved workout
             const savedWorkoutId = response.data?.workout_id;
-    
+
             if (!savedWorkoutId) {
                 console.error("Workout ID is undefined, check API response:", response.data);
                 Alert.alert("Error", "Failed to save workout. Please try again.");
                 setIsBouncerLoading(false);
                 return;
             }
-    
+
             console.log("New Mobility Workout ID ->", savedWorkoutId);
-    
+
             // Fetch workout details
             const workoutDetailsResponse = await axios.get(
-                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
+                `${ENV.API_URL}/api/saved_workouts/get-single-mobility-workout/${savedWorkoutId}/`,
                 { params: { user_id: userId } }
             );
-    
+
             const { workout } = workoutDetailsResponse.data;
             console.log("Workout details (Mobility) ->", JSON.stringify(workout, null, 2));
-    
+
             setIsBouncerLoading(false);
-    
+
             // Navigate to the complete workout screen
             navigation.navigate("Training", {
                 screen: "CompleteMobilityWorkout",
@@ -152,7 +168,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
             setIsBouncerLoading(false);
         }
     };
-    
+
 
     const renderWorkoutItem = ({ item }) => (
         <View style={styles.workoutCard}>
@@ -192,8 +208,11 @@ export default function SuggestedMobilityWorkouts({ route }) {
 
             <View style={styles.dividerLine}></View>
             <Text style={styles.workoutActivity}>Workout Details</Text>
-            <Text style={styles.summaryMessage}>Work through these {item.number_of_movements} movements spending {item.details[0].duration} minute on each</Text>
-
+            {item.session_type && item.session_type === 'Time' ?
+                <Text style={styles.summaryMessage}>Work through these {item.number_of_movements} movements spending {item.details[0].duration} minutes on each</Text>
+                :
+                <Text style={styles.summaryMessage}>Work through these {item.number_of_movements} movements for the defined number of reps</Text>
+            }
             <ScrollView style={styles.workoutList}>
                 <Text style={styles.sectionTitle}>Movements</Text>
 
@@ -206,9 +225,15 @@ export default function SuggestedMobilityWorkouts({ route }) {
 
                     return (
                         <View key={index} style={styles.movementRow}>
-                            <Text style={styles.movementDetail}>
-                                {movement.order}: {movement.exercise}
-                            </Text>
+                            {item.session_type && item.session_type === 'Time' ?
+                                <Text style={styles.movementDetail}>
+                                    {movement.order}: {movement.duration}' {movement.exercise}
+                                </Text>
+                                :
+                                <Text style={styles.movementDetail}>
+                                    {movement.order}: {movement.duration} {movement.exercise}
+                                </Text>
+                            }
                             <TouchableOpacity
                                 onPress={() => {
                                     if (matchedMovement?.portrait_video_url) {
@@ -231,7 +256,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
                     style={styles.submitButton}
-                    // onPress={() => saveAndStartMobilityWorkout(item)}
+                    onPress={() => saveAndStartMobilityWorkout(item)}
                 >
                     <Text style={styles.submitButtonText}>Start Workout</Text>
                     <View style={styles.submitArrow}>
@@ -566,6 +591,7 @@ const styles = StyleSheet.create({
     movementDetail: {
         fontSize: 16,
         color: 'black', // Example color for movement details
+        width: '80%'
     },
     movementDescription: {
         fontSize: 16,
