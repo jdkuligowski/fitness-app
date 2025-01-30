@@ -41,7 +41,7 @@ export default function TrainingOverview() {
     });
     const workoutOptions = ['Gym session', 'Running', 'Mobility'];
     // const workoutOptions = ['Gym session', 'Running', 'Rowing', 'Mobility', 'Bodyweight'];
-    const typeOptions = ['Full Body', 'Lower Body', 'Upper Body'];
+    const typeOptions = ['Full body', 'Lower body', 'Upper body'];
     // const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false); // Modal visibility state
     const flatListRef = useRef(null); // Ref for the FlatList
