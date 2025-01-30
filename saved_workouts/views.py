@@ -775,20 +775,45 @@ class GetSingleMobilityWorkoutView(APIView):
                 print(f"Mobility Sessions Count: {mobility_sessions.count()}")
 
                 for session in mobility_sessions:
-                    print(f"Session ID: {session.id}, Saved Details Count: {session.saved_details.count()}")
+                    print(f"Checking session: {session}")  # Ensure session exists
+
+                    # Check if the session has an ID
+                    if not hasattr(session, 'id'):
+                        print("Error: session has no ID")
+                        continue  # Skip this session if no ID
+
+                    print(f"Session ID: {session.id}")  # Should print the session ID if valid
+
+                    # Use the correct related name: `mobility_details` instead of `saved_details`
+                    if not hasattr(session, 'mobility_details'):
+                        print(f"Session ID {session.id} has no mobility_details attribute.")
+                        continue
+
+                    mobility_details = getattr(session, 'mobility_details', None)
+
+                    if mobility_details is None:
+                        print(f"Session ID {session.id} has no mobility details!")
+                        continue  # Skip processing this session
+
+                    print(f"Session ID: {session.id}, Mobility Details Count: {mobility_details.count()}")
+
 
             except Workout.DoesNotExist:
                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-
+            
+            print('Made it to this point a')
 
             # Ensure it's a mobility workout
             if workout.activity_type != "Mobility":
                 return Response({'error': 'This endpoint only handles mobility workouts.'}, status=status.HTTP_400_BAD_REQUEST)
+            print('Made it to this point b')
+
 
             # Serialize the workout and mobility session data
             try:
                 serializer = PopulatedWorkoutSerializer(workout)
                 serialized_workout = serializer.data
+                print('serialized mobility: ', serialized_workout)
             except Exception as e:
                 return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

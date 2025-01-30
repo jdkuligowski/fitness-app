@@ -44,7 +44,8 @@ from django.http import JsonResponse, HttpResponseRedirect
 from django.db.models import Count, Max, Sum, Q, Window, F
 from django.db.models.functions import DenseRank
 
-
+from google.auth.transport import requests
+from google.oauth2 import id_token
 
 # Model
 from django.contrib.auth import get_user_model
@@ -63,6 +64,8 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 
 AZURE_STORAGE_ACCOUNT_NAME = env('AZURE_STORAGE_ACCOUNT_NAME')
 AZURE_STORAGE_CONNECTION_STRING = env('AZURE_STORAGE_CONNECTION_STRING')
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+print("GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID)
 
 
 class RegisterView(APIView):
@@ -261,3 +264,62 @@ class ProfileImageUploadView(APIView):
         except Exception as e:
             print('Error uploading image:', e)
             return Response({"error": f"Internal Server Error: {str(e)}"}, status=500)
+        
+        
+
+
+class GoogleRegisterView(APIView):
+    def post(self, request):
+        print("📩 Received request at /register/google")
+        print("🔎 Request Data:", request.data)
+
+        google_token = request.data.get("token")
+
+        if not google_token:
+            return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            print("🔍 Verifying Google Token...")
+
+            # ✅ Properly verify the token using Google's API
+            google_info = id_token.verify_oauth2_token(google_token, requests.Request(), GOOGLE_CLIENT_ID)
+
+            print("✅ Google Info:", google_info)
+
+            if "email" not in google_info:
+                return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+
+            email = google_info["email"]
+            first_name = google_info.get("given_name", "")
+            last_name = google_info.get("family_name", "")
+            profile_image = google_info.get("picture", "")
+
+            user, created = User.objects.get_or_create(email=email, defaults={
+                "first_name": first_name,
+                "last_name": last_name,
+                "username": email.split("@")[0],
+                "profile_image": profile_image
+            })
+
+            dt = datetime.now() + timedelta(hours=12)
+            token = jwt.encode(
+                {"sub": user.id, "exp": int(dt.timestamp())},
+                settings.SECRET_KEY,
+                algorithm="HS256"
+            )
+
+            return Response({
+                "message": f"Welcome, {user.first_name}",
+                "token": token,
+                "user": {
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "profile_image": user.profile_image
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            print("❌ Google Auth Error:", traceback.format_exc())
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

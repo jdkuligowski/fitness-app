@@ -10,7 +10,9 @@ import { useAuth } from '../../context/AuthContext';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import ENV from '../../../../env'
 import { Colours } from '../../components/styles';
-
+import * as Google from "expo-auth-session/providers/google";
+import { GOOGLE_CLIENT_ID } from "../../../../constants/constants"; // Import the Client ID
+import { AntDesign } from '@expo/vector-icons'; // For Google icon
 
 export default function LoginPage() {
     const navigation = useNavigation();
@@ -51,6 +53,7 @@ export default function LoginPage() {
         }
     };
 
+    
 
 
     return (
