@@ -3,10 +3,10 @@
     "name": "client",
     "slug": "burst-slug",
     "owner": "jdkuligowski", 
-    "version": "1.0.19",
+    "version": "1.0.20",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    // "scheme": "myapp",
+    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fitnessapp.burst",
-      "buildNumber": "19"
+      "buildNumber": "20"
     },
     "android": {
       "adaptiveIcon": {
