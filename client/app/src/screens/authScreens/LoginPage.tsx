@@ -8,103 +8,114 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import ENV from '../../../../env'
+import ENV from '../../../../env';
 import { Colours } from '../../components/styles';
-import * as Google from "expo-auth-session/providers/google";
-import { GOOGLE_CLIENT_ID } from "../../../../constants/constants"; // Import the Client ID
-import { AntDesign } from '@expo/vector-icons'; // For Google icon
 
 export default function LoginPage() {
     const navigation = useNavigation();
-    const { setIsAuthenticated } = useAuth(); // Access context here
+    const { setIsAuthenticated } = useAuth();
 
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
+
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false); // State for password visibility
     const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = async () => {
         const { email, password } = formData;
-    
+
         if (!email || !password) {
             Alert.alert('Error', 'Please fill out all fields.');
             return;
         }
-    
+
         try {
             const response = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
-            const { token, user_id } = response.data; // Ensure the backend sends `user_id`
-    
-            // Save token and user_id
+            const { token, user_id } = response.data;
+
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
-            console.log('user id logged in ->', user_id)
-    
+
             Alert.alert('Login Successful', 'You have logged in successfully!');
             setIsAuthenticated(true);
         } catch (error) {
             console.error('Login error:', error.message);
+
             if (error.response) {
-                Alert.alert('Login Failed', error.response.data.detail || 'Invalid credentials');
+                const { detail } = error.response.data;
+
+                if (detail === 'No account found with that email') {
+                    Alert.alert('Login Failed', 'No account exists with this email.');
+                } else if (detail === 'Incorrect password') {
+                    Alert.alert('Login Failed', 'The password you entered is incorrect.');
+                } else {
+                    Alert.alert('Login Failed', detail || 'Invalid credentials. Please check your details and try again.');
+                }
             } else {
-                Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+                Alert.alert('Error', 'An unexpected error occurred.');
             }
         }
     };
 
-    
-
-
     return (
         <SafeAreaView style={styles.landingSafeArea}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
-                        contentContainerStyle={styles.scrollViewContainer}
-                        keyboardShouldPersistTaps="handled"
-                    >
+                    <ScrollView contentContainerStyle={styles.scrollViewContainer} keyboardShouldPersistTaps="handled">
                         <View style={styles.registerContainer}>
                             <View style={styles.imageContainer}>
                                 <Image
                                     style={styles.brandImage}
-                                    source={require('../../../../assets/images/burst_logo.png')} // Replace with your actual image path
+                                    source={require('../../../../assets/images/burst_logo.png')} 
                                 />
                             </View>
+
                             <View style={styles.inputContainer}>
-                                {['Email', 'Password'].map(
-                                    (label, idx) => (
-                                        <View key={idx} style={styles.inputBlock}>
-                                            <Text style={styles.title}>{label}</Text>
-                                            <TextInput
-                                                style={styles.inputBox}
-                                                placeholder={label}
-                                                secureTextEntry={label.toLowerCase().includes('password')}
-                                                keyboardType={label === 'Email' ? 'email-address' : 'default'}
-                                                onChangeText={(text) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        [label.toLowerCase().replace(' ', '_')]: text,
-                                                    })
-                                                }
+                                {/* Email Input */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Email</Text>
+                                    <TextInput
+                                        style={styles.inputBox}
+                                        placeholder="Email"
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        onChangeText={(text) => setFormData({ ...formData, email: text })}
+                                    />
+                                </View>
+
+                                {/* Password Input with Visibility Toggle */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Password</Text>
+                                    <View style={styles.passwordWrapper}>
+                                        <TextInput
+                                            style={styles.inputBoxPassword}
+                                            placeholder="Password"
+                                            secureTextEntry={!isPasswordVisible}
+                                            autoCapitalize="none"
+                                            onChangeText={(text) => setFormData({ ...formData, password: text })}
+                                        />
+                                        <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                                            <Ionicons 
+                                                name={isPasswordVisible ? "eye-off" : "eye"} 
+                                                size={24} 
+                                                color="black" 
                                             />
-                                        </View>
-                                    )
-                                )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                             </View>
+
                             <View style={styles.line} />
+
                             <Text style={styles.loginText}>
                                 Don't have an account?{' '}
-                                <Text
-                                    style={styles.loginButton}
-                                    onPress={() => navigation.navigate('Register')}
-                                >
+                                <Text style={styles.loginButton} onPress={() => navigation.navigate('Register')}>
                                     Register now
                                 </Text>
                             </Text>
+
                             <TouchableOpacity style={styles.registerButton} onPress={handleLogin}>
                                 <Text style={styles.registerText}>Login</Text>
                                 <View style={styles.registerArrow}>
@@ -119,12 +130,11 @@ export default function LoginPage() {
     );
 }
 
-
 const styles = StyleSheet.create({
     landingSafeArea: {
         fontFamily: 'sora',
         flex: 1,
-        backgroundColor: Colours.primaryBackground, // Background color for the entire screen
+        backgroundColor: Colours.primaryBackground,
     },
     registerContainer: {
         padding: 20,
@@ -152,7 +162,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 14,
         color: '#7B7C8C',
-        fontWeight: 600,
+        fontWeight: '600',
         marginBottom: 5,
     },
     inputBox: {
@@ -161,6 +171,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 12,
         borderRadius: 16,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderColor: '#A9A9C7',
+        borderWidth: 1,
+        padding: 12,
+        borderRadius: 16,
+    },
+    inputBoxPassword: {
+        flex: 1,
     },
     registerButton: {
         backgroundColor: 'black',
@@ -171,7 +193,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         marginTop: 20,
-
     },
     registerArrow: {
         backgroundColor: 'white',
@@ -184,7 +205,7 @@ const styles = StyleSheet.create({
         width: '100%',
         textAlign: 'center',
         fontSize: 16,
-        fontWeight: 600,
+        fontWeight: '600',
     },
     loginText: {
         textAlign: 'center',
@@ -195,4 +216,5 @@ const styles = StyleSheet.create({
     loginButton: {
         color: '#9BB0E2',
     },
-})
+});
+

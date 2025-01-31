@@ -23,7 +23,7 @@ import ENV from '../../../../../env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
-
+import TimerVideoMobilityModal from '../../../screens/modalScreens/TimerVideoMobilityModal';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -40,6 +40,7 @@ export default function MobilityWorkout({ route, navigation }) {
         session_comments: workout.running_sessions[0]?.comments || "", // Default to an empty string
         session_rpe: workout.running_sessions[0]?.rpe || 0, // Default to 0
     })
+    const [isTimerModalVisible, setIsTimerModalVisible] = useState(false);
 
 
     const updateMobilityWorkout = async () => {
@@ -109,6 +110,12 @@ export default function MobilityWorkout({ route, navigation }) {
                                 <Text style={styles.timeText}>{workout?.duration} mins</Text>
                             </View>
                         </View>
+                        <TouchableOpacity
+                            style={styles.startTimerButton}
+                            onPress={() => setIsTimerModalVisible(true)}
+                        >
+                            <Ionicons name="timer-outline" size={30} color="black" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -344,6 +351,12 @@ export default function MobilityWorkout({ route, navigation }) {
                         <Text style={styles.finishButtonText}>Finish Workout</Text>
                     </TouchableOpacity>
                 </View>
+                <TimerVideoMobilityModal
+                    movements={movements}
+                    isVisible={isTimerModalVisible}
+                    workout_name={workout.name}
+                    onClose={() => setIsTimerModalVisible(false)}
+                />
             </View>
         </SafeAreaView>
     );

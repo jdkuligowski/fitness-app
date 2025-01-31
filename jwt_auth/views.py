@@ -33,6 +33,8 @@ from datetime import datetime, timedelta
 from django.conf import settings
 import jwt
 from rest_framework.exceptions import ValidationError
+from django.core.validators import validate_email
+
 import uuid
 
 # Serializer
@@ -53,6 +55,7 @@ User = get_user_model()
 from saved_workouts.models import Workout
 from leaderboard.models import Leaderboard
 env = environ.Env()
+import re
 
 
 from django.utils.timezone import now
@@ -67,42 +70,64 @@ AZURE_STORAGE_CONNECTION_STRING = env('AZURE_STORAGE_CONNECTION_STRING')
 # GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
 # print("GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID)
 
+EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
 
 class RegisterView(APIView):
     def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            with transaction.atomic():
-                # Save the user
-                user = serializer.save()
-                user.set_password(serializer.validated_data['password'])
-                user.save()
+        data = request.data
+        email = data.get("email", "").strip().lower()
+        password = data.get("password")
+        password_confirmation = data.get("password_confirmation")
 
-                # Create JWT token
-                dt = datetime.now() + timedelta(hours=12)
-                token = jwt.encode(
-                    {
-                        'sub': user.id,
-                        'exp': int(dt.timestamp())
-                    },
-                    settings.SECRET_KEY,
-                    algorithm='HS256'
-                )
+        # Ensure required fields are provided
+        if not all([data.get("first_name"), data.get("last_name"), email, password, password_confirmation]):
+            return Response({"detail": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response({
-                    'message': f"User {user.email} registered successfully.",
-                    'token': token
-                }, status=status.HTTP_201_CREATED)
+        # Check email format (Stricter validation)
+        if not re.match(EMAIL_REGEX, email):
+            return Response({"detail": "Invalid email format."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Check if the email already exists
+        if User.objects.filter(email=email).exists():
+            return Response({"detail": "An account with this email already exists."}, status=status.HTTP_409_CONFLICT)
 
+        # Ensure passwords match
+        if password != password_confirmation:
+            return Response({"detail": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save user in a transaction
+        with transaction.atomic():
+            user = User.objects.create_user(
+                first_name=data.get("first_name"),
+                last_name=data.get("last_name"),
+                email=email,
+                password=password
+            )
+
+        # Generate JWT token
+        dt = datetime.now() + timedelta(hours=12)
+        token = jwt.encode(
+            {
+                "sub": user.id,
+                "exp": int(dt.timestamp())
+            },
+            settings.SECRET_KEY,
+            algorithm="HS256"
+        )
+
+        return Response({
+            "message": f"User {user.email} registered successfully.",
+            "token": token,
+            "user_id": user.id
+        }, status=status.HTTP_201_CREATED)
 
 
 
 # Login View
 class LoginView(APIView):
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get("email", "").strip().lower()
         password = request.data.get('password')
 
         if not email or not password:
@@ -111,10 +136,10 @@ class LoginView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise PermissionDenied('Invalid credentials')
+            return Response({'detail': 'No account found with that email'}, status=status.HTTP_404_NOT_FOUND)
 
         if not user.check_password(password):
-            raise PermissionDenied('Invalid credentials')
+            return Response({'detail': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Generate JWT token
         dt = datetime.now() + timedelta(hours=12)

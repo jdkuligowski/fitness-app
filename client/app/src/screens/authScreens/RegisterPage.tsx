@@ -20,6 +20,9 @@ export default function RegisterPage() {
     console.log('google id: ', GOOGLE_CLIENT_ID)
     const navigation = useNavigation();
     const { setIsAuthenticated } = useAuth(); // Access context here
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -37,53 +40,57 @@ export default function RegisterPage() {
 
     const handleRegister = async () => {
         const { first_name, last_name, email, password, password_confirmation } = formData;
-
+    
         // Frontend validation
         if (!first_name || !last_name || !email || !password || !password_confirmation) {
             Alert.alert('Error', 'Please fill out all fields.');
             return;
         }
-
+    
         if (password !== password_confirmation) {
             Alert.alert('Error', 'Passwords do not match!');
             return;
         }
-
+    
         setIsLoading(true);
+    
         try {
-            // Register the user
             const registerResponse = await axios.post(`${ENV.API_URL}/api/auth/register/`, formData);
             console.log('Registration successful:', registerResponse.data);
-
-            // Automatically log the user in
-            const loginResponse = await axios.post(`${ENV.API_URL}/api/auth/login/`, {
-                email,
-                password,
-            });
-            const { token, user_id } = loginResponse.data; // Ensure the backend sends `user_id`
-
-            // Save token and update state
+    
+            // Automatically log the user in after registration
+            const loginResponse = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
+            const { token, user_id } = loginResponse.data;
+    
+            // Save token and update authentication state
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
-
             setIsAuthenticated(true);
-
-            Alert.alert('Login Successful', 'You have logged in successfully!');
-            // navigation.reset({
-            //     index: 0,
-            //     routes: [{ name: 'Home' }],
-            // });
+    
+            Alert.alert('Success', 'Registration and login successful!');
         } catch (error) {
-            console.error('Error during registration or login:', error.message);
+            console.error('Registration error:', error.message);
+    
             if (error.response) {
-                Alert.alert('Error', error.response.data.message || 'An error occurred.');
+                const { detail } = error.response.data;
+    
+                if (detail === "Invalid email format.") {
+                    Alert.alert('Error', 'Please enter a valid email address.');
+                } else if (detail === "An account with this email already exists.") {
+                    Alert.alert('Error', 'An account with this email already exists. Please log in or reset your password.');
+                } else if (detail === "Passwords do not match.") {
+                    Alert.alert('Error', 'Passwords do not match! Please re-enter.');
+                } else {
+                    Alert.alert('Error', detail || 'An unexpected error occurred. Please try again.');
+                }
             } else {
-                Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+                Alert.alert('Error', 'A network issue occurred. Please check your connection and try again.');
             }
         } finally {
             setIsLoading(false);
         }
     };
+    
 
 
     const initializeAuthUrl = async () => {
@@ -225,58 +232,96 @@ export default function RegisterPage() {
 
     return (
         <SafeAreaView style={styles.landingSafeArea}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
-                        contentContainerStyle={styles.scrollViewContainer}
-                        keyboardShouldPersistTaps="handled"
-                    >
+                    <ScrollView contentContainerStyle={styles.scrollViewContainer} keyboardShouldPersistTaps="handled">
                         <View style={styles.registerContainer}>
                             <Text style={styles.signUpText}>Sign up</Text>
-                            <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-                                <AntDesign name="google" size={24} color="black" />
-                                <Text style={styles.googleButtonText}>Sign up with Google</Text>
-                            </TouchableOpacity>
-                            <View style={styles.divider}>
-                                <View style={styles.line} />
-                                <Text style={styles.orText}>OR</Text>
-                                <View style={styles.line} />
-                            </View>
+
                             <View style={styles.inputContainer}>
-                                {['First name', 'Last name', 'Email', 'Password', 'Password confirmation'].map(
-                                    (label, idx) => (
-                                        <View key={idx} style={styles.inputBlock}>
-                                            <Text style={styles.title}>{label}</Text>
-                                            <TextInput
-                                                style={styles.inputBox}
-                                                placeholder={label}
-                                                secureTextEntry={label.toLowerCase().includes('password')}
-                                                keyboardType={label === 'Email' ? 'email-address' : 'default'}
-                                                onChangeText={(text) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        [label.toLowerCase().replace(' ', '_')]:
-                                                            label === 'Email' ? text.toLowerCase() : text,
-                                                    })
-                                                }
+                                {/* First Name */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>First Name</Text>
+                                    <TextInput
+                                        style={styles.inputBox}
+                                        placeholder="First Name"
+                                        onChangeText={(text) => setFormData({ ...formData, first_name: text })}
+                                    />
+                                </View>
+
+                                {/* Last Name */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Last Name</Text>
+                                    <TextInput
+                                        style={styles.inputBox}
+                                        placeholder="Last Name"
+                                        onChangeText={(text) => setFormData({ ...formData, last_name: text })}
+                                    />
+                                </View>
+
+                                {/* Email */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Email</Text>
+                                    <TextInput
+                                        style={styles.inputBox}
+                                        placeholder="Email"
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        onChangeText={(text) => setFormData({ ...formData, email: text.toLowerCase() })}
+                                    />
+                                </View>
+
+                                {/* Password with Toggle */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Password</Text>
+                                    <View style={styles.passwordWrapper}>
+                                        <TextInput
+                                            style={styles.inputBoxPassword}
+                                            placeholder="Password"
+                                            secureTextEntry={!isPasswordVisible}
+                                            autoCapitalize="none"
+                                            onChangeText={(text) => setFormData({ ...formData, password: text })}
+                                        />
+                                        <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                                            <Ionicons 
+                                                name={isPasswordVisible ? "eye-off" : "eye"} 
+                                                size={24} 
+                                                color="black" 
                                             />
-                                        </View>
-                                    )
-                                )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {/* Confirm Password with Toggle */}
+                                <View style={styles.inputBlock}>
+                                    <Text style={styles.title}>Confirm Password</Text>
+                                    <View style={styles.passwordWrapper}>
+                                        <TextInput
+                                            style={styles.inputBoxPassword}
+                                            placeholder="Confirm Password"
+                                            secureTextEntry={!isConfirmPasswordVisible}
+                                            autoCapitalize="none"
+                                            onChangeText={(text) => setFormData({ ...formData, password_confirmation: text })}
+                                        />
+                                        <TouchableOpacity onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
+                                            <Ionicons 
+                                                name={isConfirmPasswordVisible ? "eye-off" : "eye"} 
+                                                size={24} 
+                                                color="black" 
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                             </View>
+
                             <View style={styles.line} />
                             <Text style={styles.loginText}>
                                 Already have an account?{' '}
-                                <Text
-                                    style={styles.loginButton}
-                                    onPress={() => navigation.navigate('Login')}
-                                >
+                                <Text style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
                                     Login
                                 </Text>
                             </Text>
+
                             <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
                                 <Text style={styles.registerText}>Create account</Text>
                                 <View style={styles.registerArrow}>
@@ -406,6 +451,18 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         color: '#9BB0E2',
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderColor: '#A9A9C7',
+        borderWidth: 1,
+        padding: 12,
+        borderRadius: 16,
+    },
+    inputBoxPassword: {
+        flex: 1,
     },
 })
 
