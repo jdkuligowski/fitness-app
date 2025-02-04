@@ -11,6 +11,9 @@ import { AuthProvider } from './app/src/context/AuthContext';
 import { LoaderProvider } from './app/src/context/LoaderContext';
 import RootNavigator from './app/src/navigation/RootNavigator';
 import BouncingLoader from './app/src/components/BouncingLoader';
+import { View } from 'react-native';
+import OnboardingModal from '../client/app/src/screens/modalScreens/RegistrationModal';
+
 
 // Prevent the splash screen from auto-hiding before assets load
 SplashScreen.preventAutoHideAsync();
@@ -45,6 +48,8 @@ export default function App() {
   if (isLoading || !fontsLoaded) {
     return null; // Add a splash screen or loader component if necessary
   }
+
+
 
   return (
     <AuthProvider>

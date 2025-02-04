@@ -1,15 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import SquigglyLine from '@/components/SquigglyLine';
+import SquigglyLine from '@/app/src/components/SquigglyLine';
+import RegistrationModal from '../modalScreens/RegistrationModal'; // Import the new modal
 
 export default function LandingPage() {
+    const [isModalVisible, setIsModalVisible] = useState(false);
     const navigation = useNavigation();
 
     return (
         <SafeAreaView style={styles.landingSafeArea}>
-
             <View style={styles.landingContainer}>
                 <View style={styles.landingTextBox}>
                     <Text style={styles.landingText}>
@@ -40,12 +41,18 @@ export default function LandingPage() {
                         </TouchableOpacity>
                     </View>
                 </View>
-
-
             </View>
+
+            {/* Multi-Step Registration Modal */}
+            <RegistrationModal 
+                isVisible={isModalVisible} 
+                onClose={() => setIsModalVisible(false)} 
+                navigation={navigation} 
+            />
         </SafeAreaView>
     );
 }
+
 
 
 const styles = StyleSheet.create({

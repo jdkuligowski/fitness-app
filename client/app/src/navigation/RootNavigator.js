@@ -15,9 +15,14 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext'; 
 import RootStackNavigator from './RootStackNavigator';
 import AuthStackNavigator from './AuthStackNavigator';
+import OnboardingModal from '../screens/modalScreens/RegistrationModal'
 
 export default function RootNavigator() {
-  const { isAuthenticated } = useAuth(); 
+  const { isAuthenticated, isOnboardingComplete } = useAuth();
 
-  return isAuthenticated ? <RootStackNavigator /> : <AuthStackNavigator />;
+  if (!isAuthenticated) {
+    return <AuthStackNavigator />;
+  }
+
+  return isOnboardingComplete ? <RootStackNavigator /> : <OnboardingModal isVisible={true} />;
 }

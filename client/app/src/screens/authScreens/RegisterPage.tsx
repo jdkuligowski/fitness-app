@@ -8,6 +8,7 @@ import axios from 'axios';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { useLoader } from '../../context/LoaderContext';
 import ENV from '../../../../env'
 import { Colours } from '../../components/styles';
 import * as Google from "expo-auth-session/providers/google";
@@ -15,14 +16,16 @@ import { GOOGLE_CLIENT_ID } from "../../../../constants/constants"; // Import yo
 import { AntDesign } from '@expo/vector-icons'; // Google icon
 import * as AuthSession from "expo-auth-session";
 import * as Crypto from "expo-crypto"; // ✅ Import Crypto for secure random nonce
+import OnboardingModal from '../modalScreens/RegistrationModal';
 
 export default function RegisterPage() {
     console.log('google id: ', GOOGLE_CLIENT_ID)
     const navigation = useNavigation();
-    const { setIsAuthenticated } = useAuth(); // Access context here
+    const { setIsAuthenticated, setIsOnboardingComplete } = useAuth(); // Access context here
+    const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access context here
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  
+
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -31,49 +34,48 @@ export default function RegisterPage() {
         password_confirmation: '',
     });
     const [isLoading, setIsLoading] = useState(false);
-    const generateNonce = async () => {
-        return await Crypto.digestStringAsync(
-            Crypto.CryptoDigestAlgorithm.SHA256,
-            Math.random().toString()
-        );
-    };
+
+    const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
+
 
     const handleRegister = async () => {
         const { first_name, last_name, email, password, password_confirmation } = formData;
-    
+
         // Frontend validation
         if (!first_name || !last_name || !email || !password || !password_confirmation) {
             Alert.alert('Error', 'Please fill out all fields.');
             return;
         }
-    
+
         if (password !== password_confirmation) {
             Alert.alert('Error', 'Passwords do not match!');
             return;
         }
-    
-        setIsLoading(true);
-    
+
+        setIsBouncerLoading(true);
+
         try {
+            setIsOnboardingComplete(false)
             const registerResponse = await axios.post(`${ENV.API_URL}/api/auth/register/`, formData);
             console.log('Registration successful:', registerResponse.data);
-    
+
             // Automatically log the user in after registration
             const loginResponse = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
             const { token, user_id } = loginResponse.data;
-    
+
             // Save token and update authentication state
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
             setIsAuthenticated(true);
-    
-            Alert.alert('Success', 'Registration and login successful!');
+
+            // Trigger onboarding modal
+            setIsOnboardingVisible(true);
         } catch (error) {
             console.error('Registration error:', error.message);
-    
+
             if (error.response) {
                 const { detail } = error.response.data;
-    
+
                 if (detail === "Invalid email format.") {
                     Alert.alert('Error', 'Please enter a valid email address.');
                 } else if (detail === "An account with this email already exists.") {
@@ -88,145 +90,237 @@ export default function RegisterPage() {
             }
         } finally {
             setIsLoading(false);
+            setIsBouncerLoading(false)
         }
     };
-    
 
-
-    const initializeAuthUrl = async () => {
-        const nonce = await generateNonce();
-        console.log("🔑 Generated Nonce:", nonce);
-
-        const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent("https://auth.expo.io/@jdkuligowski/burst-slug")}&response_type=id_token&scope=profile email&nonce=${nonce}`;
-
-        console.log("🔗 Open this OAuth URL in a browser:", oauthUrl);
+    const handleOnboardingComplete = () => {
+        setIsOnboardingVisible(false); // Close the modal
+        navigation.navigate('Home'); // Navigate to the home screen
     };
 
-    useEffect(() => {
-        initializeAuthUrl();
-    }, []);
+    // const initializeAuthUrl = async () => {
+    //     const nonce = await generateNonce();
+    //     console.log("🔑 Generated Nonce:", nonce);
+
+    //     const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent("https://auth.expo.io/@jdkuligowski/burst-slug")}&response_type=id_token&scope=profile email&nonce=${nonce}`;
+
+    //     console.log("🔗 Open this OAuth URL in a browser:", oauthUrl);
+    // };
+
+    // useEffect(() => {
+    //     initializeAuthUrl();
+    // }, []);
 
 
+    // const [request, response, promptAsync] = Google.useAuthRequest({
+    //     clientId: '24607396442-dnmcl2dmkh874bt29d73jdp0khmj1ceb.apps.googleusercontent.com',
+    //     scopes: ["profile", "email"],
+    //     responseType: "id_token",
+    //     redirectUri: "https://auth.expo.io/@jdkuligowski/burst-slug", // ✅ Explicitly set web redirect
+    // });
+
+    // // // ✅ Generate the nonce and attach it to the request
+    // useEffect(() => {
+    //     const setNonce = async () => {
+    //         const nonce = await generateNonce();
+    //         console.log("🔑 Generated Nonce:", nonce);
+
+    //         if (request) {
+    //             request.extraParams = { nonce }; // ✅ Attach nonce
+    //         }
+    //     };
+
+    //     setNonce();
+    // }, [request]);
+
+    // // ✅ Manually trigger Google sign-in only when the button is pressed
+    // const handleGoogleSignIn = async () => {
+    //     console.log("🚀 Google Sign-In Button Pressed");
+
+    //     if (!request) {
+    //         console.error("❌ Google Auth Request is null");
+    //         Alert.alert("Google Sign-In Failed", "Request is null. Try restarting Expo.");
+    //         return;
+    //     }
+
+    //     console.log("🚀 Opening Google Sign-In in Browser...");
+    //     const result = await promptAsync();
+    //     console.log("Result Type:", result.type);
+
+    //     console.log("✅ Google Sign-In Result:", result);
+    //     console.log("🔄 useEffect triggered, response:", response);
+
+
+    //     if (!result) {
+    //         console.error("❌ Google Sign-In failed: No result object");
+    //         return;
+    //     }
+
+    //     if (result.type === "success") {
+    //         console.log("🎉 Google Sign-In Successful! ID Token:", result.params?.id_token);
+
+    //         // ✅ Manually process the token
+    //         if (result.params?.id_token) {
+    //             registerWithGoogle(result.params.id_token);
+    //         } else {
+    //             console.error("❌ No ID Token found in result.");
+    //             Alert.alert("Google Sign-In Failed", "No ID Token received.");
+    //         }
+    //     } else {
+    //         console.error("❌ Google Sign-In Error Type:", result.type);
+    //     }
+    // };
+
+
+
+
+    // // ✅ Handle Google Sign-In Response when it updates
+    // useEffect(() => {
+    //     console.log("🔄 useEffect triggered, response:", response);
+
+    //     if (!response) {
+    //         console.log("⚠ No response received yet");
+    //         return;
+    //     }
+
+    //     if (response?.type === "success") {
+    //         console.log("✅ Google Sign-In Success:", response);
+
+    //         // ✅ Manually extract the ID Token
+    //         const idToken = response.params?.id_token;
+    //         console.log("🔑 Extracted Google ID Token:", idToken);
+
+    //         if (idToken) {
+    //             registerWithGoogle(idToken);
+    //         } else {
+    //             console.error("❌ No ID Token found in response.");
+    //             Alert.alert("Google Sign-In Failed", "No ID Token received.");
+    //         }
+    //     } else if (response?.type === "error") {
+    //         console.error("❌ Google Sign-In Error:", response);
+    //         Alert.alert("Google Sign-In Failed", "Please try again.");
+    //     }
+    // }, [response]);
+
+
+
+
+    // // Send Google token to backend for registration
+    // const registerWithGoogle = async (googleToken) => {
+    //     console.log("🚀 registerWithGoogle called, token:", googleToken);
+
+    //     try {
+    //         const res = await axios.post(
+    //             `${ENV.API_URL}/api/auth/register/google/`,
+    //             { token: googleToken },
+    //             { headers: { "Content-Type": "application/json" } }
+    //         );
+    //         console.log("✅ Google Sign-Up Response:", res.data);
+
+    //         if (res.status === 200) {
+    //             await AsyncStorage.setItem("token", res.data.token);
+    //             setIsAuthenticated(true);
+    //             navigation.navigate("Home");
+    //         } else {
+    //             Alert.alert("Google Sign-Up Failed", "Unexpected status code");
+    //         }
+    //     } catch (error) {
+    //         console.error("❌ Google Sign-Up Error:", error);
+    //         Alert.alert("Google Sign-Up Failed", error.response?.data?.error || "Something went wrong.");
+    //     }
+    // };
+
+
+
+    // 1. Create the Google auth request
     const [request, response, promptAsync] = Google.useAuthRequest({
-        clientId: '24607396442-dnmcl2dmkh874bt29d73jdp0khmj1ceb.apps.googleusercontent.com',
-        scopes: ["profile", "email"],
-        responseType: "id_token",
-        redirectUri: "https://auth.expo.io/@jdkuligowski/burst-slug", // ✅ Explicitly set web redirect
+        clientId: GOOGLE_CLIENT_ID,  // Must be the Web client ID
+        scopes: ['profile', 'email'],
+        responseType: 'id_token',
+        // The redirect URI must match the one added in Google Cloud Console
+        redirectUri: 'https://auth.expo.io/@jdkuligowski/burst-slug',
     });
 
-    // // ✅ Generate the nonce and attach it to the request
+    // 2. Generate and attach the nonce to the request once it's available
     useEffect(() => {
-        const setNonce = async () => {
-            const nonce = await generateNonce();
-            console.log("🔑 Generated Nonce:", nonce);
-
+        const attachNonce = async () => {
             if (request) {
-                request.extraParams = { nonce }; // ✅ Attach nonce
+                const nonce = await generateNonce();
+                console.log('🔑 Generated Nonce:', nonce);
+                // Attach the nonce to the request's extraParams
+                request.extraParams = { ...request.extraParams, nonce };
             }
         };
-
-        setNonce();
+        attachNonce();
     }, [request]);
 
-    // ✅ Manually trigger Google sign-in only when the button is pressed
-    const handleGoogleSignIn = async () => {
-        console.log("🚀 Google Sign-In Button Pressed");
-
-        if (!request) {
-            console.error("❌ Google Auth Request is null");
-            Alert.alert("Google Sign-In Failed", "Request is null. Try restarting Expo.");
-            return;
-        }
-
-        console.log("🚀 Opening Google Sign-In in Browser...");
-        const result = await promptAsync();
-
-        console.log("✅ Google Sign-In Result:", result);
-        console.log("🔄 useEffect triggered, response:", response);
-
-
-        if (!result) {
-            console.error("❌ Google Sign-In failed: No result object");
-            return;
-        }
-
-        if (result.type === "success") {
-            console.log("🎉 Google Sign-In Successful! ID Token:", result.params?.id_token);
-
-            // ✅ Manually process the token
-            if (result.params?.id_token) {
-                registerWithGoogle(result.params.id_token);
-            } else {
-                console.error("❌ No ID Token found in result.");
-                Alert.alert("Google Sign-In Failed", "No ID Token received.");
-            }
-        } else {
-            console.error("❌ Google Sign-In Error Type:", result.type);
-        }
-    };
-
-
-
-
-    // ✅ Handle Google Sign-In Response when it updates
+    // 3. Handle the Google response in a single place
     useEffect(() => {
-        console.log("🔄 useEffect triggered, response:", response);
+        if (!response) return;  // No response yet
 
-        if (!response) {
-            console.log("⚠ No response received yet");
-            return;
-        }
-
-        if (response?.type === "success") {
-            console.log("✅ Google Sign-In Success:", response);
-
-            // ✅ Manually extract the ID Token
+        if (response.type === 'success') {
+            console.log('✅ Google Sign-In Success:', response);
             const idToken = response.params?.id_token;
-            console.log("🔑 Extracted Google ID Token:", idToken);
-
             if (idToken) {
+                // Pass token to your backend
                 registerWithGoogle(idToken);
             } else {
-                console.error("❌ No ID Token found in response.");
-                Alert.alert("Google Sign-In Failed", "No ID Token received.");
+                console.error('❌ No ID Token found in response.');
+                Alert.alert('Google Sign-In Failed', 'No ID Token received.');
             }
-        } else if (response?.type === "error") {
-            console.error("❌ Google Sign-In Error:", response);
-            Alert.alert("Google Sign-In Failed", "Please try again.");
+        } else if (response.type === 'error') {
+            console.error('❌ Google Sign-In Error:', response);
+            Alert.alert('Google Sign-In Failed', 'Please try again.');
+        } else if (response.type === 'cancel') {
+            console.log('❌ Google Sign-In Cancelled by user');
         }
     }, [response]);
 
+    // 4. Function to handle the Sign-In button press
+    const handleGoogleSignIn = async () => {
+        console.log('🚀 Google Sign-In Button Pressed');
+        if (!request) {
+            console.error('❌ Google Auth Request is null');
+            Alert.alert('Google Sign-In Failed', 'Request is null. Try restarting Expo.');
+            return;
+        }
+        // Open the Google Sign-In flow
+        console.log('🚀 Opening Google Sign-In in Browser...');
+        await promptAsync();
+    };
 
-
-
-    // Send Google token to backend for registration
+    // 5. When we get the token, hit the backend
     const registerWithGoogle = async (googleToken) => {
-        console.log("🚀 registerWithGoogle called, token:", googleToken);
-
+        console.log('🚀 registerWithGoogle called, token:', googleToken);
         try {
             const res = await axios.post(
                 `${ENV.API_URL}/api/auth/register/google/`,
                 { token: googleToken },
-                { headers: { "Content-Type": "application/json" } }
+                { headers: { 'Content-Type': 'application/json' } }
             );
-            console.log("✅ Google Sign-Up Response:", res.data);
+            console.log('✅ Google Sign-Up Response:', res.data);
 
             if (res.status === 200) {
-                await AsyncStorage.setItem("token", res.data.token);
+                await AsyncStorage.setItem('token', res.data.token);
                 setIsAuthenticated(true);
-                navigation.navigate("Home");
+                navigation.navigate('Home');
             } else {
-                Alert.alert("Google Sign-Up Failed", "Unexpected status code");
+                Alert.alert('Google Sign-Up Failed', 'Unexpected status code.');
             }
         } catch (error) {
-            console.error("❌ Google Sign-Up Error:", error);
-            Alert.alert("Google Sign-Up Failed", error.response?.data?.error || "Something went wrong.");
+            console.error('❌ Google Sign-Up Error:', error);
+            Alert.alert('Google Sign-Up Failed', error.response?.data?.error || 'Something went wrong.');
         }
     };
 
-
-
-
+    // Utility function to generate a random nonce
+    const generateNonce = async () => {
+        return await Crypto.digestStringAsync(
+            Crypto.CryptoDigestAlgorithm.SHA256,
+            Math.random().toString()
+        );
+    };
 
 
 
@@ -237,6 +331,22 @@ export default function RegisterPage() {
                     <ScrollView contentContainerStyle={styles.scrollViewContainer} keyboardShouldPersistTaps="handled">
                         <View style={styles.registerContainer}>
                             <Text style={styles.signUpText}>Sign up</Text>
+                            <TouchableOpacity
+                                style={styles.googleButton}
+                                onPress={() => {
+                                    console.log("Google Sign-In Button Pressed ✅");
+                                    if (!request) {
+                                        console.error("Google Auth Request is null ❌");
+                                        Alert.alert("Google Sign-In Failed", "Request is null. Try restarting Expo.");
+                                        return;
+                                    }
+                                    promptAsync();
+                                }}
+                            >
+
+                                <AntDesign name="google" size={24} color="black" />
+                                <Text style={styles.googleButtonText}>Sign up with Google</Text>
+                            </TouchableOpacity>
 
                             <View style={styles.inputContainer}>
                                 {/* First Name */}
@@ -283,10 +393,10 @@ export default function RegisterPage() {
                                             onChangeText={(text) => setFormData({ ...formData, password: text })}
                                         />
                                         <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                                            <Ionicons 
-                                                name={isPasswordVisible ? "eye-off" : "eye"} 
-                                                size={24} 
-                                                color="black" 
+                                            <Ionicons
+                                                name={isPasswordVisible ? "eye-off" : "eye"}
+                                                size={24}
+                                                color="black"
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -304,10 +414,10 @@ export default function RegisterPage() {
                                             onChangeText={(text) => setFormData({ ...formData, password_confirmation: text })}
                                         />
                                         <TouchableOpacity onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
-                                            <Ionicons 
-                                                name={isConfirmPasswordVisible ? "eye-off" : "eye"} 
-                                                size={24} 
-                                                color="black" 
+                                            <Ionicons
+                                                name={isConfirmPasswordVisible ? "eye-off" : "eye"}
+                                                size={24}
+                                                color="black"
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -329,6 +439,13 @@ export default function RegisterPage() {
                                 </View>
                             </TouchableOpacity>
                         </View>
+                        {isOnboardingVisible && (
+                            <OnboardingModal
+                                isVisible={isOnboardingVisible}
+                                onClose={handleOnboardingComplete}
+                                navigation={navigation} 
+                            />
+                        )}
                     </ScrollView>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -379,6 +496,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         justifyContent: "center",
         marginTop: 10,
+        marginBottom: 20,
     },
     googleButtonText: {
         color: "black",

@@ -5,19 +5,30 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = await AsyncStorage.getItem('token');
-      setIsAuthenticated(!!token); // Set true if token exists
+      const onboardingStatus = await AsyncStorage.getItem('is_onboarding_complete');
+
+      setIsAuthenticated(!!token); // ✅ If token exists, user is authenticated
+      setIsOnboardingComplete(onboardingStatus === 'true'); // ✅ Ensure boolean format
       setIsLoading(false);
     };
+
     checkAuth();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, isLoading }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      setIsAuthenticated, 
+      isOnboardingComplete, 
+      setIsOnboardingComplete, 
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
