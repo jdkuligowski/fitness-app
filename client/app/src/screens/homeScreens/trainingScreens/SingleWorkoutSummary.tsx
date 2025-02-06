@@ -117,46 +117,6 @@ export default function WorkoutSummary({ route, navigation }) {
     };
 
 
-    // const startWorkout = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         // Check if the workout is already completed
-
-    //         const response = await axios.patch(`${ENV.API_URL}/api/saved_workouts/update-workout-status/${workoutId}/`, {
-    //             status: 'Started'
-    //         });
-    //         console.log('Workout status updated:', response.data);
-
-
-
-    //         // Navigate to CompleteWorkout regardless of status
-    //         if (userWorkouts.activity_type === 'Gym') {
-    //             navigation.navigate('CompleteWorkout', {
-    //                 workout: userWorkouts,
-    //                 movementHistory: movementHistory
-    //             });
-    //         } else if ((userWorkouts.activity_type === 'Running')) {
-    //             console.log("Running workout to start ->", JSON.stringify(userWorkouts, null, 2));
-    //             navigation.navigate('CompleteRunningWorkout', {
-    //                 workout: userWorkouts,
-    //                 // movementHistory: movementHistory
-    //             });
-    //         } else if ((userWorkouts.activity_type === 'Mobility')) {
-    //             console.log("Mobility workout to start ->", JSON.stringify(userWorkouts, null, 2));
-    //             navigation.navigate('CompleteMobilityWorkout', {
-    //                 workout: userWorkouts,
-    //                 // movementHistory: movementHistory
-    //             });
-    //         }
-
-    //     } catch (error) {
-    //         console.error('Error updating workout status:', error.message);
-    //         alert('An error occurred while starting the workout. Please try again.');
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
 
     const IntervalTime = ({ time }) => (
         <View style={styles.intervalTimeContainer}>

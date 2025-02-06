@@ -10,14 +10,18 @@ const SLIDER_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = 20; // Width of each slider item
 
 
-export default function RunningScreen() {
+export default function RunningScreen({ route }) {
+    const { userData } = route.params || {}; // Retrieve userData safely
     const navigation = useNavigation();
     const [selectedWorkout, setSelectedWorkout] = useState(null);
     const [selectedValue, setSelectedValue] = useState(50); // Default selected value
     const data = Array.from({ length: 100 }, (_, i) => i); // Minutes from 0 to 60
     const flatListRef = useRef(null); // Reference to FlatList
-    const [fiveKmMinutes, setFiveKmMinutes] = useState(null);
+    // Pre-fill if user has already set a 5k time
+    const [fiveKmMinutes, setFiveKmMinutes] = useState(null)
     const [fiveKmSeconds, setFiveKmSeconds] = useState(null);
+
+    console.log('user data: ', userData)
 
     useEffect(() => {
         // Automatically scroll to the default value
@@ -72,7 +76,7 @@ export default function RunningScreen() {
                                 <Text style={styles.workoutSubtitle}>What kind of running session do you want to do?</Text>
                                 <View style={styles.workoutType}>
                                     {['Intervals', 'Tempo', 'Easy', 'Not sure'].map((option, index) => (
-                                    // {['Intervals', 'Tempo', 'Long run', 'Not sure'].map((option, index) => (
+                                        // {['Intervals', 'Tempo', 'Long run', 'Not sure'].map((option, index) => (
                                         <TouchableOpacity
                                             key={index}
                                             style={[
@@ -124,28 +128,31 @@ export default function RunningScreen() {
                                 </View>
                             </View>
                             {/* Current 5km Time Section */}
-                            <View style={styles.workoutInfoDetails}>
-                                <Text style={styles.workoutSubtitle}>Current 5km Time</Text>
-                                <View style={styles.timeInputContainer}>
-                                    <TextInput
-                                        style={styles.timeInput}
-                                        value={fiveKmMinutes}
-                                        onChangeText={setFiveKmMinutes}
-                                        placeholder="Min"
-                                        keyboardType="numeric"
-                                        maxLength={2}
-                                    />
-                                    <Text style={styles.timeSeparator}>:</Text>
-                                    <TextInput
-                                        style={styles.timeInput}
-                                        value={fiveKmSeconds}
-                                        onChangeText={setFiveKmSeconds}
-                                        placeholder="Sec"
-                                        keyboardType="numeric"
-                                        maxLength={2}
-                                    />
+                            {!(userData?.five_k_mins && userData?.five_k_secs) && (
+                                <View style={styles.workoutInfoDetails}>
+                                    <Text style={styles.workoutSubtitle}>Current 5km Time</Text>
+                                    <View style={styles.timeInputContainer}>
+                                        <TextInput
+                                            style={styles.timeInput}
+                                            value={fiveKmMinutes}
+                                            onChangeText={setFiveKmMinutes}
+                                            placeholder="Min"
+                                            keyboardType="numeric"
+                                            maxLength={2}
+                                        />
+                                        <Text style={styles.timeSeparator}>:</Text>
+                                        <TextInput
+                                            style={styles.timeInput}
+                                            value={fiveKmSeconds}
+                                            onChangeText={setFiveKmSeconds}
+                                            placeholder="Sec"
+                                            keyboardType="numeric"
+                                            maxLength={2}
+                                        />
+                                    </View>
                                 </View>
-                            </View>
+                            )}
+
 
                             {selectedWorkout ?
                                 <View style={styles.buttonContainer}>
@@ -155,11 +162,12 @@ export default function RunningScreen() {
                                             navigation.navigate("RunningSessionDetails", {
                                                 selectedTime: Number(selectedValue), // Ensure it's a number
                                                 selectedWorkout,
-                                                fiveKmMinutes: Number(fiveKmMinutes), // Ensure it's a number
-                                                fiveKmSeconds: Number(fiveKmSeconds), // Ensure it's a number
+                                                fiveKmMinutes: fiveKmMinutes && fiveKmMinutes !== "" ? Number(fiveKmMinutes) : userData.five_k_mins,
+                                                fiveKmSeconds: fiveKmSeconds && fiveKmSeconds !== "" ? Number(fiveKmSeconds) : userData.five_k_secs,
                                             })
                                         }
                                     >
+
                                         <Text style={styles.submitButtonText}>Find a Workout</Text>
                                         <View style={styles.submitArrow}>
                                             <Ionicons name="arrow-forward" size={24} color="black" />

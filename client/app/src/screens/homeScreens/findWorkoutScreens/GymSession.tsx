@@ -58,7 +58,7 @@ export default function GymSession() {
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={styles.workoutTitle}>Find a gym workout</Text>
+              <Text style={styles.workoutTitle}>Find a strength workout</Text>
             </View>
 
             <TouchableOpacity style={styles.profileButton}>
@@ -70,7 +70,7 @@ export default function GymSession() {
         {/* Options */}
         <View style={styles.workoutInfo}>
           <View style={styles.workoutInfoDetails}>
-            <Text style={styles.workoutSubtitle}>What kind of gym session do you want to do?</Text>
+            <Text style={styles.workoutSubtitle}>What kind of strength session do you want to do?</Text>
             <View style={styles.workoutType}>
               {['Full body', 'Upper body', 'Lower body'].map((option, index) => (
                 // {['Full body', 'Upper Body', 'Lower Body', 'Push', 'Pull', 'Back & bis', 'Chest & tris', 'Vanity'].map((option, index) => (
