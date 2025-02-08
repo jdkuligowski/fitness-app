@@ -272,7 +272,7 @@ export default function HiitWorkout({ route, navigation }) {
 
                     {activeTab === 'History' && (
                         <View>
-                            {completeWorkouts.length > 0 ? (
+                            {completeWorkouts && completeWorkouts.length > 0 ? (
                                 completeWorkouts.map((prevWorkout, index) => (
                                     <View key={index} style={styles.historyItem}>
                                         <Text>{new Date(prevWorkout.completed_date).toLocaleDateString()}</Text>

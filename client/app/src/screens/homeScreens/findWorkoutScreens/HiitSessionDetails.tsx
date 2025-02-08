@@ -5,12 +5,14 @@ import {
     ScrollView, Modal, Alert, Dimensions, Image
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useWorkout } from "../../../context/WorkoutContext";
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { Video } from 'expo-av';
 import { Colours } from "@/app/src/components/styles";
 const SCREEN_WIDTH = Dimensions.get("window").width;
+import ENV from '../../../../../env';
 
 // Import HIIT workout rule files
 import tabataWorkouts from '../../../components/hiitRules/tabataRules';
@@ -270,8 +272,6 @@ export default function HiitScreen({ route }) {
     };
 
 
-
-
     // Fetch and generate workouts on mount
     useEffect(() => {
         fetchWorkoutData();
@@ -294,6 +294,99 @@ export default function HiitScreen({ route }) {
         setCurrentWorkout(null); // Reset the current workout when modal is closed
         setShowDatePicker(false);
     };
+
+
+    const saveAndStartHiitWorkout = async (workoutPlan) => {
+        setIsBouncerLoading(true);
+        try {
+            const userId = await AsyncStorage.getItem("userId");
+            if (!userId) throw new Error("User ID not found in AsyncStorage.");
+    
+            const formattedDate = new Date().toISOString().split("T")[0];
+    
+            console.log('HIIT workout to save and start:', JSON.stringify(workoutPlan, null, 2));
+    
+            // Construct the payload
+            const payload = {
+                user_id: userId,
+                name: workoutPlan.type ? `${workoutPlan.type} HIIT Workout` : "HIIT Workout",
+                description: "High-intensity interval training session",
+                duration: workoutPlan.duration,  // Total time in minutes
+                status: "Started",  // 🚀 Set to "Started" since we want to start immediately
+                scheduled_date: formattedDate,
+                activity_type: "Hiit",
+                workout_type: workoutPlan.type,  // e.g., "Tabata", "AMRAP", etc.
+                structure: workoutPlan.structure, // e.g., "20s work / 10s rest"
+    
+                // Handling AMRAP vs. Other HIIT Types
+                sections: workoutPlan.type === "AMRAP"
+                    ? workoutPlan.sections.map((section, index) => ({
+                        block_name: section.blockName || `Block ${index + 1}`,
+                        rep_scheme: section.repScheme || null,
+                        movements: section.movements.map((movement, movementIndex) => ({
+                            id: movement.id || null,
+                            exercise: movement.exercise || "Unknown Movement",
+                            movement_name: movement.exercise || "Unknown Movement",
+                            movement_order: movementIndex + 1,
+                            rest_period: movement.exercise === "Rest",
+                        })),
+                    }))
+                    : [{
+                        block_name: "Workout Block",
+                        movements: workoutPlan.movements.map((movement, movementIndex) => ({
+                            id: movement.id || null,
+                            exercise: movement.exercise || "Unknown Movement",
+                            movement_name: movement.exercise || "Unknown Movement",
+                            movement_order: movementIndex + 1,
+                            rest_period: movement.exercise === "Rest",
+                        })),
+                    }],
+            };
+    
+            console.log("Payload for save and start (HIIT):", JSON.stringify(payload, null, 2));
+    
+            // Save the workout
+            const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
+            console.log("Response from save (HIIT):", response.data);
+    
+            // Extract the ID of the saved workout
+            const savedWorkoutId = response.data?.workout.id;
+    
+            if (!savedWorkoutId) {
+                console.error("Workout ID is undefined, check API response:", response.data);
+                Alert.alert("Error", "Failed to save workout. Please try again.");
+                setIsBouncerLoading(false);
+                return;
+            }
+    
+            console.log("New HIIT Workout ID ->", savedWorkoutId);
+    
+            // Fetch workout details
+            const workoutDetailsResponse = await axios.get(
+                `${ENV.API_URL}/api/saved_workouts/get-single-hiit-workout/${savedWorkoutId}/`,
+                { params: { user_id: userId } }
+            );
+    
+            const { workout } = workoutDetailsResponse.data;
+            console.log("Workout details (HIIT) ->", JSON.stringify(workout, null, 2));
+    
+            setIsBouncerLoading(false);
+    
+            // Navigate to the complete workout screen
+            navigation.navigate("Training", {
+                screen: "CompleteHiitWorkout",
+                params: {
+                    workout: workout,
+                },
+            });
+        } catch (error) {
+            console.error("Error saving and starting HIIT workout:", error?.response?.data || error.message);
+            Alert.alert("Error", "There was an error starting your HIIT workout. Please try again.");
+            setIsBouncerLoading(false);
+        }
+    };
+    
+
 
 
     if (isLoading) {
@@ -353,9 +446,7 @@ export default function HiitScreen({ route }) {
                                             </TouchableOpacity>
                                         </View>
                                         <View style={styles.workoutSummaryArray}>
-                                            {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                                             <Text style={styles.workoutSummaryButton}>Hiit session</Text>
-                                            {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
                                         </View>
                                         <View style={styles.trainerDetails}>
                                             <Image
@@ -407,6 +498,17 @@ export default function HiitScreen({ route }) {
                                         ))
                                     )}
                                 </ScrollView>
+                                <View style={styles.buttonContainer}>
+                                    <TouchableOpacity
+                                        style={styles.submitButton}
+                                        onPress={() => saveAndStartHiitWorkout(item)}
+                                    >
+                                        <Text style={styles.submitButtonText}>Start Workout</Text>
+                                        <View style={styles.submitArrow}>
+                                            <Ionicons name="arrow-forward" size={24} color="black" />
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         )
                     }
@@ -651,7 +753,7 @@ const styles = StyleSheet.create({
     },
     workoutList: {
         padding: 20,
-        height: 350,
+        // height: 350,
     },
     sectionContainer: {
         // marginBottom: 5,

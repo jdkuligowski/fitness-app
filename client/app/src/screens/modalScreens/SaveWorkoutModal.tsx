@@ -76,12 +76,12 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 duration: selectedTime,
                 status: status,
                 scheduled_date: status === "Scheduled" ? formattedDate : null,
-                activity_type: workoutType, 
+                activity_type: workoutType,
             };
 
             if (workoutType === "Gym") {
                 payload.name = `${selectedWorkout}`,
-                payload.description = "Custom generated workout";
+                    payload.description = "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
                 payload.sections = workoutPlan.map((section, index) => {
                     if (section.partLabel === "Conditioning") {
@@ -174,7 +174,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         movements: (section.movements || []).map((movement, movementIndex) => ({
                             id: movement.id || null,
                             exercise: movement.exercise || "Unknown Movement",
-                            movement_name: movement.exercise || "Unknown Movement",  
+                            movement_name: movement.exercise || "Unknown Movement",
                             movement_order: movementIndex + 1,
                             rest_period: movement.exercise === "Rest",
                         })),
@@ -227,7 +227,12 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             const endpoint =
                 currentWorkout.activity_type === "Running"
                     ? `/api/saved_workouts/get-single-running-workout/${workoutId}/`
-                    : `/api/saved_workouts/get-single-workout/${workoutId}/`;
+                    : currentWorkout.activity_type === "Hiit"
+                        ? `/api/saved_workouts/get-single-hiit-workout/${workoutId}/`
+                        : currentWorkout.activity_type === "Mobility"
+                            ? `/api/saved_workouts/get-single-mobility-workout/${workoutId}/`
+                            : `/api/saved_workouts/get-single-workout/${workoutId}/`;
+
 
             // Fetch full workout details
             const response = await axios.get(`${ENV.API_URL}${endpoint}`, { params: { user_id: userId } });
@@ -330,7 +335,102 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         })),
                     },
                 };
+            } else if (activityType === "Mobility") {
+                console.log("Processing Mobility Workout");
+
+                const mobilitySession = workoutPlan.workout.mobility_sessions[0]; // Assuming only one mobility session
+                if (!mobilitySession) {
+                    console.warn("Mobility session data is missing.");
+                    Alert.alert("Error", "No mobility session data found.");
+                    setIsBouncerLoading(false);
+                    return;
+                }
+
+                payload = {
+                    user_id: userId,
+                    name: workoutPlan.workout.name || "Mobility Workout",
+                    workout_number: workoutPlan.workout.workout_number,
+                    description: workoutPlan.workout.description || "No description",
+                    duration: workoutPlan.workout.duration || 0,
+                    complexity: workoutPlan.workout.complexity || 0,
+                    status: status,
+                    activity_type: "Mobility",
+                    scheduled_date: status === "Scheduled" ? formattedDate : null,
+                    mobility_sessions: {
+                        session_id: mobilitySession.id,
+                        number_of_movements: mobilitySession.mobility_details.length,
+                        session_type: mobilitySession.session_type,
+                        comments: mobilitySession.comments || null,
+                        saved_details: mobilitySession.mobility_details.map((detail) => ({
+                            order: detail.order,
+                            duration: detail.duration,
+                            movement_name: detail.movements?.exercise || "Unknown Movement",
+                        })),
+                    },
+                };
+            } else if (activityType === "Hiit") {
+                console.log('workoput session: ', workoutPlan)
+
+                const hiitSession = workoutPlan.workout.hiit_sessions[0]; // Only one HIIT session per workout
+                console.log('hiit session: ', hiitSession)
+                if (!hiitSession) {
+                    console.warn("HIIT session data is missing.");
+                    Alert.alert("Error", "No HIIT session data found.");
+                    setIsBouncerLoading(false);
+                    return;
+                }
+
+                payload = {
+                    user_id: userId,
+                    name: workoutPlan.workout.name,
+                    workout_number: workoutPlan.workout.workout_number,
+                    description: workoutPlan.workout.description,
+                    duration: workoutPlan.workout.duration,
+                    complexity: workoutPlan.workout.complexity || 1,
+                    status: status,
+                    activity_type: "Hiit",
+                    scheduled_date: status === "Scheduled" ? formattedDate : null,
+                    workout_type: hiitSession.workout_type, // e.g., "Tabata", "AMRAP", etc.
+                    structure: hiitSession.structure, // e.g., "20s work / 10s rest"
+                };
+
+                console.log("Processing HIIT Workout Type:", payload.workout_type);
+
+                // 🏋️‍♂️ Handling AMRAP (Multiple Blocks)
+                if (payload.workout_type === "AMRAP") {
+                    payload.sections = hiitSession.hiit_details.map((block, index) => ({
+                        block_name: block.block_name || `Block ${index + 1}`,
+                        rep_scheme: block.rep_scheme || null,
+                        movements: block.hiit_movements.map((movement, movementIndex) => ({
+                            id: movement.movements?.id || null,
+                            exercise: movement.exercise_name || "Unknown Movement",
+                            movement_name: movement.exercise_name || "Unknown Movement",
+                            movement_order: movement.order || movementIndex + 1,
+                            rest_period: movement.rest_period || false,
+                        })),
+                    }));
+                } else {
+                    // 🏋️‍♂️ Handling EMOM, Tabata, and 30/30 (Single Block)
+                    const firstBlock = hiitSession.hiit_details[0];
+                    if (!firstBlock) {
+                        console.warn("Warning: Missing HIIT block data.");
+                        payload.sections = [];
+                    } else {
+                        payload.sections = [{
+                            block_name: firstBlock.block_name || "Workout Block",
+                            rep_scheme: firstBlock.rep_scheme || null,
+                            movements: firstBlock.hiit_movements.map((movement, movementIndex) => ({
+                                id: movement.movements?.id || null,
+                                exercise: movement.exercise_name || "Unknown Movement",
+                                movement_name: movement.exercise_name || "Unknown Movement",
+                                movement_order: movement.order || movementIndex + 1,
+                                rest_period: movement.rest_period || false,
+                            })),
+                        }];
+                    }
+                }
             }
+
 
             console.log("Payload for resave ->", JSON.stringify(payload, null, 2)); // Pretty print with 2 spaces
 
