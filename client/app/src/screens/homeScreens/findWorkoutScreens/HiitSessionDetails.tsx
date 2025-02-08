@@ -17,6 +17,7 @@ import tabataWorkouts from '../../../components/hiitRules/tabataRules';
 import amrapWorkouts from "../../../components/hiitRules/amrapRules";
 import emomWorkouts from "../../../components/hiitRules/emomRules";
 import { tenMinBlocks, fifteenMinBlocks, twentyMinBlocks } from "../../../components/hiitRules/3030Rules";
+import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
 
 export default function HiitScreen({ route }) {
     const navigation = useNavigation();
@@ -26,6 +27,8 @@ export default function HiitScreen({ route }) {
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [selectedMovement, setSelectedMovement] = useState(null);
     const flatListRef = useRef(null);
+    const [currentWorkout, setCurrentWorkout] = useState(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const workoutDurationLimits = {
         "AMRAP": [10, 15, 20],
@@ -49,17 +52,17 @@ export default function HiitScreen({ route }) {
 
     const generateHiitWorkout = (selectedWorkout, selectedTime, movementsDB) => {
         let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30];
-    
+
         // Snap time to nearest allowed value, but **never exceed the user input**
         let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
         let numWorkouts = selectedWorkout === "I don't mind" ? 15 : 10;
         let allWorkouts = [];
-    
+
         console.log(`⏳ User Selected Time: ${selectedTime} → Snapped to: ${adjustedTime}`);
-    
+
         if (selectedWorkout === "I don't mind") {
             console.log("🔄 Generating a mixed HIIT selection...");
-    
+
             if (workoutDurationLimits["Tabata"].includes(adjustedTime)) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
@@ -70,7 +73,7 @@ export default function HiitScreen({ route }) {
             }
             if (workoutDurationLimits["AMRAP"].includes(adjustedTime)) {
                 allWorkouts.push(...generateMultipleWorkouts(
-                    amrapWorkouts.filter(w => Number(w.duration) === adjustedTime),
+                    amrapWorkouts.filter(w => Number(w.duration) === adjustedTime).map(w => ({ ...w, style: w.type })),
                     "AMRAP",
                     movementsDB,
                     3
@@ -94,22 +97,22 @@ export default function HiitScreen({ route }) {
                     3
                 ));
             }
-    
+
             let formattedWorkouts = allWorkouts
                 .sort(() => Math.random() - 0.5)
                 .slice(0, numWorkouts);
-    
+
             console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
             return formattedWorkouts;
         }
-    
+
         console.log(`🎯 Generating specific ${selectedWorkout} workouts...`);
-    
+
         if (!validDurations.includes(adjustedTime)) {
             console.warn(`⚠️ ${selectedWorkout} is not available for ${selectedTime} mins. Adjusted to ${adjustedTime}.`);
             return [];
         }
-    
+
         switch (selectedWorkout) {
             case "Tabata":
                 allWorkouts.push(...generateMultipleWorkouts(
@@ -149,13 +152,13 @@ export default function HiitScreen({ route }) {
                 console.error("⚠️ Unrecognized workout type:", selectedWorkout);
                 return [];
         }
-    
+
         let formattedWorkouts = allWorkouts.sort(() => Math.random() - 0.5);
         console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
-    
+
         return formattedWorkouts;
     };
-    
+
 
 
 
@@ -281,6 +284,18 @@ export default function HiitScreen({ route }) {
     }, [selectedWorkout, selectedTime, workoutData]);
 
 
+
+    const showModalForWorkout = (workout) => {
+        setCurrentWorkout(workout); // Set the workout plan that will be used inside the modal
+    };
+
+
+    const closeModal = () => {
+        setCurrentWorkout(null); // Reset the current workout when modal is closed
+        setShowDatePicker(false);
+    };
+
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -332,7 +347,7 @@ export default function HiitScreen({ route }) {
                                             </View>
                                             <TouchableOpacity
                                                 style={styles.profileButton}
-                                            // onPress={() => showModalForWorkout(item)} // Set modal for current workout
+                                                onPress={() => showModalForWorkout(item)} // Set modal for current workout
                                             >
                                                 <Ionicons name="heart-outline" color={'black'} size={20} />
                                             </TouchableOpacity>
@@ -396,7 +411,26 @@ export default function HiitScreen({ route }) {
                         )
                     }
                 />
-
+                {currentWorkout && (
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={!!currentWorkout}
+                        onRequestClose={closeModal}
+                    >
+                        <SaveWorkoutModal
+                            currentWorkout={currentWorkout} // Pass the workout object
+                            onClose={closeModal} // Pass the close function
+                            selectedTime={selectedTime} // Pass the selected time
+                            selectedWorkout={currentWorkout.workout_name} // Pass the selected workout name
+                            workoutPlan={currentWorkout} // Pass the current workout plan
+                            closeModal={closeModal} // Close function for modal
+                            frequency=''
+                            modalRoute={'Discovery'}
+                            workoutType="Hiit"
+                        />
+                    </Modal>
+                )}
 
                 {selectedMovement && (
                     <Modal

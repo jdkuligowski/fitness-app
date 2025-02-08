@@ -32,4 +32,5 @@ urlpatterns = [
     path('api/conditioning_workouts/', include('conditioning_summary.urls')),
     path('api/mobility_workouts/', include('mobility_overview.urls')),
     path('api/saved_mobility/', include('saved_mobility.urls')),
+    path('api/saved_hiit/', include('saved_hiit.urls')),
 ]

@@ -68,7 +68,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
         try {
             const userId = await AsyncStorage.getItem("userId");
             const formattedDate = selectedDate.toISOString().split("T")[0];
-            console.log('Workout to save:', currentWorkout);
+            console.log('Workout to save:', JSON.stringify(currentWorkout, null, 2));
 
             let payload = {
                 user_id: userId,
@@ -76,14 +76,13 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 duration: selectedTime,
                 status: status,
                 scheduled_date: status === "Scheduled" ? formattedDate : null,
-                activity_type: workoutType, // Add activity type dynamically
+                activity_type: workoutType, 
             };
 
             if (workoutType === "Gym") {
-                payload.name =`${selectedWorkout}`,
+                payload.name = `${selectedWorkout}`,
                 payload.description = "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
-
                 payload.sections = workoutPlan.map((section, index) => {
                     if (section.partLabel === "Conditioning") {
                         return {
@@ -158,7 +157,51 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         movement_name: detail.exercise,
                     })),
                 };
+            } else if (workoutType === "Hiit") {  // 🚀 NEW: Handle HIIT Workouts
+                payload.name = `${workoutPlan.type} HIIT Workout`;
+                payload.description = "High-intensity interval training session";
+                payload.workout_type = workoutPlan.type;  // ✅ Correct reference
+                payload.structure = workoutPlan.structure;
+                payload.duration = workoutPlan.duration;
+
+                console.log("Processing HIIT Workout Type:", payload.workout_type);
+
+                // 🏋️‍♂️ Handling AMRAP (multiple sections)
+                if (payload.workout_type === "AMRAP") {
+                    payload.sections = (workoutPlan.sections || []).map((section, index) => ({
+                        block_name: section.blockName || `Block ${index + 1}`,
+                        rep_scheme: section.repScheme || null,
+                        movements: (section.movements || []).map((movement, movementIndex) => ({
+                            id: movement.id || null,
+                            exercise: movement.exercise || "Unknown Movement",
+                            movement_name: movement.exercise || "Unknown Movement",  
+                            movement_order: movementIndex + 1,
+                            rest_period: movement.exercise === "Rest",
+                        })),
+                    }));
+                }
+                else {
+                    // 🏋️‍♂️ Handling EMOM, Tabata, and 30/30 (single block)
+                    if (!workoutPlan.movements) {
+                        console.warn("Warning: Missing movements in HIIT workout, skipping...");
+                        payload.sections = [];
+                    } else {
+                        payload.sections = [{
+                            block_name: "Workout Block",
+                            movements: (workoutPlan.movements || []).map((movement, movementIndex) => ({
+                                id: movement.id || null,
+                                exercise: movement.exercise || "Unknown Movement",
+                                movement_name: movement.exercise || "Unknown Movement",
+                                movement_order: movementIndex + 1,
+                                rest_period: movement.exercise === "Rest",
+                            })),
+                        }];
+                    }
+                }
+
             }
+
+            console.log("Final Payload:", JSON.stringify(payload, null, 2));
 
             const response = await axios.post(
                 `${ENV.API_URL}/api/saved_workouts/save-workout/`,

@@ -45,6 +45,8 @@ export default function WorkoutSummary({ route, navigation }) {
                     endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-running-workout/${workoutId}/`;
                 } else if (activityType === 'Mobility') {
                     endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-mobility-workout/${workoutId}/`;
+                } else if (activityType === 'Hiit') {
+                    endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-hiit-workout/${workoutId}/`;
                 } else {
                     throw new Error(`Unsupported activity type: ${activityType}`);
                 }
@@ -52,7 +54,7 @@ export default function WorkoutSummary({ route, navigation }) {
                     params: { user_id: userId }
                 });
 
-                
+
 
                 if (activityType === 'Gym') {
                     const { workout, movement_history } = response.data;
@@ -70,7 +72,14 @@ export default function WorkoutSummary({ route, navigation }) {
                     setUserWorkouts(workout);
                     setSimilarWorkouts(similar_mobility_workouts);
                     console.log('Mobility workouts: ', JSON.stringify(response.data, null, 2))
+                } else if (activityType === 'Hiit') {
+                    const { workout, similar_workouts, recent_hiit_workouts } = response.data;
+                    setUserWorkouts(workout);
+                    setSimilarWorkouts(similar_workouts);
+                    setRecentWorkouts(recent_hiit_workouts);
+                    console.log('Hiit workouts: ', JSON.stringify(response.data, null, 2));
                 }
+
                 setIsLoading(false);
             } catch (error) {
                 console.error('Error fetching workout:', error.message);
@@ -107,7 +116,13 @@ export default function WorkoutSummary({ route, navigation }) {
                     workout: userWorkouts,
                     completeWorkouts: similarWorkouts,
                 });
-            } 
+            } else if (activityType === 'Hiit') {
+                navigation.navigate('CompleteHiitWorkout', {
+                    workout: userWorkouts,
+                    completeWorkouts: similarWorkouts,
+                    recentWorkouts: recentWorkouts,
+                });
+            }
         } catch (error) {
             console.error('Error updating workout status:', error.message);
             alert('An error occurred while starting the workout. Please try again.');
@@ -167,7 +182,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                 ? '#E4EAEC'
                                 : userWorkouts.activity_type === 'Mobility'
                                     ? '#FFEEEF'
-                                    : 'black',
+                                    : userWorkouts.activity_type === 'Hiit'
+                                        ? '#F6F6DC'
+                                        : 'black',
                 }]}>
 
                     <View style={styles.workoutOverview}>
@@ -180,7 +197,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                         ? '#D2E4EA'
                                         : userWorkouts.activity_type === 'Mobility'
                                             ? '#FFDDDE'
-                                            : 'black',
+                                            : userWorkouts.activity_type === 'Hiit'
+                                                ? '#FFFFEF'
+                                                : 'black',
                         }]}>
                             <View style={styles.overviewHeader}>
                                 <Text style={styles.workoutTitle}>{userWorkouts.name}</Text>
@@ -388,6 +407,50 @@ export default function WorkoutSummary({ route, navigation }) {
                                             </View>
                                         ))}
                                         {/* <View style={styles.subDividerLine}></View> */}
+                                    </View>
+                                ))}
+                            </>
+                        ) : userWorkouts.activity_type === "Hiit" ? (
+                            <>
+
+                                {userWorkouts.hiit_sessions.map((session, index) => (
+                                    <View key={index} style={styles.sectionContainer}>
+                                        {/* <Text style={styles.sectionTitle}>{session.workout_type} Workout</Text> */}
+                                        <Text style={styles.summaryDetail}>{session.structure}</Text>
+
+                                        {session.hiit_details.map((block, i) => (
+                                            <View key={i} style={styles.sectionContainer}>
+                                                <Text style={styles.sectionTitle}>{block.block_name}</Text>
+                                                {block.hiit_movements.map((movement, j) => (
+                                                    <View key={j} style={styles.movementRow}>
+                                                        <View style={styles.movementLeft}>
+                                                            <Text>
+                                                                <Text style={styles.movementLabel}>{`${j + 1}: `}</Text>
+                                                                <Text style={styles.movementDetail}>{movement.exercise_name}</Text>
+                                                                {movement.rest_period && (
+                                                                    <Text style={styles.restPeriod}> (Rest)</Text>
+                                                                )}
+                                                            </Text>
+                                                        </View>
+                                                        <TouchableOpacity
+                                                            onPress={() => {
+                                                                if (movement.movements?.portrait_video_url) {
+                                                                    setSelectedMovement({
+                                                                        ...movement,
+                                                                        portrait_video_url: movement.movements.portrait_video_url,
+                                                                    });
+                                                                } else {
+                                                                    Alert.alert("No video available", "This movement doesn't have an associated video.");
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Ionicons name="play-circle" size={24} color="black" />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                ))}
+                                                <View style={styles.subDividerLine}></View>
+                                            </View>
+                                        ))}
                                     </View>
                                 ))}
                             </>

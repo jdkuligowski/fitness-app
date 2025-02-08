@@ -67,6 +67,9 @@ INSTALLED_APPS = [
     'mobility_details',
     'saved_mobility',
     'saved_mobility_details',
+    'saved_hiit',
+    'saved_hiit_details',
+    'saved_hiit_detail_movements',
 ]
 
 MIDDLEWARE = [

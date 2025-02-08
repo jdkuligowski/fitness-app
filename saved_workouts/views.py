@@ -20,6 +20,7 @@ from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
+import traceback
 
 from saved_runs.models import SavedRunningSession
 from running_sessions.models import RunningSession
@@ -32,6 +33,9 @@ from mobility_overview.models import MobilityWorkout
 from mobility_details.models import MobilityWorkoutDetails
 from saved_mobility.models import SavedMobilitySession
 from saved_mobility_details.models import SavedMobilityDetails
+from saved_hiit.models import SavedHIITWorkout
+from saved_hiit_details.models import SavedHIITDetails
+from saved_hiit_detail_movements.models import SavedHIITMovement
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -63,6 +67,8 @@ class SaveWorkoutView(APIView):
                     return self._save_running_workout(data, user)
                 elif workout_type == 'Mobility':
                     return self._save_mobility_workout(data, user)
+                elif workout_type == 'Hiit':  
+                    return self._save_hiit_workout(data, user)
                 else:
                     return Response({'error': f'Unsupported workout type: {workout_type}'}, status=400)
 
@@ -283,6 +289,96 @@ class SaveWorkoutView(APIView):
 
         return Response(response_data, status=201)
 
+
+
+    def _save_hiit_workout(self, data, user):
+        print("\n📥 Received HIIT Workout Data:")
+        print(data)  # ✅ Log the full payload for debugging
+
+        if data.get('workout_number'):
+            workout_number = data['workout_number']
+        else:
+            workout_number = self._get_workout_number(user)
+
+        try:
+            with transaction.atomic():
+                # print(f"🔄 Creating Workout Entry for {data['name']}...")
+
+                # Create the Workout instance
+                workout = Workout.objects.create(
+                    name=data['name'],
+                    workout_number=workout_number,
+                    description=data.get('description', ''),
+                    duration=data['duration'],
+                    complexity=data.get('complexity', 1),
+                    status=data.get('status', 'Saved'),
+                    scheduled_date=data.get('scheduled_date'),
+                    owner=user,
+                    activity_type="Hiit",
+                )
+
+                # print(f"✅ Workout Created: {workout.id} - {workout.name}")
+
+                # Create SavedHIITWorkout
+                # print(f"🔄 Creating HIIT Workout Entry...")
+                hiit_workout = SavedHIITWorkout.objects.create(
+                    workout=workout,
+                    workout_type=data['workout_type'], 
+                    structure=data['structure'],
+                    duration=data['duration'],
+                    rpe=data.get('rpe', None),
+                    comments=data.get('comments', None),
+                )
+                # print(f"✅ HIIT Workout Created: {hiit_workout.id} ({hiit_workout.workout_type})")
+
+                # Save HIIT blocks
+                for index, block_data in enumerate(data.get('sections', [])):
+                    # print(f"🔄 Creating HIIT Block {index + 1}: {block_data.get('block_name', f'Block {index + 1}')}...")
+
+                    hiit_block = SavedHIITDetails.objects.create(
+                        hiit_workout=hiit_workout,
+                        block_name=block_data.get('block_name', f"Block {index + 1}"),
+                        rep_scheme=block_data.get('rep_scheme'),
+                        order=index + 1
+                    )
+                    # print(f"✅ HIIT Block Created: {hiit_block.id} ({hiit_block.block_name})")
+
+                    # Save movements within the block
+                    for order, movement_data in enumerate(block_data['movements']):
+                        # print(f"🔍 Fetching Movement ID {movement_data.get('id')}...")
+
+                        movement = Movement.objects.filter(id=movement_data.get('id')).first()
+                        if movement is None:
+                            print(f"⚠️ WARNING: Movement ID {movement_data.get('id')} not found, setting to NULL.")
+
+                        try:
+                            hiit_movement = SavedHIITMovement.objects.create(
+                                block=hiit_block,
+                                movements=movement,
+                                exercise_name=movement_data.get('exercise', 'Unknown Movement'),
+                                order=order + 1,
+                                rest_period=(movement_data.get('exercise') == 'Rest')  # Flagging rest periods
+                            )
+                            # print(f"✅ HIIT Movement Created: {hiit_movement.exercise_name} (Block {hiit_block.block_name})")
+                        except Exception as e:
+                            print(f"❌ ERROR: Failed to create HIIT Movement ({movement_data.get('exercise')})")
+                            print(traceback.format_exc())  # ✅ Log the full stack trace
+
+            # ✅ Successful Save
+            serialized_workout = {
+                "id": workout.id,
+                "name": workout.name,
+                "duration": workout.duration,
+                "hiit_type": hiit_workout.workout_type,
+                "structure": hiit_workout.structure,
+            }
+            print(f"🎉 HIIT Workout Saved Successfully: {serialized_workout}")
+            return Response({'message': 'HIIT workout saved successfully', 'workout': serialized_workout}, status=201)
+
+        except Exception as e:
+            print(f"❌ ERROR: Exception during HIIT Workout Save!")
+            print(traceback.format_exc())  # ✅ Log the entire traceback
+            return Response({'error': f'An error occurred while saving the HIIT workout: {str(e)}'}, status=400)
 
     def _get_workout_number(self, user):
         last_workout = Workout.objects.filter(owner=user).order_by('-workout_number').first()
@@ -859,6 +955,94 @@ class GetSingleMobilityWorkoutView(APIView):
         except Exception as e:
             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+class GetSingleHiitWorkoutView(APIView):
+    """
+    Get a single HIIT workout and return:
+    - All related HIIT session details, including movements.
+    - The last 3 completed workouts with the same workout number.
+    - The last 3 completed HIIT workouts generally.
+    """
+
+    def get(self, request, workout_id):
+        user_id = request.query_params.get('user_id')
+        print('User ID:', user_id)
+
+        try:
+            # Fetch the main HIIT workout
+            try:
+                workout = Workout.objects.prefetch_related(
+                    Prefetch(
+                        'hiit_sessions',
+                        queryset=SavedHIITWorkout.objects.prefetch_related(
+                            Prefetch(
+                                'hiit_details',
+                                queryset=SavedHIITDetails.objects.prefetch_related(
+                                    Prefetch(
+                                        'hiit_movements',
+                                        queryset=SavedHIITMovement.objects.select_related('movements')
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ).get(id=workout_id, owner=user_id)
+
+                print(f"✅ Fetched HIIT Workout: {workout.name} (ID: {workout.id})")
+
+            except Workout.DoesNotExist:
+                return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Ensure it's a HIIT workout
+            if workout.activity_type != "Hiit":
+                return Response({'error': 'This endpoint only handles HIIT workouts.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the workout and HIIT session data
+            try:
+                serializer = PopulatedWorkoutSerializer(workout)
+                serialized_workout = serializer.data
+                print(f"✅ Serialized HIIT Workout Data: {serialized_workout['name']}")
+            except Exception as e:
+                return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Fetch last 3 workouts with the same workout number
+            try:
+                similar_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Hiit",
+                    workout_number=workout.workout_number,
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+
+                similar_workouts_data = PopulatedWorkoutSerializer(similar_workouts, many=True).data
+                print(f"✅ Found {len(similar_workouts_data)} similar HIIT workouts")
+            except Exception as e:
+                return Response({'error': f'Error fetching similar HIIT workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Fetch last 3 HIIT workouts generally
+            try:
+                recent_hiit_workouts = Workout.objects.filter(
+                    owner=user_id,
+                    activity_type="Hiit",
+                    status="Completed"
+                ).exclude(id=workout.id).order_by('-completed_date')[:3]
+
+                recent_hiit_workouts_data = PopulatedWorkoutSerializer(recent_hiit_workouts, many=True).data
+                print(f"✅ Found {len(recent_hiit_workouts_data)} recent HIIT workouts")
+            except Exception as e:
+                return Response({'error': f'Error fetching recent HIIT workouts: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Return the response with all the data
+            return Response({
+                "workout": serialized_workout,
+                "similar_workouts": similar_workouts_data,
+                "recent_hiit_workouts": recent_hiit_workouts_data,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"❌ Unexpected error: {str(e)}")
+            return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     

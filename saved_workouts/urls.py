@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SaveWorkoutView, GetAllWorkoutsView, GetSingleWorkoutView, UpdateWorkoutStatusView, DeleteWorkoutView, UpdateWorkoutDateView, CompleteWorkoutAPIView, GetUpcomingWorkouts, GetSingleRunningWorkoutView, GetSingleMobilityWorkoutView
+from .views import SaveWorkoutView, GetAllWorkoutsView, GetSingleWorkoutView, UpdateWorkoutStatusView, DeleteWorkoutView, UpdateWorkoutDateView, CompleteWorkoutAPIView, GetUpcomingWorkouts, GetSingleRunningWorkoutView, GetSingleMobilityWorkoutView, GetSingleHiitWorkoutView
 
 urlpatterns = [
     path('save-workout/', SaveWorkoutView.as_view(), name='save-workout'),
@@ -12,5 +12,6 @@ urlpatterns = [
     path('update-workout-date/<int:workout_id>/', UpdateWorkoutDateView.as_view(), name='update_workout_date'), 
     path('get-single-running-workout/<int:workout_id>/', GetSingleRunningWorkoutView.as_view(), name='get_single_running_workout'),
     path('get-single-mobility-workout/<int:workout_id>/', GetSingleMobilityWorkoutView.as_view(), name='get_single_mobility_workout'),
+    path('get-single-hiit-workout/<int:workout_id>/', GetSingleHiitWorkoutView.as_view(), name='get_single_hiit_workout'),
 
 ]

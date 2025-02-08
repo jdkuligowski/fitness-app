@@ -385,7 +385,9 @@ export default function TrainingOverview() {
                                                                 ? '#D2E4EA'
                                                                 : item.activity_type === 'Mobility'
                                                                     ? '#FFDDDE'
-                                                                    : 'black'
+                                                                    : item.activity_type === 'Hiit'
+                                                                        ? '#FFFFEF'
+                                                                        : 'black'
                                                 },
                                             ]}
                                         >
@@ -473,7 +475,9 @@ export default function TrainingOverview() {
                                                                         ? '#D2E4EA'
                                                                         : item.activity_type === 'Mobility'
                                                                             ? '#FFDDDE'
-                                                                            : 'black'
+                                                                            : item.activity_type === 'Hiit'
+                                                                                ? '#FFFFEF'
+                                                                                : 'black'
                                                         },
                                                     ]}
                                                 >
@@ -552,7 +556,9 @@ export default function TrainingOverview() {
                                                                 ? '#D2E4EA'
                                                                 : item.activity_type === 'Mobility'
                                                                     ? '#FFDDDE'
-                                                                    : 'black'
+                                                                    : item.activity_type === 'Hiit'
+                                                                        ? '#FFFFEF'
+                                                                        : 'black'
                                                 },
                                             ]}
                                         >

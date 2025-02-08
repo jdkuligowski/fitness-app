@@ -227,8 +227,8 @@ export default function HomeScreen() {
                 <Text style={styles.activityText}>Mobility</Text>
               </View>
               <View style={styles.activity}>
-              <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hiit')}>
-              <Ionicons name="flash-outline" size={26} color="#ECE847" />
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hiit')}>
+                  <Ionicons name="flash-outline" size={26} color="#ECE847" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hiit</Text>
               </View>
@@ -273,7 +273,9 @@ export default function HomeScreen() {
                             ? '#D2E4EA'
                             : workout.activity_type === 'Mobility'
                               ? '#FFEEEF'
-                              : 'black',
+                              : workout.activity_type === 'Hiit'
+                                ? '#FFFFEF'
+                                : 'black',
                     },
                   ]}
                   onPress={() =>
