@@ -53,9 +53,10 @@ export default function HiitScreen({ route }) {
 
 
     const generateHiitWorkout = (selectedWorkout, selectedTime, movementsDB) => {
-        let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30];
+        const hiitMovementsDB = movementsDB.filter(movement => movement.hiit_flag === 1);
+        console.log(`🔥 Filtering HIIT Movements → Found ${hiitMovementsDB.length} suitable exercises`);
 
-        // Snap time to nearest allowed value, but **never exceed the user input**
+        let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30];
         let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
         let numWorkouts = selectedWorkout === "I don't mind" ? 15 : 10;
         let allWorkouts = [];
@@ -69,7 +70,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
                     "Tabata",
-                    movementsDB,
+                    hiitMovementsDB,
                     5
                 ));
             }
@@ -77,7 +78,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     amrapWorkouts.filter(w => Number(w.duration) === adjustedTime).map(w => ({ ...w, style: w.type })),
                     "AMRAP",
-                    movementsDB,
+                    hiitMovementsDB,
                     3
                 ));
             }
@@ -85,7 +86,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     emomWorkouts.map(w => ({ ...w, duration: adjustedTime })), // ✅ Apply default duration
                     "EMOM",
-                    movementsDB,
+                    hiitMovementsDB,
                     4
                 ));
             }
@@ -95,7 +96,7 @@ export default function HiitScreen({ route }) {
                         adjustedTime === 15 ? fifteenMinBlocks :
                             twentyMinBlocks,
                     "30/30",
-                    movementsDB,
+                    hiitMovementsDB,
                     3
                 ));
             }
@@ -120,7 +121,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
                     "Tabata",
-                    movementsDB,
+                    hiitMovementsDB,
                     numWorkouts
                 ));
                 break;
@@ -128,7 +129,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     amrapWorkouts.filter(w => Number(w.duration) === adjustedTime),
                     "AMRAP",
-                    movementsDB,
+                    hiitMovementsDB,
                     numWorkouts
                 ));
                 break;
@@ -136,7 +137,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     emomWorkouts.map(w => ({ ...w, duration: adjustedTime })), // ✅ Apply default duration
                     "EMOM",
-                    movementsDB,
+                    hiitMovementsDB,
                     numWorkouts
                 ));
                 break;
@@ -146,7 +147,7 @@ export default function HiitScreen({ route }) {
                         adjustedTime === 15 ? fifteenMinBlocks :
                             twentyMinBlocks,
                     "30/30",
-                    movementsDB,
+                    hiitMovementsDB,
                     numWorkouts
                 ));
                 break;
@@ -700,7 +701,7 @@ const styles = StyleSheet.create({
         marginRight: 20,
         borderRadius: 20,
         backgroundColor: '#F6F6DC',
-
+        height: 650,
     },
     workoutInfoTile: {
         paddingLeft: 10,
