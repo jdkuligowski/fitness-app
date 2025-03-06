@@ -11,15 +11,6 @@ class MobilityWorkoutDetails(models.Model):
         null=True,
         db_index=True
     )
-    # movement = models.ForeignKey(
-    #     'movements.Movement',
-    #     related_name='movements',
-    #     on_delete=models.CASCADE,
-    #     default=None,
-    #     blank=True,
-    #     null=True,
-    #     db_index=True
-    # )
     exercise = models.CharField(max_length=200, blank=True, null=True)
     order = models.PositiveIntegerField()
     duration = models.CharField(max_length=10, blank=True, null=True)

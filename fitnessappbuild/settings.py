@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     'saved_hiit',
     'saved_hiit_details',
     'saved_hiit_detail_movements',
+    'suggested_strength_overview',
+    'suggested_strength_details',
 ]
 
 MIDDLEWARE = [

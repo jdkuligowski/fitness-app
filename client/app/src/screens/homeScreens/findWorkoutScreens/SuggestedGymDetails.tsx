@@ -1,98 +1,89 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     SafeAreaView,
-    FlatList,
-    ActivityIndicator,
     ScrollView,
     Alert,
     Modal,
+    Image,
+    FlatList,
     Dimensions,
-    Image
+    ActivityIndicator
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Video } from "expo-av";
 import axios from "axios";
-import ENV from "../../../../../env";
-import { Colours } from "@/app/src/components/styles";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colours } from '@/app/src/components/styles';
 import { useWorkout } from "../../../context/WorkoutContext";
 import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
+import ENV from "../../../../../env";
 import { useLoader } from '@/app/src/context/LoaderContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export default function SuggestedMobilityWorkouts({ route }) {
+export default function SuggestedWorkoutSummary({ route }) {
     const navigation = useNavigation();
-    const { selectedWorkout, selectedTime } = route.params;
     const { workoutData, fetchWorkoutData } = useWorkout();
-    const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access loader functions
-    const [movementData, setMovementData] = useState([]);
-    const [isWorkoutDataLoading, setIsWorkoutDataLoading] = useState(true);
-    const [mobilityWorkouts, setMobilityWorkouts] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [currentWorkout, setCurrentWorkout] = useState(null);
+
+    const { workout } = route.params; // Get workout details from navigation
     const [selectedMovement, setSelectedMovement] = useState(null);
-    const flatListRef = useRef(null);
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [currentWorkout, setCurrentWorkout] = useState(null);
+    const { setIsBouncerLoading, isBouncerLoading } = useLoader();
+    const [formattedWorkout, setFormattedWorkout] = useState(null); // ✅ Store pre-formatted workout
 
-    // Fetch mobility workouts
+    console.log('Workout: ', workout);
+
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                setIsLoading(true);
-                await fetchWorkoutData(); // Load movement data
-                const response = await axios.get(`${ENV.API_URL}/api/mobility_workouts/all/`);
+        fetchWorkoutData(); // Ensure we have movement data loaded
+    }, []);
 
-                // Filter workouts based on selectedTime and selectedWorkout
-                const filteredWorkouts = response.data
-                    .filter(workout => {
-                        // If "Full Body" or "Not Sure" is selected, skip the filters
-                        if (selectedWorkout.trim().toLowerCase() === "full body" || selectedWorkout.trim().toLowerCase() === "not sure") {
-                            return true; // Include all workouts
-                        }
-
-                        // Otherwise, apply filtering based on time and workout name
-                        return workout.duration <= selectedTime &&
-                            workout.body_area.trim().toLowerCase() === selectedWorkout.trim().toLowerCase();
-                    })
-                    .map(workout => ({
-                        ...workout,
-                        details: workout.details.sort((a, b) => a.order - b.order), // Sort details by order
-                    }));
-
-                setMobilityWorkouts(filteredWorkouts);
-                setMovementData(workoutData); // Ensure movements are saved
-                console.log('Filtered Workouts:', filteredWorkouts);
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error loading data:", error);
-                Alert.alert("Error", "Could not load data. Please try again.");
-                setIsLoading(false);
-            }
+    useEffect(() => {
+        const prepareWorkout = async () => {
+            const formatted = await formatWorkoutForModal(workout);
+            setFormattedWorkout(formatted); // ✅ Store formatted workout in state
         };
+        prepareWorkout();
+    }, [workout]);
 
-        loadData();
-    }, [selectedTime, selectedWorkout]); // ✅ Depend on selectedTime & selectedWorkout
-
-
-
-    const showModalForWorkout = (workout) => {
-        setCurrentWorkout(workout); // Set the workout plan that will be used inside the modal
+    // Helper function to find movement video
+    const findMovementVideo = (exerciseName) => {
+        const matchedMovement = workoutData.find(
+            (movement) => movement.exercise.trim().toLowerCase() === exerciseName.trim().toLowerCase()
+        );
+        return matchedMovement?.portrait_video_url || null; // Return video URL or null
     };
+
+    // Group movements by section_name
+    const groupedSections = workout.details.reduce((acc, movement) => {
+        if (!acc[movement.section_name]) {
+            acc[movement.section_name] = [];
+        }
+        acc[movement.section_name].push(movement);
+        return acc;
+    }, {});
+
+
+    const showModalForWorkout = () => {
+        if (!formattedWorkout) {
+            console.error("❌ Error: formattedWorkout is not ready yet.");
+            return;
+        }
+        setCurrentWorkout(formattedWorkout);
+    };
+    
 
 
     const closeModal = () => {
-        setCurrentWorkout(null); // Reset the current workout when modal is closed
-        setShowDatePicker(false);
+        setCurrentWorkout(null);
     };
 
 
-    const saveAndStartMobilityWorkout = async (workoutPlan) => {
+    const saveAndStartWorkout = async (workoutPlan) => {
         setIsBouncerLoading(true);
         try {
             const userId = await AsyncStorage.getItem("userId");
@@ -100,74 +91,113 @@ export default function SuggestedMobilityWorkouts({ route }) {
 
             const formattedDate = new Date().toISOString().split("T")[0];
 
-            console.log('Mobility workout to save and start:', JSON.stringify(workoutPlan, null, 2));
-
-            // Construct the payload
             const payload = {
                 user_id: userId,
-                name: workoutPlan.workout_name || "Mobility Workout",
-                description: workoutPlan.summary || "A mobility workout session",
-                duration: workoutPlan.duration, // Total time in minutes
+                name: workoutPlan.workout_name,
+                description: workoutPlan.description,
+                duration: workoutPlan.duration || 45, // Default to 45 mins if no duration available
+                complexity: 0,
                 status: "Started",
                 scheduled_date: formattedDate,
-                activity_type: "Mobility",
-                mobility_sessions: {
-                    session_id: workoutPlan.id,
-                    rpe: null,
-                    comments: null,
-                    session_type: workoutPlan.session_type,
-                    number_of_movements: workoutPlan.number_of_movements,
-                    saved_details: workoutPlan.details.map((detail) => ({
-                        order: detail.order,
-                        duration: detail.duration,
-                        movement_name: detail.exercise,
-                        movement_id: detail.id,
+                activity_type: 'Gym',
+                sections: Object.entries(groupedSections).map(([sectionName, movements], index) => ({
+                    section_name: sectionName,
+                    section_order: index + 1,
+                    section_type: movements.length > 1 ? "superset" : "single",
+                    movements: movements.map((movement, movementIndex) => ({
+                        movement_name: movement.exercise,
+                        movement_order: movementIndex + 1,
                     })),
-                },
+                })),
             };
 
-            console.log("Payload for save and start (Mobility):", JSON.stringify(payload, null, 2));
+            console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
 
-            // Save the workout
+            // 1️⃣ Save the workout
             const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
-            console.log("Response from save (Mobility):", response.data);
+            console.log("Response from save:", response.data);
 
-            // Extract the ID of the saved workout
-            const savedWorkoutId = response.data?.workout_id;
-
+            const savedWorkoutId = response.data?.workout?.id;
             if (!savedWorkoutId) {
-                console.error("Workout ID is undefined, check API response:", response.data);
-                Alert.alert("Error", "Failed to save workout. Please try again.");
-                setIsBouncerLoading(false);
-                return;
+                throw new Error("Workout ID is undefined, check API response.");
             }
 
-            console.log("New Mobility Workout ID ->", savedWorkoutId);
+            console.log("New Workout ID ->", savedWorkoutId);
 
-            // Fetch workout details
+            // 2️⃣ Fetch workout details and movement history
             const workoutDetailsResponse = await axios.get(
-                `${ENV.API_URL}/api/saved_workouts/get-single-mobility-workout/${savedWorkoutId}/`,
+                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
                 { params: { user_id: userId } }
             );
 
-            const { workout } = workoutDetailsResponse.data;
-            console.log("Workout details (Mobility) ->", JSON.stringify(workout, null, 2));
+            const { workout, movement_history } = workoutDetailsResponse.data;
+            console.log("Workout details ->", workout);
+            console.log("Movement history ->", movement_history);
 
             setIsBouncerLoading(false);
 
-            // Navigate to the complete workout screen
+            // 3️⃣ Navigate directly to CompleteWorkout with all the data
             navigation.navigate("Training", {
-                screen: "CompleteMobilityWorkout",
+                screen: "CompleteWorkout",
                 params: {
                     workout: workout,
+                    movementHistory: movement_history,
                 },
             });
         } catch (error) {
-            console.error("Error saving and starting mobility workout:", error?.response?.data || error.message);
-            Alert.alert("Error", "There was an error starting your mobility workout. Please try again.");
+            console.error("Error saving and starting workout:", error?.response?.data || error.message);
+            Alert.alert("Error", "There was an error starting your workout. Please try again.");
             setIsBouncerLoading(false);
         }
     };
+
+
+
+    const formatWorkoutForModal = async (workout) => {
+        if (!workout?.details) {
+          console.error("❌ Error: workout.details is undefined.");
+          return null;
+        }
+      
+        // 1) Group by section_name
+        const groupedSections = workout.details.reduce((acc, movement) => {
+          if (!acc[movement.section_name]) {
+            acc[movement.section_name] = [];
+          }
+          acc[movement.section_name].push(movement);
+          return acc;
+        }, {});
+      
+        // 2) Build the array that matches the shape `saveWorkout` expects:
+        const formattedSections = Object.entries(groupedSections).map(
+          ([sectionName, movements]) => {
+            return {
+              partLabel: sectionName,                       // <— `saveWorkout` uses this
+              sectionType: movements.length > 1 ? "superset" : "single",
+              movements: movements.map((m) => ({
+                // `saveWorkout` looks for `movement.name`
+                name: m.exercise,
+              })),
+            };
+          }
+        );
+      
+        // 3) Attach a `.description` property to the array itself
+        //    because `saveWorkout` does: `payload.description = workoutPlan.description`.
+        formattedSections.description = workout.description || "Suggested strength workout";
+      
+        // 4) (Optional) If you want the final name to appear in `saveWorkout`,
+        //    you can attach `.name` to the array too (if your code references it).
+        //    But note that `saveWorkout` might override that with selectedWorkout anyway.
+        formattedSections.name = workout.workout_name || "Untitled Workout";
+      
+        console.log("✅ Formatted for saveWorkout:", JSON.stringify(formattedSections, null, 2));
+        return formattedSections; // An array of sections + appended description/name.
+      };
+      
+    
+
+
 
 
     const renderWorkoutItem = ({ item }) => (
@@ -176,22 +206,22 @@ export default function SuggestedMobilityWorkouts({ route }) {
                 <View style={styles.overviewBox}>
                     <View style={styles.overviewHeader}>
                         <View>
-                            <Text style={styles.workoutTitle}>{item.workout_name}</Text>
+                            <Text style={styles.workoutTitle}>{workout.workout_name}</Text>
                             <View style={styles.workoutOverviewTime}>
                                 <Ionicons name="time-outline" size={24} color="black" />
-                                <Text style={styles.timeText}>{item.duration} mins</Text>
+                                <Text style={styles.timeText}>{workout.duration ? `${workout.duration} mins` : 'N/A'}</Text>
                             </View>
                         </View>
                         <TouchableOpacity
                             style={styles.profileButton}
-                            onPress={() => setCurrentWorkout(item)}
+                            onPress={() => showModalForWorkout(item)}
                         >
                             <Ionicons name="heart-outline" color={"black"} size={20} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.workoutSummaryArray}>
-                        <Text style={styles.workoutSummaryButton}>Mobility</Text>
-                        <Text style={styles.workoutSummaryButton}>{item.number_of_movements} movements</Text>
+                        <Text style={styles.workoutSummaryButton}>Strength</Text>
+                        <Text style={styles.workoutSummaryButton}>{workout.number_of_sections || 0} sections</Text>
                     </View>
                     <View style={styles.trainerDetails}>
                         <Image
@@ -207,57 +237,42 @@ export default function SuggestedMobilityWorkouts({ route }) {
             </View>
 
             <View style={styles.dividerLine}></View>
-            {/* <Text style={styles.workoutActivity}>Workout Details</Text> */}
-            {item.session_type && item.session_type === 'Time' ?
-                <Text style={styles.summaryMessage}>Work through these {item.number_of_movements} movements spending {item.details[0].duration} minutes on each</Text>
-                :
-                <Text style={styles.summaryMessage}>Work through these {item.number_of_movements} movements for the defined number of reps</Text>
-            }
+
+            {/* <Text style={styles.workoutActivity}>Workout Sections</Text> */}
+
             <ScrollView style={styles.workoutList}>
-                <Text style={styles.sectionTitle}>Movements</Text>
-
-                {item.details.map((movement, index) => {
-                    // Find the matching movement in movementData
-                    const matchedMovement = movementData.find(
-                        (data) => data.exercise.trim().toLowerCase() === movement.exercise.trim().toLowerCase()
-                    );
-                    console.log('Matched Movement:', matchedMovement);
-
-                    return (
-                        <View key={index} style={styles.movementRow}>
-                            {item.session_type && item.session_type === 'Time' ?
-                                <Text style={styles.movementDetail}>
-                                    {movement.order}: {movement.duration}' {movement.exercise}
-                                </Text>
-                                :
-                                <Text style={styles.movementDetail}>
-                                    {movement.order}: {movement.duration} {movement.exercise}
-                                </Text>
-                            }
-                            <TouchableOpacity
-                                onPress={() => {
-                                    if (matchedMovement?.portrait_video_url) {
-                                        setSelectedMovement({
-                                            ...movement,
-                                            video_url: matchedMovement.portrait_video_url,
-                                        });
-                                    } else {
-                                        Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                    }
-                                }}
-                            >
-                                <Ionicons name="play-circle" size={24} color="black" />
-                            </TouchableOpacity>
-                        </View>
-                    );
-                })}
+                {/* ✅ Grouped sections rendering */}
+                {Object.entries(groupedSections).map(([sectionName, movements], sectionIndex) => (
+                    <View key={sectionIndex} style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>{sectionName}</Text> {/* ✅ Section title displayed once */}
+                        {movements.map((movement, movementIndex) => {
+                            const videoUrl = findMovementVideo(movement.exercise);
+                            return (
+                                <View key={movementIndex} style={styles.movementRow}>
+                                    <View style={styles.movementLeft}>
+                                        <Text style={styles.movementValue}>{`${movementIndex + 1}: `}</Text> {/* ✅ Reset numbering per section */}
+                                        <Text style={styles.movementDetail}>{movement.exercise}</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            // if (videoUrl) {
+                                            setSelectedMovement({ ...movement, video_url: videoUrl });
+                                            // } else {
+                                            //     Alert.alert("No video available", "This movement doesn't have an associated video.");
+                                            // }
+                                        }}
+                                    >
+                                        <Ionicons name="play-circle" size={24} color="black" />
+                                    </TouchableOpacity>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ))}
             </ScrollView>
 
             <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={styles.submitButton}
-                    onPress={() => saveAndStartMobilityWorkout(item)}
-                >
+                <TouchableOpacity style={styles.submitButton} onPress={() => saveAndStartWorkout(item)}>
                     <Text style={styles.submitButtonText}>Start Workout</Text>
                     <View style={styles.submitArrow}>
                         <Ionicons name="arrow-forward" size={24} color="black" />
@@ -267,15 +282,6 @@ export default function SuggestedMobilityWorkouts({ route }) {
         </View>
     );
 
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#E87EA1" />
-                <Text>Loading mobility workouts...</Text>
-            </View>
-        );
-    }
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.scrollContainer}>
@@ -284,20 +290,18 @@ export default function SuggestedMobilityWorkouts({ route }) {
                         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
-                        <Text style={styles.headingText}>Suggested Mobility Workouts</Text>
+                        <Text style={styles.headingText}>Suggested Workout</Text>
                     </View>
                 </View>
 
                 <FlatList
-                    ref={flatListRef}
-                    data={mobilityWorkouts}
+                    data={[workout]}
                     horizontal
                     pagingEnabled
                     keyExtractor={(item) => item.id.toString()}
                     showsHorizontalScrollIndicator={false}
                     renderItem={renderWorkoutItem}
                 />
-
                 {currentWorkout && (
                     <Modal
                         animationType="slide"
@@ -306,26 +310,20 @@ export default function SuggestedMobilityWorkouts({ route }) {
                         onRequestClose={closeModal}
                     >
                         <SaveWorkoutModal
-                            currentWorkout={currentWorkout} // Pass the workout object
+                            currentWorkout={currentWorkout}
                             onClose={closeModal} // Pass the close function
-                            selectedTime={selectedTime} // Pass the selected time
-                            selectedWorkout={currentWorkout.workout_name} // Pass the selected workout name
+                            selectedTime={currentWorkout.duration} // Pass the selected time
+                            selectedWorkout={currentWorkout.name} // Pass the selected workout name
                             workoutPlan={currentWorkout} // Pass the current workout plan
                             closeModal={closeModal} // Close function for modal
-                            frequency=''
+                            frequency={0}
                             modalRoute={'Discovery'}
-                            workoutType="Mobility"
+                            workoutType="Gym"
                         />
                     </Modal>
                 )}
-
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
-                        visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
+                    <Modal animationType="slide" transparent={false} visible={!!selectedMovement} onRequestClose={() => setSelectedMovement(null)}>
                         <View style={styles.modalContainer}>
                             {selectedMovement?.video_url ? (
                                 <Video
@@ -339,10 +337,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
                             ) : (
                                 <Text style={styles.noVideoText}>Video coming soon</Text>
                             )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
+                            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedMovement(null)}>
                                 <Ionicons name="close" size={30} color="white" />
                             </TouchableOpacity>
                         </View>
@@ -434,7 +429,7 @@ const styles = StyleSheet.create({
     overviewBox: {
         width: '100%',
         padding: 10,
-        backgroundColor: '#FFDDDE',
+        backgroundColor: '#EFE8FF',
         borderRadius: 20,
         justifyContent: 'space-between',
         height: 175,
@@ -481,7 +476,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#FFEEEF',
+        backgroundColor: '#F3F1FF',
 
     },
     workoutInfoTile: {
@@ -528,7 +523,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     workoutList: {
-        padding: 20,
+        paddingLeft: 20,
+        paddingRight: 20,
         height: 350,
     },
     sectionContainer: {

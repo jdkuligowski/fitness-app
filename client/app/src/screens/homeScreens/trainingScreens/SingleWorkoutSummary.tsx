@@ -228,7 +228,7 @@ export default function WorkoutSummary({ route, navigation }) {
 
                     {/* Workout Sections */}
                     <View style={styles.dividerLine}></View>
-                    <Text style={styles.workoutActivity}>Workout Summary</Text>
+                    {/* <Text style={styles.workoutActivity}>Workout Summary</Text> */}
                     <ScrollView style={styles.workoutList}>
                         {userWorkouts.activity_type === "Gym" ? (
                             // Gym Layout

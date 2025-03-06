@@ -69,6 +69,11 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             const userId = await AsyncStorage.getItem("userId");
             const formattedDate = selectedDate.toISOString().split("T")[0];
             console.log('Workout to save:', JSON.stringify(currentWorkout, null, 2));
+            if (!Array.isArray(workoutPlan)) {
+                console.error("❌ Error: workoutPlan is not an array", workoutPlan);
+                return;
+            }
+            
 
             let payload = {
                 user_id: userId,
@@ -79,11 +84,22 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 activity_type: workoutType,
             };
 
+
             if (workoutType === "Gym") {
                 payload.name = `${selectedWorkout}`,
-                    payload.description = "Custom generated workout";
+                payload.description = workoutPlan.description || "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
                 payload.sections = workoutPlan.map((section, index) => {
+                    console.log(`🚀 Debug: Section [${index}]`, section); // ✅ Log section object
+                    // section.movements = section.movements ? [section.movements] : []; // 🔥 Ensure it's an array
+
+                    if (!Array.isArray(section.movements)) {
+                        console.error(`❌ Error: movements is not an array in section [${index}]`, JSON.stringify(section, null, 2));
+                        // section.movements = []; // 🔥 Set to empty array if it's not valid
+                    }
+
+                    console.log(`✅ Section [${index}] Movements:`, section.movements); // ✅ Log actual movements array
+
                     if (section.partLabel === "Conditioning") {
                         return {
                             section_name: section.partLabel,
@@ -107,7 +123,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                             section_order: index + 1,
                             section_type: section.sectionType,
                             movements: section.movements.map((movement, movementIndex) => ({
-                                movement_name: movement,
+                                movement_name: movement.name,
                                 movement_order: movementIndex + 1,
                             })),
                         };

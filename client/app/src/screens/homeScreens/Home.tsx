@@ -32,6 +32,8 @@ export default function HomeScreen() {
   const [isVisible, setIsVisible] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
+  const [suggestedWorkouts, setSuggestedWorkouts] = useState([]);
+
 
   // fetch user data function
   const getUser = async () => {
@@ -84,17 +86,22 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const handleLogout = async () => {
+  const fetchSuggestedWorkouts = async () => {
     try {
-      // Clear the authentication token
-      await AsyncStorage.removeItem('token');
-      setIsAuthenticated(false);
-      Alert.alert('Logged Out', 'You have been logged out successfully.');
+      setIsBouncerLoading(true);
+      const response = await axios.get(`${ENV.API_URL}/api/suggested_strength_overview/all/`);
+      setSuggestedWorkouts(response.data);
     } catch (error) {
-      console.error('Error logging out:', error.message);
-      Alert.alert('Error', 'An error occurred while logging out. Please try again.');
+      console.error('Error fetching suggested workouts:', error);
+    } finally {
+      setIsBouncerLoading(false);
     }
   };
+
+  // Load suggested workouts when the component mounts
+  useEffect(() => {
+    fetchSuggestedWorkouts();
+  }, []);
 
 
   // Get initials from the user's name
@@ -232,79 +239,136 @@ export default function HomeScreen() {
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hiit</Text>
               </View>
-              {/* <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton}>
-                  <Ionicons name="boat-outline" size={20} color="#539883" />
-                </TouchableOpacity>
-                <Text style={styles.activityText}>Rowing</Text>
-              </View> */}
-
             </View>
           </View>
 
           {/* Second block: Popular workouts */}
+          {upcomingWorkouts && upcomingWorkouts.length > 0 ?
+            <View style={styles.categoryBlock}>
+              <View style={styles.blockHeader}>
+                <Text style={styles.blockText}>Upcoming workouts</Text>
+                <TouchableOpacity
+                  style={styles.blockButton}
+                  onPress={() => navigation.navigate('Training', {
+                    screen: 'TrainingOverview'
+                  })}
+                >
+                  <Text>View all</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.popularWorkouts}
+              >
+                {upcomingWorkouts.map((workout) => (
+                  <TouchableOpacity
+                    key={workout.id}
+                    style={[
+                      styles.popularWorkout,
+                      {
+                        backgroundColor:
+                          workout.activity_type === 'Gym'
+                            ? '#EFE8FF'
+                            : workout.activity_type === 'Running'
+                              ? '#D2E4EA'
+                              : workout.activity_type === 'Mobility'
+                                ? '#FFEEEF'
+                                : workout.activity_type === 'Hiit'
+                                  ? '#FFFFEF'
+                                  : 'black',
+                      },
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('Training', {
+                        screen: 'TrainingDetails',
+                        params: {
+                          workoutId: workout.id,
+                          activityType: workout.activity_type
+                        }
+                      })
+                    }
+                    activeOpacity={0.7} // Makes the touch more visible
+                  >
+                    <View style={styles.topRow}>
+                      <Text style={styles.workoutTitle}>{workout.name}</Text>
+                      <Text style={styles.workoutDescription}>{workout.description}</Text>
+
+                    </View>
+
+                    <View style={styles.middleRow}>
+                      <Ionicons name="time-outline" size={20} color="black" />
+                      <Text style={styles.workoutTime}>
+                        {workout?.duration ? `${workout.duration} mins` : 'N/A'}
+                      </Text>
+                      <Text style={styles.workoutAbility}>
+                        {workout?.scheduled_date ? formatWorkoutDate(workout.scheduled_date) : 'No Date'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.bottomRow}>
+                      <Image
+                        style={styles.trainerImage}
+                        source={workout.trainerImage ? { uri: workout.trainerImage } : require('../../../../assets/images/gus_image.jpeg')}
+                      />
+                      <Text style={styles.trainerName}>Trainer: {workout.trainerName || 'Gus Barton'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+              </ScrollView>
+              {/* )} */}
+            </View>
+            : ''
+          }
+
+          {/* Suggested Workouts Section */}
           <View style={styles.categoryBlock}>
             <View style={styles.blockHeader}>
-              <Text style={styles.blockText}>Upcoming workouts</Text>
-              <TouchableOpacity
-                style={styles.blockButton}
-                onPress={() => navigation.navigate('Training', {
-                  screen: 'TrainingOverview'
-                })}
-              >
-                <Text>View all</Text>
-              </TouchableOpacity>
+              <Text style={styles.blockText}>Suggested Workouts</Text>
+              {/* <TouchableOpacity
+                  style={styles.blockButton}
+                  onPress={() =>
+                    navigation.navigate('SuggestedGymDetails', {
+                      workout: suggestedWorkouts
+                    })
+                  }
+                  activeOpacity={0.7} // Makes the touch more visible
+                >
+                  <Text>View all</Text>
+                </TouchableOpacity> */}
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.popularWorkouts}
             >
-              {upcomingWorkouts.map((workout) => (
+              {suggestedWorkouts.map((workout) => (
                 <TouchableOpacity
                   key={workout.id}
                   style={[
                     styles.popularWorkout,
-                    {
-                      backgroundColor:
-                        workout.activity_type === 'Gym'
-                          ? '#EFE8FF'
-                          : workout.activity_type === 'Running'
-                            ? '#D2E4EA'
-                            : workout.activity_type === 'Mobility'
-                              ? '#FFEEEF'
-                              : workout.activity_type === 'Hiit'
-                                ? '#FFFFEF'
-                                : 'black',
-                    },
+                    { backgroundColor: '#EFE8FF' },
                   ]}
                   onPress={() =>
-                    navigation.navigate('Training', {
-                      screen: 'TrainingDetails',
-                      params: {
-                        workoutId: workout.id,
-                        activityType: workout.activity_type
-                      }
+                    navigation.navigate('SuggestedGymDetails', {
+                      workout: workout
                     })
                   }
                   activeOpacity={0.7} // Makes the touch more visible
                 >
                   <View style={styles.topRow}>
-                    <Text style={styles.workoutTitle}>{workout.name}</Text>
+                    <Text style={styles.workoutTitle}>{workout.workout_name}</Text>
                     <Text style={styles.workoutDescription}>{workout.description}</Text>
-
                   </View>
 
                   <View style={styles.middleRow}>
                     <Ionicons name="time-outline" size={20} color="black" />
                     <Text style={styles.workoutTime}>
-                      {workout?.duration ? `${workout.duration} mins` : 'N/A'}
+                      {workout?.number_of_sections ? `${workout.number_of_sections} sections` : 'N/A'}
                     </Text>
-                    <Text style={styles.workoutAbility}>
-                      {workout?.scheduled_date ? formatWorkoutDate(workout.scheduled_date) : 'No Date'}
-                    </Text>
+                    <Text style={styles.workoutAbility}>{workout.body_area || 'Full Body'}</Text>
                   </View>
-
                   <View style={styles.bottomRow}>
                     <Image
                       style={styles.trainerImage}
@@ -313,11 +377,13 @@ export default function HomeScreen() {
                     <Text style={styles.trainerName}>Trainer: {workout.trainerName || 'Gus Barton'}</Text>
                   </View>
                 </TouchableOpacity>
-              ))}
 
+              ))}
             </ScrollView>
-            {/* )} */}
           </View>
+
+
+
           {/* <View style={styles.categoryBlock}>
             <View style={styles.blockHeader}>
               <Text style={styles.blockText}>Saved workouts</Text>
@@ -338,9 +404,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colours.primaryHeader,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: Colours.primaryBackground,
-    paddingBottom: 350,
+    // minHeight: 600,
+    paddingBottom: 100,
   },
   header: {
     padding: 20,
@@ -523,9 +590,9 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   workoutTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    width: '70%',
+    width: '90%',
   },
   saveButton: {
     width: 40,
@@ -558,5 +625,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 10,
     borderWidth: 1,
-  }
+  },
+
 });

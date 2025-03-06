@@ -510,7 +510,7 @@ export default function WorkoutScreen({ route }) {
                         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
-                        <Text style={styles.headingText}>Here are some strength workouts for you</Text>
+                        <Text style={styles.headingText}>Strength workouts</Text>
                     </View>
                 </View>
                 <FlatList
@@ -569,7 +569,7 @@ export default function WorkoutScreen({ route }) {
                                         </View>
                                     </View>
                                     <View style={styles.dividerLine}></View>
-                                    <Text style={styles.workoutActivity}>Workout Summary</Text>
+                                    {/* <Text style={styles.workoutActivity}>Workout Summary</Text> */}
                                     <ScrollView style={styles.workoutList}>
                                         {item.map((section, index) => (
                                             <View key={index} style={styles.sectionContainer}>
