@@ -44,6 +44,7 @@ export default function WorkoutScreen({ route }) {
     const [selectedMovement, setSelectedMovement] = useState(null); // For video modal
 
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
+    const [filteredWorkoutData, setFilteredWorkoutData] = useState([]); // Store the current workout for the modal
 
     const flatListRef = useRef(null);
 
@@ -84,6 +85,42 @@ export default function WorkoutScreen({ route }) {
         }
     };
 
+    useEffect(() => {
+        const loadFilteredMovements = async () => {
+          try {
+            setIsBouncerLoading(true);
+      
+            const stored = await AsyncStorage.getItem("activeEquipmentFilter");
+            if (!stored) {
+              console.warn("No stored filter found; fallback to all movements?");
+              // Optionally fetch all movements or do nothing
+              return;
+            }
+            const parsed = JSON.parse(stored);
+            const filterId = parsed.filterId; // e.g. 12
+            if (!filterId) {
+              console.warn("No filterId in active filter data; fallback?");
+              return;
+            }
+      
+            const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
+            console.log("Fetching filtered movements from:", url);
+            const response = await fetch(url);
+            const data = await response.json();
+      
+            setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
+            console.log('Filtered movements: ', data)
+          } catch (error) {
+            console.error("Error fetching filtered movements:", error);
+          } finally {
+            setIsBouncerLoading(false);
+          }
+        };
+      
+        loadFilteredMovements();
+      }, []);
+      
+
 
     // Filter workout data for a section
     const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
@@ -104,7 +141,7 @@ export default function WorkoutScreen({ route }) {
         };
 
         // Apply all filters in conjunction
-        const filteredMovements = workoutData.filter((exercise) => {
+        const filteredMovements = filteredWorkoutData.filter((exercise) => {
             const exerciseKeyValues = {};
 
             // Normalize all exercise values
@@ -169,7 +206,7 @@ export default function WorkoutScreen({ route }) {
         const filters = commonRules.warmUpA.filters.flat();
 
         // Filter exercises matching the Warm-Up A criteria
-        const warmUpCandidates = workoutData.filter((exercise) => {
+        const warmUpCandidates = filteredWorkoutData.filter((exercise) => {
             return filters.every(({ key, value, operator }) => {
                 if (!exercise[key]) return false;
                 if (operator === "contains") return exercise[key].includes(value);
@@ -196,7 +233,7 @@ export default function WorkoutScreen({ route }) {
         const bodyAreaFilter =
             standardizedType === "upper body" ? "upper body" : standardizedType === "lower body" ? "lower body" : null;
 
-        const warmUpMovements = workoutData.filter(
+        const warmUpMovements = filteredWorkoutData.filter(
             (exercise) =>
                 exercise.movement_type.includes("Warm Up") &&
                 (!bodyAreaFilter || exercise.body_area?.toLowerCase() === bodyAreaFilter) &&
@@ -284,12 +321,12 @@ export default function WorkoutScreen({ route }) {
                 }
             });
 
-            // Ensure "Back Squat" appears in the first section
-            if (sectionIndex === 0 && !movements.includes("Back Squat")) {
-                console.log("Ensuring Back Squat is in the first section.");
-                movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
-                usedExercises.add("Back Squat");
-            }
+            // // Ensure "Back Squat" appears in the first section
+            // if (sectionIndex === 0 && !movements.includes("Back Squat")) {
+            //     console.log("Ensuring Back Squat is in the first section.");
+            //     movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
+            //     usedExercises.add("Back Squat");
+            // }
 
             plan.push({
                 partLabel: sectionRule.section,
@@ -371,10 +408,10 @@ export default function WorkoutScreen({ route }) {
 
 
     useEffect(() => {
-        if (workoutData.length > 0 && conditioningData.length > 0) {
+        if (filteredWorkoutData.length > 0 && conditioningData.length > 0) {
             generateWorkoutPlans();
         }
-    }, [workoutData, conditioningData]);
+    }, [filteredWorkoutData, conditioningData]);
 
 
 
@@ -494,7 +531,7 @@ export default function WorkoutScreen({ route }) {
 
 
     const findMovementByExercise = (exerciseName) => {
-        return workoutData.find((movement) => movement.exercise === exerciseName);
+        return filteredWorkoutData.find((movement) => movement.exercise === exerciseName);
     };
 
     const findConditioningByExercise = (movement) => {

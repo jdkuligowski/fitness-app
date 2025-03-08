@@ -5,7 +5,7 @@ const strengthRules30 = {
                 section: "Build 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Squat", operator: "contains" },
                     ],
                     [
@@ -18,7 +18,7 @@ const strengthRules30 = {
                 section: "Build 2", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
                         { key: "movement", value: "Lunge", operator: "contains" },
                     ],
                     [
@@ -31,7 +31,7 @@ const strengthRules30 = {
                 section: "Pump 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Secondary, Metcon"], operator: "contains" },
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "movement", value: "Push", operator: "contains" },
                     ],
                     [
@@ -47,11 +47,11 @@ const strengthRules30 = {
                 section: "Build 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Push", operator: "contains" },
                     ],
                 ],
@@ -60,11 +60,11 @@ const strengthRules30 = {
                 section: "Build 2", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
                         { key: "movement", value: "Lunge", operator: "contains" },
                     ],
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
                         { key: "movement", value: "Pull", operator: "contains" },
                     ],
                 ],
@@ -73,6 +73,7 @@ const strengthRules30 = {
                 section: "Pump 1", movements: 2,
                 filters: [
                     [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "primary_body_part", value: "Hamstring", operator: "contains" },
                     ],
                     [
@@ -88,11 +89,11 @@ const strengthRules30 = {
                 section: "Build 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Push (V)", operator: "contains" },
                     ],
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Pull (V)", operator: "contains" },
                     ],
                 ],
@@ -101,10 +102,11 @@ const strengthRules30 = {
                 section: "Build 2", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
                         { key: "movement", value: "Pull (H)", operator: "contains" },
                     ],
                     [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
                         { key: "movement", value: "Triceps", operator: "contains" },
                     ]
                 ],
@@ -113,10 +115,11 @@ const strengthRules30 = {
                 section: "Pump 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Metcon, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "primary_body_part", value: "Shoulders", operator: "contains" },
                     ],
                     [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "movement", value: "Biceps", operator: "contains" },
                     ],
                 ],
@@ -129,11 +132,11 @@ const strengthRules30 = {
                 section: "Build 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Push (H)", operator: "contains" },
                     ],
                     [
-                        { key: "movement_type", value: ["Primary, Secondary"], operator: "contains" },
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
                         { key: "movement", value: "Pull (H)", operator: "contains" },
                     ],
                 ],

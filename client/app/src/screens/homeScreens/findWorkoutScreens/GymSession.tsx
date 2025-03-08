@@ -4,7 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { Colours } from '@/app/src/components/styles';
-
+import EquipmentFilterModal from '../../modalScreens/GymEquipmentFilter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = 20; // Width of each slider item
@@ -17,6 +18,8 @@ export default function GymSession() {
   const [selectedValue, setSelectedValue] = useState(50); // Default selected value
   const data = Array.from({ length: 80 }, (_, i) => i); // Minutes from 0 to 60
   const flatListRef = useRef(null); // Reference to FlatList
+  const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
+  const [activeFilterSet, setActiveFilterSet] = useState(null);
 
   useEffect(() => {
     // Automatically scroll to the default value
@@ -24,6 +27,29 @@ export default function GymSession() {
       flatListRef.current.scrollToIndex({ index: selectedValue, animated: true });
     }
   }, []);
+
+  useEffect(() => {
+    const loadActiveFilter = async () => {
+      try {
+        const storedFilter = await AsyncStorage.getItem("activeEquipmentFilter");
+        if (storedFilter) {
+          const parsedFilter = JSON.parse(storedFilter);
+          setActiveFilterSet(parsedFilter);
+          console.log('Filter: ', parsedFilter)
+        }
+      } catch (error) {
+        console.error("Error loading active equipment filter:", error);
+      }
+    };
+    loadActiveFilter();
+  }, []);
+
+  // Example: after user saves
+  const handleSaveEquipmentSet = ({ name, equipmentIds }) => {
+    console.log("Saving set:", name, equipmentIds);
+    // do something with it (send to backend, store locally, etc.)
+    setEquipmentModalVisible(false);
+  };
 
 
   // Ensure selectedFinish is "Conditioning" when selectedValue >= 68
@@ -33,6 +59,11 @@ export default function GymSession() {
     }
   }, [selectedValue]);
 
+
+  // Handler called when user picks or updates a filter set from FilterSetPicker
+  const handleFilterSetChosen = (filterSet) => {
+    setActiveFilterSet(filterSet);
+  };
 
   const renderItem = ({ item, index }) => (
     <View style={styles.tickContainer}>
@@ -149,6 +180,41 @@ export default function GymSession() {
             {selectedValue > 68 ? <Text style={styles.conditioningMessage}>This workout length will always finish with conditioning</Text> : null}
 
           </View>
+
+          <View style={styles.workoutInfoDetails}>
+            <Text style={styles.workoutSubtitle}>Include what equipment you have</Text>
+            {activeFilterSet ? (
+              <>
+                <View>
+                  <TouchableOpacity
+                    style={styles.currentFilterButton}
+                  >
+                    <Text>Current filter: {activeFilterSet.filterName}</Text>
+                  </TouchableOpacity>
+                </View>
+                <View>
+                  <TouchableOpacity
+                    style={styles.filterButton}
+                    onPress={() => setEquipmentModalVisible(true)}
+                  >
+                    <Text>Create new filter</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View>
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => setEquipmentModalVisible(true)}
+                >
+                  <Text>Select equipment</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+
+          </View>
+
           {selectedWorkout ?
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -169,6 +235,11 @@ export default function GymSession() {
               </TouchableOpacity>
             </View>
             : ''}
+          <EquipmentFilterModal
+            visible={equipmentModalVisible}
+            onClose={() => setEquipmentModalVisible(false)}
+            onSave={handleSaveEquipmentSet}
+          />
         </View>
       </ScrollView>
     </SafeAreaView >
@@ -393,5 +464,29 @@ const styles = StyleSheet.create({
   },
   conditioningMessage: {
     fontSize: 14,
-  }
+  },
+  filterButton: {
+    width: '100%',
+    borderWidth: 1,
+    // borderColor: '#B0B0B0',
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  currentFilterButton: {
+    backgroundColor: '#EFE8FF',
+    width: '100%',
+    borderWidth: 1,
+    // borderColor: '#B0B0B0',
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 20,
+  },
 });

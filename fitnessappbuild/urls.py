@@ -34,4 +34,5 @@ urlpatterns = [
     path('api/saved_mobility/', include('saved_mobility.urls')),
     path('api/saved_hiit/', include('saved_hiit.urls')),
     path('api/suggested_strength_overview/', include('suggested_strength_overview.urls')),
+    path('api/equipment_filters/', include('saved_equipment_lists.urls')),
 ]
