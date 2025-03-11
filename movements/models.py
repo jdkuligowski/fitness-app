@@ -7,6 +7,7 @@ class Movement(models.Model):
     exercise = models.CharField(max_length=100, null=True, blank=True)
     complexity = models.SmallIntegerField(default=None, null=True, blank=True)
     movement_type = models.CharField(max_length=50, null=True, blank=True)
+    inter_movements = models.CharField(max_length=70, null=True, blank=True)
     advanced_movements = models.CharField(max_length=50, null=True, blank=True)
     primary_body_part = models.CharField(max_length=100, null=True, blank=True)
     high_level_equipment = models.CharField(max_length=30, null=True, blank=True)

@@ -34,7 +34,7 @@ const strengthRulesMap = {
 export default function WorkoutScreen({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { selectedTime, selectedWorkout, frequency, selectedFinish } = route.params;
+    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity } = route.params;
     const { workoutData, fetchWorkoutData, isLoading, conditioningData, fetchConditioningData } = useWorkout();
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -87,39 +87,39 @@ export default function WorkoutScreen({ route }) {
 
     useEffect(() => {
         const loadFilteredMovements = async () => {
-          try {
-            setIsBouncerLoading(true);
-      
-            const stored = await AsyncStorage.getItem("activeEquipmentFilter");
-            if (!stored) {
-              console.warn("No stored filter found; fallback to all movements?");
-              // Optionally fetch all movements or do nothing
-              return;
+            try {
+                setIsBouncerLoading(true);
+
+                const stored = await AsyncStorage.getItem("activeEquipmentFilter");
+                if (!stored) {
+                    console.warn("No stored filter found; fallback to all movements?");
+                    // Optionally fetch all movements or do nothing
+                    return;
+                }
+                const parsed = JSON.parse(stored);
+                const filterId = parsed.filterId; // e.g. 12
+                if (!filterId) {
+                    console.warn("No filterId in active filter data; fallback?");
+                    return;
+                }
+
+                const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
+                console.log("Fetching filtered movements from:", url);
+                const response = await fetch(url);
+                const data = await response.json();
+
+                setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
+                console.log('Filtered movements: ', data)
+            } catch (error) {
+                console.error("Error fetching filtered movements:", error);
+            } finally {
+                setIsBouncerLoading(false);
             }
-            const parsed = JSON.parse(stored);
-            const filterId = parsed.filterId; // e.g. 12
-            if (!filterId) {
-              console.warn("No filterId in active filter data; fallback?");
-              return;
-            }
-      
-            const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
-            console.log("Fetching filtered movements from:", url);
-            const response = await fetch(url);
-            const data = await response.json();
-      
-            setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
-            console.log('Filtered movements: ', data)
-          } catch (error) {
-            console.error("Error fetching filtered movements:", error);
-          } finally {
-            setIsBouncerLoading(false);
-          }
         };
-      
+
         loadFilteredMovements();
-      }, []);
-      
+    }, []);
+
 
 
     // Filter workout data for a section
@@ -277,6 +277,23 @@ export default function WorkoutScreen({ route }) {
             console.error(`No rules found for selected workout key: ${selectedKey}`);
             return [];
         }
+
+        // Key Swap for "advanced_movements" based on user’s complexity
+        // E.g. if user is "Intermediate", we want to replace "advanced_movements" with "inter_movements"
+        const complexityKey = (complexity === "Intermediate")
+            ? "inter_movements"
+            : "advanced_movements"; // or you can handle "Beginner" or "Advanced" differently
+
+        // traverse each section’s filters, swap advanced->inter
+        selectedRules.sections.forEach((section) => {
+            section.filters.forEach((filterSet) => {
+                filterSet.forEach((f) => {
+                    if (f.key === "advanced_movements") {
+                        f.key = complexityKey;
+                    }
+                });
+            });
+        });
 
         const usedExercises = new Set();
         const plan = [];

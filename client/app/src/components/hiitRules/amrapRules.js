@@ -228,7 +228,7 @@ const amrapWorkouts = [
                 movements: [
                     { key: "movement", value: "Jumps", operator: "contains" },
                     { key: "primary_body_part", value: "Core", operator: "contains" },
-                    { key: "movement", value: "Metcon", operator: "contains" },
+                    { key: "advanced_movements", value: "Metcon", operator: "contains" },
                     { key: "movement", value: "Conditioning", operator: "contains" }
                 ]
             },

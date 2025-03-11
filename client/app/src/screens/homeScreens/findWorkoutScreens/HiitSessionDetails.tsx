@@ -56,7 +56,7 @@ export default function HiitScreen({ route }) {
         const hiitMovementsDB = movementsDB.filter(movement => movement.hiit_flag === 1);
         console.log(`🔥 Filtering HIIT Movements → Found ${hiitMovementsDB.length} suitable exercises`);
 
-        let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30];
+        let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30, 40, 50];
         let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
         let numWorkouts = selectedWorkout === "I don't mind" ? 15 : 10;
         let allWorkouts = [];
@@ -83,13 +83,33 @@ export default function HiitScreen({ route }) {
                 ));
             }
             if (workoutDurationLimits["EMOM"].includes(adjustedTime)) {
-                allWorkouts.push(...generateMultipleWorkouts(
-                    emomWorkouts.map(w => ({ ...w, duration: adjustedTime })), // ✅ Apply default duration
-                    "EMOM",
-                    hiitMovementsDB,
-                    4
-                ));
+                // Use the same filter you have in your dedicated "EMOM" case:
+                const possibleEmoms = emomWorkouts
+                    .filter((w) => {
+                        // For 15 or 25 => only combos < 10 movements
+                        if ([15, 25].includes(adjustedTime)) {
+                            return w.movements.length < 10;
+                        }
+                        // For 40 or 50 => only combos == 10 movements
+                        if ([40, 50].includes(adjustedTime)) {
+                            return w.movements.length === 10;
+                        }
+                        // Otherwise => keep them all (10, 20, 30, etc.)
+                        return true;
+                    })
+                    .map((w) => ({ ...w, duration: adjustedTime }));
+
+                // Then push into your “allWorkouts”
+                allWorkouts.push(
+                    ...generateMultipleWorkouts(
+                        possibleEmoms,
+                        "EMOM",
+                        hiitMovementsDB,
+                        4
+                    )
+                );
             }
+
             if (workoutDurationLimits["30/30"].includes(adjustedTime)) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     adjustedTime === 10 ? tenMinBlocks :

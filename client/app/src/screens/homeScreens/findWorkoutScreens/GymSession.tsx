@@ -20,6 +20,7 @@ export default function GymSession() {
   const flatListRef = useRef(null); // Reference to FlatList
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [activeFilterSet, setActiveFilterSet] = useState(null);
+  const [complexity, setComplexity] = useState("Advanced");
 
   useEffect(() => {
     // Automatically scroll to the default value
@@ -182,6 +183,47 @@ export default function GymSession() {
           </View>
 
           <View style={styles.workoutInfoDetails}>
+            <Text style={styles.workoutSubtitle}>Choose your movement difficulty</Text>
+            <View style={styles.workoutType}>
+              {['Simple movements', 'All movements'].map((option, index) => {
+                // Decide which DB value we’ll set
+                const newComplexity = (option === 'Simple movements')
+                  ? 'Intermediate'
+                  : 'Advanced';
+
+                // Check if this button is “selected”
+                const isSelected = (complexity === newComplexity);
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.optionButton,
+                      isSelected && styles.selectedOption,
+                    ]}
+                    onPress={() => setComplexity(newComplexity)}
+                  >
+                    {/* Circle indicator */}
+                    <View
+                      style={[
+                        styles.optionText,          // your base circle style
+                        isSelected && styles.selectedOptionText, // highlight circle when selected
+                      ]}
+                    />
+
+                    {/* Label */}
+                    <Text style={styles.movementDifficulty}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+
+
+          <View style={styles.workoutInfoDetails}>
             <Text style={styles.workoutSubtitle}>Include what equipment you have</Text>
             {activeFilterSet ? (
               <>
@@ -225,6 +267,7 @@ export default function GymSession() {
                     selectedFinish,
                     selectedWorkout,
                     frequency: 'Sometimes',
+                    complexity: complexity,
                   })
                 }
               >
@@ -488,5 +531,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     padding: 20,
+  },
+  movementDifficulty: {
+    width: '65%',
   },
 });

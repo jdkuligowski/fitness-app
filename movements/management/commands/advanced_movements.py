@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from movements.models import Movement
 
 # Replace with the correct path to your CSV:
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (8).csv"
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (9).csv"
 
 class Command(BaseCommand):
     help = "Update Movement table with advanced_movements from a CSV file."
@@ -20,16 +20,16 @@ class Command(BaseCommand):
 
                     # Extract the advanced movement value from CSV,
                     # e.g. row.get("advanced_movements") – adjust the key to match your column name
-                    advanced_value = row.get("advanced_movements", "")
+                    inter_value = row.get("inter_movements", "")
 
                     # Assign to your Django model field (e.g. movement.advanced_movements)
-                    movement.advanced_movements = advanced_value
+                    movement.inter_movements = inter_value
 
                     movement.save()
 
                     self.stdout.write(
                         self.style.SUCCESS(
-                            f"Updated Movement ID {movement.id} with advanced_movements='{advanced_value}'."
+                            f"Updated Movement ID {movement.id} with inter_movements='{inter_value}'."
                         )
                     )
                 except Movement.DoesNotExist:
