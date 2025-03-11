@@ -33,8 +33,8 @@ export default function HiitScreen({ route }) {
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     const workoutDurationLimits = {
-        "AMRAP": [10, 15, 20],
-        "EMOM": [15, 20, 25, 30],
+        "AMRAP": [10, 15, 20, 30, 40],
+        "EMOM": [15, 20, 25, 30, 40, 50],
         "Tabata": [10, 15],
         "30/30": [10, 15, 20],
     };
@@ -127,20 +127,50 @@ export default function HiitScreen({ route }) {
                 break;
             case "AMRAP":
                 allWorkouts.push(...generateMultipleWorkouts(
-                    amrapWorkouts.filter(w => Number(w.duration) === adjustedTime),
+                    amrapWorkouts
+                        .filter(w => Number(w.duration) === adjustedTime)
+                        .map(w => ({
+                            ...w,
+                            style: w.type,  // <— Add this
+                            type: "AMRAP"   // <— Force "AMRAP" so formatWorkout sees it
+                        })),
                     "AMRAP",
                     hiitMovementsDB,
                     numWorkouts
                 ));
                 break;
-            case "EMOM":
-                allWorkouts.push(...generateMultipleWorkouts(
-                    emomWorkouts.map(w => ({ ...w, duration: adjustedTime })), // ✅ Apply default duration
-                    "EMOM",
-                    hiitMovementsDB,
-                    numWorkouts
-                ));
+
+            case "EMOM": {
+                // Filter based on adjustedTime
+                const possibleEmoms = emomWorkouts
+                    .filter((workout) => {
+                        // 1) For 15 or 25: only combos with fewer than 10 movements
+                        if ([15, 25].includes(adjustedTime)) {
+                            return workout.movements.length < 10;
+                        }
+                        // 2) For 40 or 50: only combos with exactly 10 movements
+                        if ([40, 50].includes(adjustedTime)) {
+                            return workout.movements.length === 10;
+                        }
+                        // 3) Otherwise (e.g. 10, 20, 30, etc.): keep all combos
+                        return true;
+                    })
+                    .map((w) => ({
+                        ...w,
+                        duration: adjustedTime,
+                    }));
+
+                // Then generate multiple EMOM workouts from the final list
+                allWorkouts.push(
+                    ...generateMultipleWorkouts(
+                        possibleEmoms,
+                        "EMOM",
+                        hiitMovementsDB,
+                        numWorkouts
+                    )
+                );
                 break;
+            }
             case "30/30":
                 allWorkouts.push(...generateMultipleWorkouts(
                     adjustedTime === 10 ? tenMinBlocks :
@@ -229,7 +259,7 @@ export default function HiitScreen({ route }) {
 
         // ✅ Correct EMOM formatting
         if (workout.type === "EMOM") {
-            let validDurations = workoutDurationLimits[workout.type] || [10, 15, 20, 25, 30];
+            let validDurations = workoutDurationLimits[workout.type] || [10, 15, 20, 25, 30, 40];
 
             return {
                 type: "EMOM",
@@ -302,11 +332,11 @@ export default function HiitScreen({ route }) {
         try {
             const userId = await AsyncStorage.getItem("userId");
             if (!userId) throw new Error("User ID not found in AsyncStorage.");
-    
+
             const formattedDate = new Date().toISOString().split("T")[0];
-    
+
             console.log('HIIT workout to save and start:', JSON.stringify(workoutPlan, null, 2));
-    
+
             // Construct the payload
             const payload = {
                 user_id: userId,
@@ -318,7 +348,7 @@ export default function HiitScreen({ route }) {
                 activity_type: "Hiit",
                 workout_type: workoutPlan.type,  // e.g., "Tabata", "AMRAP", etc.
                 structure: workoutPlan.structure, // e.g., "20s work / 10s rest"
-    
+
                 // Handling AMRAP vs. Other HIIT Types
                 sections: workoutPlan.type === "AMRAP"
                     ? workoutPlan.sections.map((section, index) => ({
@@ -343,36 +373,36 @@ export default function HiitScreen({ route }) {
                         })),
                     }],
             };
-    
+
             console.log("Payload for save and start (HIIT):", JSON.stringify(payload, null, 2));
-    
+
             // Save the workout
             const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
             console.log("Response from save (HIIT):", response.data);
-    
+
             // Extract the ID of the saved workout
             const savedWorkoutId = response.data?.workout.id;
-    
+
             if (!savedWorkoutId) {
                 console.error("Workout ID is undefined, check API response:", response.data);
                 Alert.alert("Error", "Failed to save workout. Please try again.");
                 setIsBouncerLoading(false);
                 return;
             }
-    
+
             console.log("New HIIT Workout ID ->", savedWorkoutId);
-    
+
             // Fetch workout details
             const workoutDetailsResponse = await axios.get(
                 `${ENV.API_URL}/api/saved_workouts/get-single-hiit-workout/${savedWorkoutId}/`,
                 { params: { user_id: userId } }
             );
-    
+
             const { workout } = workoutDetailsResponse.data;
             console.log("Workout details (HIIT) ->", JSON.stringify(workout, null, 2));
-    
+
             setIsBouncerLoading(false);
-    
+
             // Navigate to the complete workout screen
             navigation.navigate("Training", {
                 screen: "CompleteHiitWorkout",
@@ -386,7 +416,7 @@ export default function HiitScreen({ route }) {
             setIsBouncerLoading(false);
         }
     };
-    
+
 
 
 
@@ -462,7 +492,7 @@ export default function HiitScreen({ route }) {
                                     </View>
                                 </View>
                                 <View style={styles.dividerLine}></View>
-                                <Text style={styles.workoutActivity}>Workout Summary</Text>
+                                {/* <Text style={styles.workoutActivity}>Workout Summary</Text> */}
                                 <Text style={styles.workoutSubActivity}>{item.structure}</Text>
                                 <ScrollView style={styles.workoutList}>
                                     {item.sections ? (

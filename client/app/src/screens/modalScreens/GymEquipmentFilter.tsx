@@ -133,6 +133,7 @@ export default function EquipmentFilterModal({
                     equipment: selectedIds,
                 };
                 await AsyncStorage.setItem("activeEquipmentFilter", JSON.stringify(filterToStore));
+                await AsyncStorage.setItem("activeFilterId", JSON.stringify(newFilter.id));
 
                 // Then do your normal onSave & onClose
                 onSave(newFilter);
