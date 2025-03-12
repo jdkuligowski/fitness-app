@@ -15,10 +15,27 @@ class ChatRoomListView(APIView):
     """
     # permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        rooms = ChatRoom.objects.all()
-        serializer = ChatRoomSerializer(rooms, many=True)
+    def get(self, request, room_id):
+        try:
+            room = ChatRoom.objects.get(id=room_id)
+        except ChatRoom.DoesNotExist:
+            return Response({"error": "Chat room not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Basic offset-limit pagination
+        offset = int(request.query_params.get('offset', 0))  # e.g. ?offset=0
+        limit = int(request.query_params.get('limit', 20))   # e.g. ?limit=20
+
+        # Retrieve messages in descending order (newest first)
+        all_messages = room.messages.all().order_by('-timestamp')
+
+        # Slice the messages based on offset and limit
+        paginated_messages = all_messages[offset:offset + limit]
+
+        # Serialize and return
+        serializer = ChatMessageSerializer(paginated_messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
 
 class ChatRoomMessagesView(APIView):

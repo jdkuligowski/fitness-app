@@ -163,7 +163,7 @@ const ChatOverviewScreen = ({ route }) => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" backgroundColor="#F6F3DC" />
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
                 <KeyboardAvoidingView
                     style={styles.chatPage}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -189,7 +189,11 @@ const ChatOverviewScreen = ({ route }) => {
                             contentContainerStyle={[styles.chatResponses, { paddingBottom: 20 }]} // Add bottom padding for comfort
                             inverted={true} // Inverted for chat-like behavior
                             scrollEnabled={true}
-                            keyboardShouldPersistTaps="handled" // Allow taps to pass through to FlatList
+                            keyboardShouldPersistTaps="always" // Allow taps to pass through to FlatList
+                            keyboardDismissMode="on-drag"
+                            maintainVisibleContentPosition={{
+                                minIndexForVisible: 0, // or 1, depending on your data
+                              }}
                             initialNumToRender={20} // Render initial 20 items for fast load
                             maxToRenderPerBatch={10} // Batch size for smooth scrolling
                             updateCellsBatchingPeriod={50} // Smooth batch updates
@@ -202,6 +206,7 @@ const ChatOverviewScreen = ({ route }) => {
                                 onChangeText={setNewMessage}
                                 placeholder="Type a message..."
                                 onSubmitEditing={sendMessage}
+                                multiline
                             />
                             <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
                                 <Ionicons name="send-outline" size={16} color="white" />
@@ -212,7 +217,7 @@ const ChatOverviewScreen = ({ route }) => {
                     {/* Input Box */}
 
                 </KeyboardAvoidingView>
-            </TouchableWithoutFeedback>
+            {/* </TouchableWithoutFeedback> */}
         </SafeAreaView>
     );
 };
