@@ -223,7 +223,6 @@ export default function HiitScreen({ route }) {
             let formattedWorkout = formatWorkout({ ...randomWorkout, type }, movementsDB);
             generatedWorkouts.push(formattedWorkout);
         }
-
         return generatedWorkouts;
     };
 

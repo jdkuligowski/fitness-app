@@ -3,6 +3,7 @@ from django.db import models
 # Create your models here.
 class Workout(models.Model):
     workout_number = models.FloatField(default=None, null=True, blank=True)
+    workout_code = models.CharField(max_length=500, null=True, blank=True)
     name = models.CharField(max_length=30, null=True, blank=True)
     description = models.CharField(max_length=150, null=True, blank=True)
     activity_type = models.CharField(max_length=20, null=True, blank=True, db_index=True)

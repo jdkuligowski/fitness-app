@@ -19,6 +19,7 @@ import strengthRules50 from '../../../components/workoutRules/strengthRules50'
 import strengthRules60 from '../../../components/workoutRules/strengthRules60'
 import strengthRules75 from '../../../components/workoutRules/strengthRules60'
 import commonRules from '../../../components/workoutRules/commonRules'
+import ruleSet from '../../../components/workoutRules/warmupBRules'
 import { Video } from 'expo-av';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -181,7 +182,6 @@ export default function WorkoutScreen({ route }) {
                     return false;
                 });
             });
-
             return allFilterSetsPass; // Include only exercises that pass all filters
         });
 
@@ -235,7 +235,7 @@ export default function WorkoutScreen({ route }) {
 
         const warmUpMovements = filteredWorkoutData.filter(
             (exercise) =>
-                exercise.movement_type.includes("Warm Up") &&
+                (exercise.advance || "").includes("Warm Up") && // <-- safe fallback
                 (!bodyAreaFilter || exercise.body_area?.toLowerCase() === bodyAreaFilter) &&
                 !usedExercises.has(exercise.exercise)
         );
@@ -249,7 +249,7 @@ export default function WorkoutScreen({ route }) {
         return shuffledMovements;
     };
 
-    // Generate a single workout plan
+
     // Generate a single workout plan
     const generateWorkoutPlan = () => {
         const allowedTimes = [30, 40, 50, 60, 75];
@@ -307,14 +307,67 @@ export default function WorkoutScreen({ route }) {
             filters: commonRules.warmUpA.filters, // Attach filters for Warm-Up A
         });
 
-        // Add Warm-Up B Section (up to 3 movements)
-        const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
-        plan.push({
-            partLabel: commonRules.warmUpB.section,
-            movements: warmUpB,
-            sectionType: "superset",
-            filters: "Warm-Up Filter Logic", // Example for Warm-Up B
-        });
+        // // Add Warm-Up B Section (up to 3 movements)
+        // const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
+        // plan.push({
+        //     partLabel: commonRules.warmUpB.section,
+        //     movements: warmUpB,
+        //     sectionType: "superset",
+        //     filters: "Warm-Up Filter Logic", // Example for Warm-Up B
+        // });
+
+        // 1) Convert "full_body_1" to "Full Body 1" 
+        // (the same key you used for synergy but now we treat it as warm-up logic)
+        const warmUpBase = toWarmUpKey(selectedKey);
+        if (!warmUpBase) {
+            console.warn("Could not parse warm-up key from", selectedKey, "– skipping Warm Up B");
+        } else {
+            // 2) Randomly pick Option 1 or Option 2
+            const randomOption = Math.random() < 0.5 ? "Option 1" : "Option 2";
+            const warmUpKey = `${warmUpBase} (${randomOption})`;
+            // e.g. "Full Body 1 (Option 1)"
+
+            // 3) Grab from your new ruleSet
+            const warmUpObj = ruleSet[warmUpKey];
+            if (!warmUpObj) {
+                console.warn("No Warm Up B ruleSet entry for", warmUpKey, "– skipping Warm Up B");
+                plan.push({
+                    partLabel: commonRules.warmUpB.section, // "Warm up B"
+                    movements: [],
+                    sectionType: "single",
+                });
+            } else {
+                // warmUpObj => { movement1: "...", movement2: "...", movement3: "...", movement4: "..." }
+                const listedMovements = Object.values(warmUpObj).filter(Boolean);
+                // e.g. ["Couch w. Rotation","Banded Dislocate","HK Rotation","Counterbalance Squat"]
+
+                // 4) For each warm-up movement, find the actual DB entry in filteredWorkoutData
+                //    so you can reference its ID or other fields. If you only need the name, you can skip this step.
+                const finalWarmUpMovements = listedMovements.map((name) => {
+                    // Attempt to find in filteredWorkoutData by matching .exercise
+                    const matched = filteredWorkoutData.find((ex) =>
+                        (ex.exercise || "").trim().toLowerCase() === name.trim().toLowerCase()
+                    );
+                    if (!matched) {
+                        console.warn(`Movement "${name}" not found in filteredWorkoutData. Using name only.`);
+                        return name;
+                    }
+                    // If found, you can store the entire object or just ex.exercise
+                    return matched.exercise; // or matched
+                });
+
+                // 5) Add to usedExercises if you want to block duplicates
+                finalWarmUpMovements.forEach((mov) => usedExercises.add(mov));
+
+                // 6) Push it onto the plan
+                plan.push({
+                    partLabel: commonRules.warmUpB.section,
+                    movements: finalWarmUpMovements,
+                    sectionType: finalWarmUpMovements.length > 1 ? "superset" : "single",
+                });
+            }
+        }
+
 
         // Add Main Workout Sections
         selectedRules.sections.forEach((sectionRule, sectionIndex) => {
@@ -403,7 +456,18 @@ export default function WorkoutScreen({ route }) {
     };
 
 
+    const toWarmUpKey = (str) => {
+        // e.g. "full_body_1" -> "Full Body 1"
+        const parts = str.split("_"); // ["full","body","1"]
+        if (parts.length < 3) return null;
 
+        const firstPart = parts[0][0].toUpperCase() + parts[0].slice(1);  // "Full"
+        const secondPart = parts[1][0].toUpperCase() + parts[1].slice(1); // "Body"
+        const thirdPart = parts[2];  // "1" or "2"
+
+        return `${firstPart} ${secondPart} ${thirdPart}`;
+        // e.g. "Full Body 1"
+    }
 
 
     // Generate multiple workout plans

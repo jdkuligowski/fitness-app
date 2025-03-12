@@ -83,9 +83,12 @@ class SaveWorkoutView(APIView):
         else:
             workout_number = self._get_workout_number(user)  # Generate a new workout_number
 
+        template_code = self._build_template_code(data)
+
         # Process and save gym workout
         workout = Workout.objects.create(
             name=data['name'],
+            workout_code=template_code,
             workout_number=workout_number,
             description=data['description'],
             duration=data['duration'],
@@ -173,10 +176,12 @@ class SaveWorkoutView(APIView):
         else:
             workout_number = self._get_workout_number(user)  # Generate a new workout_number
 
+        template_code = self._build_template_code(data)
 
-        # Create the base Workout instance
+        # Process and save running workout
         workout = Workout.objects.create(
             name=data['name'],
+            workout_code=template_code,
             workout_number=workout_number,
             description=data['description'],
             duration=data['duration'],
@@ -235,9 +240,12 @@ class SaveWorkoutView(APIView):
         else:
             workout_number = self._get_workout_number(user)
 
-        # Create the base Workout instance
+        template_code = self._build_template_code(data)
+
+        # Process and save mobility workout
         workout = Workout.objects.create(
             name=data['name'],
+            workout_code=template_code,
             workout_number=workout_number,
             description=data['description'],
             duration=data['duration'],
@@ -300,6 +308,8 @@ class SaveWorkoutView(APIView):
         else:
             workout_number = self._get_workout_number(user)
 
+        template_code = self._build_template_code(data)
+
         try:
             with transaction.atomic():
                 # print(f"🔄 Creating Workout Entry for {data['name']}...")
@@ -307,6 +317,7 @@ class SaveWorkoutView(APIView):
                 # Create the Workout instance
                 workout = Workout.objects.create(
                     name=data['name'],
+                    workout_code=template_code,
                     workout_number=workout_number,
                     description=data.get('description', ''),
                     duration=data['duration'],
@@ -383,6 +394,110 @@ class SaveWorkoutView(APIView):
     def _get_workout_number(self, user):
         last_workout = Workout.objects.filter(owner=user).order_by('-workout_number').first()
         return (last_workout.workout_number + 1) if last_workout else 1
+
+    def _gather_gym_movement_ids(self, sections):
+        """
+        Go through the sections array and collect all Movement IDs
+        in the order they appear, *excluding* Conditionings and Warm Ups.
+        """
+        movement_ids = []
+
+        for section_data in sections:
+            # Convert to lowercase for consistent checks
+            section_name_lower = section_data['section_name'].lower()
+
+            # Skip warm-up sections named "Warm Up A" or "Warm Up B"
+            if "warm up" in section_name_lower:
+                continue  # ignore this entire section
+
+            # If it's "Conditioning," handle separately
+            if section_name_lower == "conditioning" and 'conditioning_workout' in section_data:
+                cond_movements = section_data['conditioning_workout']['movements']
+                for mdata in cond_movements:
+                    try:
+                        mv = Movement.objects.get(exercise=mdata['movement_name'])
+                        movement_ids.append(mv.id)
+                    except Movement.DoesNotExist:
+                        pass
+            else:
+                # Normal (non-warmup, non-conditioning) sections
+                for mdata in section_data['movements']:
+                    try:
+                        mv = Movement.objects.get(exercise=mdata['movement_name'])
+                        movement_ids.append(mv.id)
+                    except Movement.DoesNotExist:
+                        pass
+
+        return movement_ids
+
+
+    def _gather_mobility_pairs(self, data):
+        """
+        Suppose you want M-{movementId}-{duration} for each item.
+        We'll gather from data['mobility_sessions']['saved_details'].
+        """
+        pairs = []
+        mobility_session_data = data.get('mobility_sessions', {})
+        saved_details = mobility_session_data.get('saved_details', [])
+        for detail_data in saved_details:
+            movement_name = detail_data.get('movement_name', '').strip()
+            duration = detail_data.get('duration', 0)
+            try:
+                mv = Movement.objects.get(exercise__iexact=movement_name)
+                pairs.append(mv.id)
+                pairs.append(duration)
+            except Movement.DoesNotExist:
+                # If missing, skip or append placeholders
+                # pairs.append(0)
+                # pairs.append(duration)
+                pass
+        return pairs
+
+    def _gather_hiit_movement_ids(self, sections):
+        """
+        If your HIIT data is in data['sections'], each block has movements:
+        We'll gather each movement's ID in order.
+        """
+        movement_ids = []
+        for block_data in sections:
+            movements = block_data.get('movements', [])
+            for mdata in movements:
+                mv_id = mdata.get('id')  # Because you said you pass the movement ID
+                if mv_id:
+                    movement_ids.append(mv_id)
+                else:
+                    # If there's no ID, maybe skip or put 0
+                    movement_ids.append(0)
+        return movement_ids
+
+
+    def _build_template_code(self, data):
+        workout_type = data['activity_type']
+
+        if workout_type == 'Running':
+            session_data = data.get('running_sessions', {})
+            code = f"R-{session_data.get('type', 'Intervals')}-{session_data.get('name','Unknown')}"
+            return code
+
+        elif workout_type == 'Gym':
+            movement_ids = self._gather_gym_movement_ids(data['sections'])
+            code = "G-" + "-".join(str(mid) for mid in movement_ids)
+            return code
+
+        elif workout_type == 'Mobility':
+            pairs = self._gather_mobility_pairs(data)
+            code = "M-" + "-".join(str(x) for x in pairs)
+            return code
+
+        elif workout_type == 'Hiit':
+            hiit_type = data.get('workout_type','Unknown')
+            movement_ids = self._gather_hiit_movement_ids(data['sections'])
+            code = f"H-{hiit_type}-" + "-".join(str(mid) for mid in movement_ids)
+            return code
+
+        else:
+            return "UNK-999"
+
 
 
 # Show all workouts of all types

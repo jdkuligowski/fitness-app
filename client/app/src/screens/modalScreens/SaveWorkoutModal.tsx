@@ -69,12 +69,8 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             const userId = await AsyncStorage.getItem("userId");
             const formattedDate = selectedDate.toISOString().split("T")[0];
             console.log('Workout to save:', JSON.stringify(currentWorkout, null, 2));
-            if (!Array.isArray(workoutPlan)) {
-                console.error("❌ Error: workoutPlan is not an array", workoutPlan);
-                return;
-            }
-            
 
+            
             let payload = {
                 user_id: userId,
                 // name: `${selectedWorkout}`,
@@ -84,8 +80,11 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                 activity_type: workoutType,
             };
 
-
             if (workoutType === "Gym") {
+                if (!Array.isArray(workoutPlan)) {
+                    console.error("❌ Error: workoutPlan is not an array", workoutPlan);
+                    return;
+                }
                 payload.name = `${selectedWorkout}`,
                 payload.description = workoutPlan.description || "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
@@ -123,7 +122,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                             section_order: index + 1,
                             section_type: section.sectionType,
                             movements: section.movements.map((movement, movementIndex) => ({
-                                movement_name: movement.name,
+                                movement_name: movement.name || movement,
                                 movement_order: movementIndex + 1,
                             })),
                         };

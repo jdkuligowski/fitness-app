@@ -52,12 +52,16 @@ export default function SuggestedWorkoutSummary({ route }) {
 
     // Helper function to find movement video
     const findMovementVideo = (exerciseName) => {
+        console.log('exercise: ', exerciseName);
+      
         const matchedMovement = workoutData.find(
-            (movement) => movement.exercise.trim().toLowerCase() === exerciseName.trim().toLowerCase()
+          (movement) => 
+            (movement.exercise || "").trim().toLowerCase() === (exerciseName || "").trim().toLowerCase()
         );
-        return matchedMovement?.portrait_video_url || null; // Return video URL or null
-    };
-
+      
+        return matchedMovement?.portrait_video_url || null;
+      };
+      
     // Group movements by section_name
     const groupedSections = workout.details.reduce((acc, movement) => {
         if (!acc[movement.section_name]) {
@@ -312,7 +316,7 @@ export default function SuggestedWorkoutSummary({ route }) {
                         <SaveWorkoutModal
                             currentWorkout={currentWorkout}
                             onClose={closeModal} // Pass the close function
-                            selectedTime={currentWorkout.duration} // Pass the selected time
+                            selectedTime={workout.duration} // Pass the selected time
                             selectedWorkout={currentWorkout.name} // Pass the selected workout name
                             workoutPlan={currentWorkout} // Pass the current workout plan
                             closeModal={closeModal} // Close function for modal

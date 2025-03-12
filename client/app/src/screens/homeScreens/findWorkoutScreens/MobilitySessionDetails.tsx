@@ -218,10 +218,12 @@ export default function SuggestedMobilityWorkouts({ route }) {
 
                 {item.details.map((movement, index) => {
                     // Find the matching movement in movementData
-                    const matchedMovement = movementData.find(
-                        (data) => data.exercise.trim().toLowerCase() === movement.exercise.trim().toLowerCase()
+                    const matchedMovement = movementData.find((data) =>
+                        (data.exercise || "").trim().toLowerCase() === (movement.exercise || "").trim().toLowerCase()
                     );
-                    console.log('Matched Movement:', matchedMovement);
+
+                    console.log("Matched Movement:", matchedMovement);
+
 
                     return (
                         <View key={index} style={styles.movementRow}>

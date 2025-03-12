@@ -278,28 +278,28 @@ class FullUserView(APIView):
         recent_workouts = workouts.order_by('-completed_date')[:2].values('id', 'name', 'completed_date', 'duration')
 
         # Leaderboard rank (Window Function)
-        rank_data = Leaderboard.objects.annotate(
-            rank=Window(
-                expression=DenseRank(),
-                order_by=F('total_score').desc()
-            )
-        ).filter(user=user).values('rank')
-        rank = rank_data[0]['rank'] if rank_data else 1
+        # rank_data = Leaderboard.objects.annotate(
+        #     rank=Window(
+        #         expression=DenseRank(),
+        #         order_by=F('total_score').desc()
+        #     )
+        # ).filter(user=user).values('rank')
+        # rank = rank_data[0]['rank'] if rank_data else 1
 
-        leaderboard = user.leaderboard
-        leaderboard_scores = {
-            'total_score': leaderboard.total_score,
-            'weekly_score': leaderboard.weekly_score,
-            'monthly_score': leaderboard.monthly_score
-        }
+        # leaderboard = user.leaderboard
+        # leaderboard_scores = {
+        #     'total_score': leaderboard.total_score,
+        #     'weekly_score': leaderboard.weekly_score,
+        #     'monthly_score': leaderboard.monthly_score
+        # }
 
         serialized_user = PopulatedUserSerializer(user).data
         stats = {
             'workouts_this_month': workout_stats['workouts_this_month'],
             'workouts_all_time': workout_stats['workouts_all_time'],
             'recent_workouts': list(recent_workouts),
-            'leaderboard': leaderboard_scores,
-            'leaderboard_rank': rank
+            # 'leaderboard': leaderboard_scores,
+            # 'leaderboard_rank': rank
         }
 
         return Response({'user': serialized_user, 'stats': stats}, status=status.HTTP_200_OK)

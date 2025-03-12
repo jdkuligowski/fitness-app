@@ -176,7 +176,7 @@ export default function StatsOverview() {
                     ))}
                 </View>
 
-                <TouchableOpacity style={styles.leaderboardOverviewContainer}>
+                {/* <TouchableOpacity style={styles.leaderboardOverviewContainer}>
                     <Text style={styles.leaderboardTitle}>Leaderboard rank</Text>
                     <View style={styles.leaderboardResults}>
                         <View style={styles.profileBox}>
@@ -203,7 +203,7 @@ export default function StatsOverview() {
                         </View>
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
                     </View>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </ScrollView>
         </SafeAreaView>
     );
