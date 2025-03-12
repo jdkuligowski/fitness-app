@@ -1,1 +1,2 @@
 export const GOOGLE_CLIENT_ID = "24607396442-dnmcl2dmkh874bt29d73jdp0khmj1ceb.apps.googleusercontent.com"
+export const IOS_GOOGLE_CLIENT_ID = "24607396442-rlniipe4ret2iq7mv1s4ai4bq0gbqhmf.apps.googleusercontent.com"

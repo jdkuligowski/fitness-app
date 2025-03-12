@@ -12,17 +12,193 @@ import { useLoader } from '../../context/LoaderContext';
 import ENV from '../../../../env'
 import { Colours } from '../../components/styles';
 import * as Google from "expo-auth-session/providers/google";
-import { GOOGLE_CLIENT_ID } from "../../../../constants/constants"; // Import your Client ID
+import { GOOGLE_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from "../../../../constants/constants"; // Import your Client ID
 import { AntDesign } from '@expo/vector-icons'; // Google icon
 import * as AuthSession from "expo-auth-session";
+import { makeRedirectUri } from "expo-auth-session";
 import * as Crypto from "expo-crypto"; // ✅ Import Crypto for secure random nonce
 import OnboardingModal from '../modalScreens/RegistrationModal';
+import * as WebBrowser from 'expo-web-browser';
+
+// export default function RegisterPage() {
+//     console.log('google id: ', GOOGLE_CLIENT_ID)
+//     const navigation = useNavigation();
+//     const { setIsAuthenticated, setIsOnboardingComplete } = useAuth(); // Access context here
+//     const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access context here
+//     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+//     const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+
+//     const [formData, setFormData] = useState({
+//         first_name: '',
+//         last_name: '',
+//         email: '',
+//         password: '',
+//         password_confirmation: '',
+//     });
+//     const [isLoading, setIsLoading] = useState(false);
+
+//     const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
+
+
+//     console.log('redirect uri: ', makeRedirectUri({ useProxy: false }));
+
+
+//     const handleRegister = async () => {
+//         const { first_name, last_name, email, password, password_confirmation } = formData;
+
+//         // Frontend validation
+//         if (!first_name || !last_name || !email || !password || !password_confirmation) {
+//             Alert.alert('Error', 'Please fill out all fields.');
+//             return;
+//         }
+
+//         if (password !== password_confirmation) {
+//             Alert.alert('Error', 'Passwords do not match!');
+//             return;
+//         }
+
+//         setIsBouncerLoading(true);
+
+//         try {
+//             setIsOnboardingComplete(false)
+//             const registerResponse = await axios.post(`${ENV.API_URL}/api/auth/register/`, formData);
+//             console.log('Registration successful:', registerResponse.data);
+
+//             // Automatically log the user in after registration
+//             const loginResponse = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
+//             const { token, user_id } = loginResponse.data;
+
+//             // Save token and update authentication state
+//             await AsyncStorage.setItem('token', token);
+//             await AsyncStorage.setItem('userId', String(user_id));
+//             setIsAuthenticated(true);
+
+//             // Trigger onboarding modal
+//             setIsOnboardingVisible(true);
+//         } catch (error) {
+//             console.error('Registration error:', error.message);
+
+//             if (error.response) {
+//                 const { detail } = error.response.data;
+
+//                 if (detail === "Invalid email format.") {
+//                     Alert.alert('Error', 'Please enter a valid email address.');
+//                 } else if (detail === "An account with this email already exists.") {
+//                     Alert.alert('Error', 'An account with this email already exists. Please log in or reset your password.');
+//                 } else if (detail === "Passwords do not match.") {
+//                     Alert.alert('Error', 'Passwords do not match! Please re-enter.');
+//                 } else {
+//                     Alert.alert('Error', detail || 'An unexpected error occurred. Please try again.');
+//                 }
+//             } else {
+//                 Alert.alert('Error', 'A network issue occurred. Please check your connection and try again.');
+//             }
+//         } finally {
+//             setIsLoading(false);
+//             setIsBouncerLoading(false)
+//         }
+//     };
+
+//     const handleOnboardingComplete = () => {
+//         setIsOnboardingVisible(false); // Close the modal
+//         navigation.navigate('Home'); // Navigate to the home screen
+//     };
+
+
+
+//     // 1. Create the Google auth request
+//     const [request, response, promptAsync] = Google.useAuthRequest({
+//         clientId: GOOGLE_CLIENT_ID,  // Must be the Web client ID
+//         scopes: ['profile', 'email'],
+//         responseType: 'id_token',
+//         // The redirect URI must match the one added in Google Cloud Console
+//         redirectUri: 'https://auth.expo.io/@jdkuligowski/burst-slug',
+//     });
+
+//     // 2. Generate and attach the nonce to the request once it's available
+//     useEffect(() => {
+//         const attachNonce = async () => {
+//             if (request) {
+//                 const nonce = await generateNonce();
+//                 console.log('🔑 Generated Nonce:', nonce);
+//                 // Attach the nonce to the request's extraParams
+//                 request.extraParams = { ...request.extraParams, nonce };
+//             }
+//         };
+//         attachNonce();
+//     }, [request]);
+
+//     // 3. Handle the Google response in a single place
+//     useEffect(() => {
+//         if (!response) return;  // No response yet
+
+//         if (response.type === 'success') {
+//             console.log('✅ Google Sign-In Success:', response);
+//             const idToken = response.params?.id_token;
+//             if (idToken) {
+//                 // Pass token to your backend
+//                 registerWithGoogle(idToken);
+//             } else {
+//                 console.error('❌ No ID Token found in response.');
+//                 Alert.alert('Google Sign-In Failed', 'No ID Token received.');
+//             }
+//         } else if (response.type === 'error') {
+//             console.error('❌ Google Sign-In Error:', response);
+//             Alert.alert('Google Sign-In Failed', 'Please try again.');
+//         } else if (response.type === 'cancel') {
+//             console.log('❌ Google Sign-In Cancelled by user');
+//         }
+//     }, [response]);
+
+//     // 4. Function to handle the Sign-In button press
+//     const handleGoogleSignIn = async () => {
+//         console.log('🚀 Google Sign-In Button Pressed');
+//         if (!request) {
+//             console.error('❌ Google Auth Request is null');
+//             Alert.alert('Google Sign-In Failed', 'Request is null. Try restarting Expo.');
+//             return;
+//         }
+//         // Open the Google Sign-In flow
+//         console.log('🚀 Opening Google Sign-In in Browser...');
+//         await promptAsync();
+//     };
+
+//     // 5. When we get the token, hit the backend
+//     const registerWithGoogle = async (googleToken) => {
+//         console.log('🚀 registerWithGoogle called, token:', googleToken);
+//         try {
+//             const res = await axios.post(
+//                 `${ENV.API_URL}/api/auth/register/google/`,
+//                 { token: googleToken },
+//                 { headers: { 'Content-Type': 'application/json' } }
+//             );
+//             console.log('✅ Google Sign-Up Response:', res.data);
+
+//             if (res.status === 200) {
+//                 await AsyncStorage.setItem('token', res.data.token);
+//                 setIsAuthenticated(true);
+//                 navigation.navigate('Home');
+//             } else {
+//                 Alert.alert('Google Sign-Up Failed', 'Unexpected status code.');
+//             }
+//         } catch (error) {
+//             console.error('❌ Google Sign-Up Error:', error);
+//             Alert.alert('Google Sign-Up Failed', error.response?.data?.error || 'Something went wrong.');
+//         }
+//     };
+
+//     // Utility function to generate a random nonce
+//     const generateNonce = async () => {
+//         return await Crypto.digestStringAsync(
+//             Crypto.CryptoDigestAlgorithm.SHA256,
+//             Math.random().toString()
+//         );
+//     };
 
 export default function RegisterPage() {
-    console.log('google id: ', GOOGLE_CLIENT_ID)
     const navigation = useNavigation();
-    const { setIsAuthenticated, setIsOnboardingComplete } = useAuth(); // Access context here
-    const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access context here
+    const { setIsAuthenticated, setIsOnboardingComplete } = useAuth();
+    const { setIsBouncerLoading } = useLoader();
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
@@ -34,19 +210,28 @@ export default function RegisterPage() {
         password_confirmation: '',
     });
     const [isLoading, setIsLoading] = useState(false);
-
     const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
 
+    console.log('redirect uri: ', makeRedirectUri({ useProxy: true }));
 
+    // For dev: your Web client ID
+    // For production iOS: your iOS client ID (from Google Cloud Console)
+    const WEB_CLIENT_ID = GOOGLE_CLIENT_ID; // e.g. "1234-abc.apps.googleusercontent.com"
+    const IOS_CLIENT_ID = IOS_GOOGLE_CLIENT_ID ; // Replace with the real iOS client ID
+    // (Optional) If you want to support standalone Android:
+    // const ANDROID_CLIENT_ID = "<YOUR_ANDROID_CLIENT_ID>.apps.googleusercontent.com";
+
+    // --------------------------------------------------------------------------------
+    // Registration Flow (email/password)
+    // --------------------------------------------------------------------------------
     const handleRegister = async () => {
         const { first_name, last_name, email, password, password_confirmation } = formData;
 
-        // Frontend validation
+        // Basic validation
         if (!first_name || !last_name || !email || !password || !password_confirmation) {
             Alert.alert('Error', 'Please fill out all fields.');
             return;
         }
-
         if (password !== password_confirmation) {
             Alert.alert('Error', 'Passwords do not match!');
             return;
@@ -55,27 +240,26 @@ export default function RegisterPage() {
         setIsBouncerLoading(true);
 
         try {
-            setIsOnboardingComplete(false)
+            setIsOnboardingComplete(false);
             const registerResponse = await axios.post(`${ENV.API_URL}/api/auth/register/`, formData);
             console.log('Registration successful:', registerResponse.data);
 
-            // Automatically log the user in after registration
+            // Auto-login after registration
             const loginResponse = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
             const { token, user_id } = loginResponse.data;
 
-            // Save token and update authentication state
+            // Save token/user ID locally
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
             setIsAuthenticated(true);
 
             // Trigger onboarding modal
             setIsOnboardingVisible(true);
+
         } catch (error) {
             console.error('Registration error:', error.message);
-
             if (error.response) {
                 const { detail } = error.response.data;
-
                 if (detail === "Invalid email format.") {
                     Alert.alert('Error', 'Please enter a valid email address.');
                 } else if (detail === "An account with this email already exists.") {
@@ -90,172 +274,47 @@ export default function RegisterPage() {
             }
         } finally {
             setIsLoading(false);
-            setIsBouncerLoading(false)
+            setIsBouncerLoading(false);
         }
     };
 
     const handleOnboardingComplete = () => {
-        setIsOnboardingVisible(false); // Close the modal
-        navigation.navigate('Home'); // Navigate to the home screen
+        setIsOnboardingVisible(false);
+        navigation.navigate('Home');
     };
 
-    // const initializeAuthUrl = async () => {
-    //     const nonce = await generateNonce();
-    //     console.log("🔑 Generated Nonce:", nonce);
+    // --------------------------------------------------------------------------------
+    // Google OAuth Flow
+    // --------------------------------------------------------------------------------
 
-    //     const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent("https://auth.expo.io/@jdkuligowski/burst-slug")}&response_type=id_token&scope=profile email&nonce=${nonce}`;
-
-    //     console.log("🔗 Open this OAuth URL in a browser:", oauthUrl);
-    // };
-
-    // useEffect(() => {
-    //     initializeAuthUrl();
-    // }, []);
-
-
-    // const [request, response, promptAsync] = Google.useAuthRequest({
-    //     clientId: '24607396442-dnmcl2dmkh874bt29d73jdp0khmj1ceb.apps.googleusercontent.com',
-    //     scopes: ["profile", "email"],
-    //     responseType: "id_token",
-    //     redirectUri: "https://auth.expo.io/@jdkuligowski/burst-slug", // ✅ Explicitly set web redirect
-    // });
-
-    // // // ✅ Generate the nonce and attach it to the request
-    // useEffect(() => {
-    //     const setNonce = async () => {
-    //         const nonce = await generateNonce();
-    //         console.log("🔑 Generated Nonce:", nonce);
-
-    //         if (request) {
-    //             request.extraParams = { nonce }; // ✅ Attach nonce
-    //         }
-    //     };
-
-    //     setNonce();
-    // }, [request]);
-
-    // // ✅ Manually trigger Google sign-in only when the button is pressed
-    // const handleGoogleSignIn = async () => {
-    //     console.log("🚀 Google Sign-In Button Pressed");
-
-    //     if (!request) {
-    //         console.error("❌ Google Auth Request is null");
-    //         Alert.alert("Google Sign-In Failed", "Request is null. Try restarting Expo.");
-    //         return;
-    //     }
-
-    //     console.log("🚀 Opening Google Sign-In in Browser...");
-    //     const result = await promptAsync();
-    //     console.log("Result Type:", result.type);
-
-    //     console.log("✅ Google Sign-In Result:", result);
-    //     console.log("🔄 useEffect triggered, response:", response);
-
-
-    //     if (!result) {
-    //         console.error("❌ Google Sign-In failed: No result object");
-    //         return;
-    //     }
-
-    //     if (result.type === "success") {
-    //         console.log("🎉 Google Sign-In Successful! ID Token:", result.params?.id_token);
-
-    //         // ✅ Manually process the token
-    //         if (result.params?.id_token) {
-    //             registerWithGoogle(result.params.id_token);
-    //         } else {
-    //             console.error("❌ No ID Token found in result.");
-    //             Alert.alert("Google Sign-In Failed", "No ID Token received.");
-    //         }
-    //     } else {
-    //         console.error("❌ Google Sign-In Error Type:", result.type);
-    //     }
-    // };
-
-
-
-
-    // // ✅ Handle Google Sign-In Response when it updates
-    // useEffect(() => {
-    //     console.log("🔄 useEffect triggered, response:", response);
-
-    //     if (!response) {
-    //         console.log("⚠ No response received yet");
-    //         return;
-    //     }
-
-    //     if (response?.type === "success") {
-    //         console.log("✅ Google Sign-In Success:", response);
-
-    //         // ✅ Manually extract the ID Token
-    //         const idToken = response.params?.id_token;
-    //         console.log("🔑 Extracted Google ID Token:", idToken);
-
-    //         if (idToken) {
-    //             registerWithGoogle(idToken);
-    //         } else {
-    //             console.error("❌ No ID Token found in response.");
-    //             Alert.alert("Google Sign-In Failed", "No ID Token received.");
-    //         }
-    //     } else if (response?.type === "error") {
-    //         console.error("❌ Google Sign-In Error:", response);
-    //         Alert.alert("Google Sign-In Failed", "Please try again.");
-    //     }
-    // }, [response]);
-
-
-
-
-    // // Send Google token to backend for registration
-    // const registerWithGoogle = async (googleToken) => {
-    //     console.log("🚀 registerWithGoogle called, token:", googleToken);
-
-    //     try {
-    //         const res = await axios.post(
-    //             `${ENV.API_URL}/api/auth/register/google/`,
-    //             { token: googleToken },
-    //             { headers: { "Content-Type": "application/json" } }
-    //         );
-    //         console.log("✅ Google Sign-Up Response:", res.data);
-
-    //         if (res.status === 200) {
-    //             await AsyncStorage.setItem("token", res.data.token);
-    //             setIsAuthenticated(true);
-    //             navigation.navigate("Home");
-    //         } else {
-    //             Alert.alert("Google Sign-Up Failed", "Unexpected status code");
-    //         }
-    //     } catch (error) {
-    //         console.error("❌ Google Sign-Up Error:", error);
-    //         Alert.alert("Google Sign-Up Failed", error.response?.data?.error || "Something went wrong.");
-    //     }
-    // };
-
-
-
-    // 1. Create the Google auth request
+    // 1. Create a Google Auth request that auto-handles dev vs. production
     const [request, response, promptAsync] = Google.useAuthRequest({
-        clientId: GOOGLE_CLIENT_ID,  // Must be the Web client ID
+        // clientId: WEB_CLIENT_ID,      // Your Web client ID (used in dev or web fallback)
+        iosClientId: IOS_CLIENT_ID,   // iOS client ID for TestFlight/App Store
+        // androidClientId: ANDROID_CLIENT_ID, // if you want Android support
         scopes: ['profile', 'email'],
         responseType: 'id_token',
-        // The redirect URI must match the one added in Google Cloud Console
-        redirectUri: 'https://auth.expo.io/@jdkuligowski/burst-slug',
+        redirectUri: "https://auth.expo.io/@jdkuligowski/burst-slug",  // <-- Force the Expo proxy
+        // redirectUri: makeRedirectUri({ useProxy: true }),  // <-- Force the Expo proxy
+
+        // We omit redirectUri so expo-auth-session auto-detects the correct environment
+        // If you prefer to see the final redirect URIs, you can console.log(makeRedirectUri(...))
     });
 
-    // 2. Generate and attach the nonce to the request once it's available
+    // 2. Generate and attach the nonce after the request is available
     useEffect(() => {
         const attachNonce = async () => {
             if (request) {
                 const nonce = await generateNonce();
                 console.log('🔑 Generated Nonce:', nonce);
-                // Attach the nonce to the request's extraParams
+                // Merge it into extraParams
                 request.extraParams = { ...request.extraParams, nonce };
             }
         };
         attachNonce();
     }, [request]);
 
-    // 3. Handle the Google response in a single place
+    // 3. Monitor the Google response
     useEffect(() => {
         if (!response) return;  // No response yet
 
@@ -263,7 +322,6 @@ export default function RegisterPage() {
             console.log('✅ Google Sign-In Success:', response);
             const idToken = response.params?.id_token;
             if (idToken) {
-                // Pass token to your backend
                 registerWithGoogle(idToken);
             } else {
                 console.error('❌ No ID Token found in response.');
@@ -277,7 +335,7 @@ export default function RegisterPage() {
         }
     }, [response]);
 
-    // 4. Function to handle the Sign-In button press
+    // 4. Button press => open Google Sign-In
     const handleGoogleSignIn = async () => {
         console.log('🚀 Google Sign-In Button Pressed');
         if (!request) {
@@ -285,12 +343,10 @@ export default function RegisterPage() {
             Alert.alert('Google Sign-In Failed', 'Request is null. Try restarting Expo.');
             return;
         }
-        // Open the Google Sign-In flow
-        console.log('🚀 Opening Google Sign-In in Browser...');
-        await promptAsync();
+        await promptAsync(); // Launch Google OAuth flow
     };
 
-    // 5. When we get the token, hit the backend
+    // 5. If the sign-in is successful, send the ID token to your backend
     const registerWithGoogle = async (googleToken) => {
         console.log('🚀 registerWithGoogle called, token:', googleToken);
         try {
@@ -321,8 +377,6 @@ export default function RegisterPage() {
             Math.random().toString()
         );
     };
-
-
 
     return (
         <SafeAreaView style={styles.landingSafeArea}>
@@ -443,7 +497,7 @@ export default function RegisterPage() {
                             <OnboardingModal
                                 isVisible={isOnboardingVisible}
                                 onClose={handleOnboardingComplete}
-                                navigation={navigation} 
+                                navigation={navigation}
                             />
                         )}
                     </ScrollView>
