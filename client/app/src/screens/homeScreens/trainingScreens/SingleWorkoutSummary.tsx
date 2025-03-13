@@ -290,24 +290,28 @@ export default function WorkoutSummary({ route, navigation }) {
                                         ))}
                                         {userWorkouts.running_sessions.map((session, index) => (
                                             <View key={index} style={styles.sectionContainer}>
-                                                <Text style={styles.sectionTitle}>Warmup</Text>
-                                                <View style={styles.intervalContainer}>
-                                                    {session.warmup_distance < 1 ? (
-                                                        <View style={styles.timeBox}>
-                                                            <Text style={styles.movementDetail}>
-                                                                {session.warmup_distance * 1000}m at
-                                                            </Text>
-                                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                {session.warmup_distance === 0 ? '' :
+                                                    <>
+                                                        <Text style={styles.sectionTitle}>Warmup</Text>
+                                                        <View style={styles.intervalContainer}>
+                                                            {session.warmup_distance < 1 ? (
+                                                                <View style={styles.timeBox}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {session.warmup_distance * 1000}m at
+                                                                    </Text>
+                                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                                </View>
+                                                            ) : (
+                                                                <View style={styles.timeBox}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {session.warmup_distance}km at
+                                                                    </Text>
+                                                                    <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
+                                                                </View>
+                                                            )}
                                                         </View>
-                                                    ) : (
-                                                        <View style={styles.timeBox}>
-                                                            <Text style={styles.movementDetail}>
-                                                                {session.warmup_distance}km at
-                                                            </Text>
-                                                            <IntervalTime time={formatTime(session.suggested_warmup_pace)} />
-                                                        </View>
-                                                    )}
-                                                </View>
+                                                    </>
+                                                }
                                             </View>
                                         ))}
 
@@ -345,24 +349,28 @@ export default function WorkoutSummary({ route, navigation }) {
 
                                         {userWorkouts.running_sessions.map((session, index) => (
                                             <View key={index} style={styles.sectionContainer}>
-                                                <Text style={styles.sectionTitle}>Cool down</Text>
-                                                <View style={styles.intervalContainer}>
-                                                    {session.cooldown_distance < 1 ? (
-                                                        <View style={styles.timeBox}>
-                                                            <Text style={styles.movementDetail}>
-                                                                {session.cooldown_distance * 1000}m at
-                                                            </Text>
-                                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                {session.warmup_distance === 0 ? '' :
+                                                    <>
+                                                        <Text style={styles.sectionTitle}>Cool down</Text>
+                                                        <View style={styles.intervalContainer}>
+                                                            {session.cooldown_distance < 1 ? (
+                                                                <View style={styles.timeBox}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {session.cooldown_distance * 1000}m at
+                                                                    </Text>
+                                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                                </View>
+                                                            ) : (
+                                                                <View style={styles.timeBox}>
+                                                                    <Text style={styles.movementDetail}>
+                                                                        {session.cooldown_distance}km at
+                                                                    </Text>
+                                                                    <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
+                                                                </View>
+                                                            )}
                                                         </View>
-                                                    ) : (
-                                                        <View style={styles.timeBox}>
-                                                            <Text style={styles.movementDetail}>
-                                                                {session.cooldown_distance}km at
-                                                            </Text>
-                                                            <IntervalTime time={formatTime(session.suggested_cooldown_pace)} />
-                                                        </View>
-                                                    )}
-                                                </View>
+                                                    </>
+                                                }
                                             </View>
                                         ))}
                                     </>

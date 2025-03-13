@@ -482,37 +482,41 @@ export default function SuggestedRunningWorkouts({ route }) {
                 </View>
 
                 <View style={styles.dividerLine} />
-                <Text style={styles.workoutActivity}>Workout Summary</Text>
-                <Text style={styles.summaryDetail}>{item.session_name}</Text>
-                {item.notes === "NULL" ? null : (
-                    <Text style={styles.summaryDetail}>{item.notes}</Text>
-                )}
+                <Text style={styles.workoutActivity}>{item.session_name}</Text>
+                {/* // <Text style={styles.summaryDetail}>{item.session_ name}</Text> */}
+                {item.notes === "NULL" ?
+                    <Text style={styles.emptyBox}></Text>
+                    : (
+                        <Text style={styles.summaryDetail}>{item.notes}</Text>
+                    )}
 
                 <ScrollView style={styles.workoutList}>
                     {/* Warmup */}
                     <View style={styles.sectionContainer}>
-                        <Text style={styles.sectionTitle}>Warmup</Text>
-                        <View style={styles.intervalContainer}>
-                            {item.warmup_distance < 1 ? (
-                                <View style={styles.timeBox}>
-                                    <Text style={styles.movementDetail}>
-                                        {item.warmup_distance * 1000}m at
-                                    </Text>
-                                    <IntervalTime
-                                        time={formatTime(warmupCooldownPaceInSeconds)}
-                                    />
+                        {item.warmup_distance === 0 ? '' :
+                            <>
+                                <Text style={styles.sectionTitle}>Warmup</Text>
+                                <View style={styles.intervalContainer}>
+                                    {item.warmup_distance < 1 ? (
+                                        <View style={styles.timeBox}>
+                                            <Text style={styles.movementDetail}>
+                                                {item.warmup_distance * 1000}m at
+                                            </Text>
+                                            <IntervalTime
+                                                time={formatTime(warmupCooldownPaceInSeconds)} />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.timeBox}>
+                                            <Text style={styles.movementDetail}>
+                                                {item.warmup_distance}km at
+                                            </Text>
+                                            <IntervalTime
+                                                time={formatTime(warmupCooldownPaceInSeconds)} />
+                                        </View>
+                                    )}
                                 </View>
-                            ) : (
-                                <View style={styles.timeBox}>
-                                    <Text style={styles.movementDetail}>
-                                        {item.warmup_distance}km at
-                                    </Text>
-                                    <IntervalTime
-                                        time={formatTime(warmupCooldownPaceInSeconds)}
-                                    />
-                                </View>
-                            )}
-                        </View>
+                            </>
+                        }
                     </View>
 
                     {/* Intervals */}
@@ -554,28 +558,32 @@ export default function SuggestedRunningWorkouts({ route }) {
 
                     {/* Cooldown */}
                     <View style={styles.sectionContainer}>
-                        <Text style={styles.sectionTitle}>Cooldown</Text>
-                        <View style={styles.intervalContainer}>
-                            {item.cool_down_distance < 1 ? (
-                                <View style={styles.timeBox}>
-                                    <Text style={styles.movementDetail}>
-                                        {item.cool_down_distance * 1000}m at
-                                    </Text>
-                                    <IntervalTime
-                                        time={formatTime(warmupCooldownPaceInSeconds)}
-                                    />
+                        {item.warmup_distance === 0 ? '' :
+                            <>
+                                <Text style={styles.sectionTitle}>Cooldown</Text>
+                                <View style={styles.intervalContainer}>
+                                    {item.cool_down_distance < 1 ? (
+                                        <View style={styles.timeBox}>
+                                            <Text style={styles.movementDetail}>
+                                                {item.cool_down_distance * 1000}m at
+                                            </Text>
+                                            <IntervalTime
+                                                time={formatTime(warmupCooldownPaceInSeconds)}
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.timeBox}>
+                                            <Text style={styles.movementDetail}>
+                                                {item.cool_down_distance}km at
+                                            </Text>
+                                            <IntervalTime
+                                                time={formatTime(warmupCooldownPaceInSeconds)}
+                                            />
+                                        </View>
+                                    )}
                                 </View>
-                            ) : (
-                                <View style={styles.timeBox}>
-                                    <Text style={styles.movementDetail}>
-                                        {item.cool_down_distance}km at
-                                    </Text>
-                                    <IntervalTime
-                                        time={formatTime(warmupCooldownPaceInSeconds)}
-                                    />
-                                </View>
-                            )}
-                        </View>
+                            </>
+                        }
                     </View>
                 </ScrollView>
 
@@ -824,6 +832,7 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         fontWeight: 700,
         fontSize: 16,
+        // paddingBottom: 5,
     },
     loadingContainer: {
         flex: 1,
@@ -840,7 +849,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     workoutList: {
-        padding: 20,
+        paddingRight: 20,
+        paddingLeft: 20,
         height: 350,
     },
     sectionContainer: {
@@ -902,6 +912,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginLeft: 20,
         marginTop: 10,
+        marginRight: 10,
     },
     movementDescription: {
         fontSize: 16,
@@ -1049,5 +1060,9 @@ const styles = StyleSheet.create({
         marginRight: 20,
         marginBottom: 20,
         fontSize: 20,
+    },
+    emptyBox: {
+        margin: 0,
+        padding: 0,
     },
 });

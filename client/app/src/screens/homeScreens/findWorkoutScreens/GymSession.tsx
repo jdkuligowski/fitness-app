@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   workoutSubtitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: 600,
     marginBottom: 20,
   },
   workoutType: {

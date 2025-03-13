@@ -616,8 +616,10 @@ export default function WorkoutScreen({ route }) {
     };
 
     const findConditioningByExercise = (movement) => {
-        return workoutData.find((data) => data.exercise.trim().toLowerCase() === movement.exercise.trim().toLowerCase());
-    };
+        return workoutData.find((data) =>
+          (data.exercise || "").trim().toLowerCase() === (movement.exercise || "").trim().toLowerCase()
+        );
+      };
 
 
     return (
