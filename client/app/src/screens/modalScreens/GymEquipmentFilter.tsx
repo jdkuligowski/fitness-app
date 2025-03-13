@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -6,7 +7,9 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    TextInput
+    TextInput,
+    KeyboardAvoidingView,
+    Platform
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ENV from '../../../../env';
@@ -56,11 +59,38 @@ const BODYWEIGHT_MACHINES = [
 export default function EquipmentFilterModal({
     visible,
     onClose,
-    onSave,              // callback to handle saving
+    isEdit = false,         // if true, we load existing data
+    existingFilter = null, // { filterId, filterName, equipment: [...] }
+    onSave,                // callback after a new filter is created
+    onUpdate,              // callback after an existing filter is updated
     initialSelections = {}  // pass in already selected equipment if needed
 }) {
+    const navigation = useNavigation();
+
     const [selectedEquipment, setSelectedEquipment] = useState(initialSelections);
     const [equipmentSetName, setEquipmentSetName] = useState('');
+
+    useEffect(() => {
+        if (visible && isEdit && existingFilter) {
+            // Fill the name
+            setEquipmentSetName(existingFilter.filterName || '');
+            // Build the `selectedEquipment` map from the array
+            const temp = {};
+            existingFilter.equipment?.forEach((equipObj) => {
+                // e.g. {id: 3, equipment_name: "Barbell"}
+                // We'll interpret the "label" as equipObj.equipment_name if you prefer
+                // or if your data is just the string e.g. "Barbell," adapt accordingly
+                const name = equipObj.equipment_name || equipObj.label || equipObj;
+                temp[name] = true;
+            });
+            setSelectedEquipment(temp);
+        }
+        // If create mode, it might default to empty
+        else if (visible && !isEdit) {
+            setEquipmentSetName('');
+            setSelectedEquipment({});
+        }
+    }, [visible, isEdit, existingFilter]);
 
     // Toggle an item
     const toggleEquipment = (id) => {
@@ -103,84 +133,110 @@ export default function EquipmentFilterModal({
         setSelectedEquipment(updates);
     };
 
-    // Save handler
-    const handleSave = async () => {
+
+    // 6) Handling Save or Update
+    const handleSaveOrUpdate = async () => {
+        // Convert `selectedEquipment` map -> array
+        const selectedIds = Object.keys(selectedEquipment).filter((id) => selectedEquipment[id]);
+
         try {
             const userId = await AsyncStorage.getItem("userId");
-            const selectedIds = Object.keys(selectedEquipment).filter((id) => selectedEquipment[id]);
+            if (!userId) {
+                alert("No user ID found");
+                return;
+            }
 
-            const response = await fetch(
-                `${ENV.API_URL}/api/equipment_filters/create?user_id=${userId}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name: equipmentSetName,
-                        equipmentIds: selectedIds
-                    })
+            if (!isEdit) {
+                // CREATE new filter
+                const response = await fetch(
+                    `${ENV.API_URL}/api/equipment_filters/create?user_id=${userId}`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: equipmentSetName,
+                            equipmentIds: selectedIds,
+                        }),
+                    }
+                );
+                if (response.ok) {
+                    const newFilter = await response.json();
+                    console.log("Filter Created:", newFilter);
+                    onSave?.(newFilter);
+                    onClose();
+                } else {
+                    const errData = await response.json();
+                    alert(errData.error || "Failed to create filter");
                 }
-            );
-
-            if (response.ok) {
-                const newFilter = await response.json();
-                console.log("Filter Created:", newFilter);
-
-                // Persist minimal info so you know which filter is active
-                // e.g. { filterName: "Home Gym", equipment: ["Barbell","Rack"] }
-                const filterToStore = {
-                    filterId: newFilter.id, // <--- IMPORTANT
-                    filterName: newFilter.filter_name || equipmentSetName,
-                    equipment: selectedIds,
-                };
-                await AsyncStorage.setItem("activeEquipmentFilter", JSON.stringify(filterToStore));
-                await AsyncStorage.setItem("activeFilterId", JSON.stringify(newFilter.id));
-
-                // Then do your normal onSave & onClose
-                onSave(newFilter);
-                onClose();
             } else {
-                // handle error
-                const errData = await response.json();
-                alert(errData.error || "Failed to create filter");
+                // EDIT existing filter
+                // Suppose we have an endpoint like /api/equipment_filters/<filterId>?user_id=...
+                // for a PUT or PATCH
+                const filterId = existingFilter.filterId;
+                const response = await fetch(
+                    `${ENV.API_URL}/api/equipment_filters/${filterId}/update?user_id=${userId}`,
+                    {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: equipmentSetName,
+                            equipmentIds: selectedIds,
+                        }),
+                    }
+                );
+                if (response.ok) {
+                    const updatedFilter = await response.json();
+                    console.log("Filter Updated:", updatedFilter);
+                    onUpdate?.(updatedFilter);
+                    onClose();
+                } else {
+                    const errData = await response.json();
+                    alert(errData.error || "Failed to update filter");
+                }
             }
         } catch (error) {
-            console.error("Error saving filter:", error);
-            alert("Error saving filter, please try again");
+            console.error("Error saving/updating filter:", error);
+            alert("Error saving/updating filter, please try again");
         }
     };
 
 
-    const renderEquipmentSection = (title, items) => {
+    const renderEquipmentSection = (title, items, iconName) => {
         return (
-            <View style={styles.sectionContainer}>
+            <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>{title}</Text>
-                    <TouchableOpacity onPress={() => toggleAllInCategory(items)}>
-                        <Text style={styles.sectionToggle}>
-                            {areAllSelected(items) ? 'Unselect All' : 'Select All'}
+                    <View style={styles.sectionHeaderLeft}>
+                        {/* Example icon - you can import from Ionicons or use a custom image */}
+                        <Ionicons name={iconName} size={20} color="#4D4D4D" style={{ marginRight: 8 }} />
+                        <Text style={styles.sectionTitle}>{title}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.sectionToggle} onPress={() => toggleAllInCategory(items)}>
+                        <Text style={styles.sectionToggleText}>
+                            {areAllSelected(items) ? 'Unselect all' : 'Select all'}
                         </Text>
                     </TouchableOpacity>
                 </View>
                 <View style={styles.equipmentList}>
-                    {items.map((item) => {
+                    {items.map((item, index) => {
                         const isSelected = !!selectedEquipment[item.id];
                         return (
                             <TouchableOpacity
-                                key={item.id}
-                                style={[styles.equipmentItem, isSelected && styles.equipmentItemSelected]}
+                                key={item.id || index}
+                                style={[
+                                    styles.optionButton,
+                                    isSelected && styles.selectedOption,
+                                ]}
                                 onPress={() => toggleEquipment(item.id)}
                             >
-                                <Ionicons
-                                    name={isSelected ? 'checkbox' : 'checkbox-outline'}
-                                    size={20}
-                                    color={isSelected ? 'green' : 'grey'}
-                                    style={{ marginRight: 6 }}
-                                />
-                                <Text style={styles.equipmentLabel}>{item.label}</Text>
+                                {/* Circle to show selected vs. not selected */}
+                                <View style={[styles.optionCircle, isSelected && styles.optionCircleSelected]} />
+                                {/* Label */}
+                                <Text style={styles.optionLabel}>{item.label}</Text>
                             </TouchableOpacity>
                         );
                     })}
                 </View>
+
             </View>
         );
     };
@@ -192,146 +248,250 @@ export default function EquipmentFilterModal({
             visible={visible}
             onRequestClose={onClose}
         >
-            <View style={styles.modalContainer}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+            <View style={styles.safeArea}>
                 {/* Header */}
-                <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={onClose}>
-                        <Ionicons name="close" size={26} color="black" />
+                <View style={styles.headerContainer}>
+                    <TouchableOpacity style={styles.backButton} onPress={onClose}>
+                        <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
-                    <View style={styles.modalSubHeader}>
-
-                        <Text style={styles.modalTitle}>Select Equipment</Text>
-                        <TouchableOpacity onPress={selectAllEquipment}>
-                            <Text style={styles.modalTitle}>
-                                Select All
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <Text style={styles.headerTitle}>
+                        {isEdit ? "Edit Filter" : "Create a Filter"}
+                    </Text>
                 </View>
 
-                <ScrollView style={styles.modalContent}>
-                    {renderEquipmentSection('Core Equipment', CORE_EQUIPMENT)}
-                    {renderEquipmentSection('Cardio Equipment', CARDIO_EQUIPMENT)}
-                    {renderEquipmentSection('Accessories', ACCESSORIES)}
-                    {renderEquipmentSection('Machines', MACHINES)}
-                    {renderEquipmentSection('Bodyweight Machines', BODYWEIGHT_MACHINES)}
+                {/* Subheader with "Select Equipment" and "Select All" */}
+                <View style={styles.subHeader}>
+                    <Text style={styles.subHeaderText}>Select Equipment</Text>
+                    <TouchableOpacity style={styles.selectAllButton} onPress={selectAllEquipment}>
+                        <Text style={styles.selectAllText}>Select All</Text>
+                    </TouchableOpacity>
+                </View>
 
-                    {/* Name Input */}
-                    <View style={styles.saveContainer}>
-                        <Text style={styles.saveLabel}>Save equipment set as:</Text>
+                <ScrollView contentContainerStyle={styles.scrollContainer}>
+                    {/* Example calls. Provide your actual sections & icons */}
+                    {renderEquipmentSection('Core Equipment', CORE_EQUIPMENT, 'barbell-outline')}
+                    {renderEquipmentSection('Cardio Equipment', CARDIO_EQUIPMENT, 'bicycle-outline')}
+                    {renderEquipmentSection('Accessories', ACCESSORIES, 'briefcase-outline')}
+                    {renderEquipmentSection('Machines', MACHINES, 'cog-outline')}
+                    {renderEquipmentSection('Bodyweight Machines', BODYWEIGHT_MACHINES, 'body-outline')}
+
+                    {/* Filter Name Input */}
+                    <View style={styles.nameContainer}>
+                        <Text style={styles.nameLabel}>Filter name</Text>
                         <TextInput
-                            style={styles.saveInput}
-                            placeholder="Main gym, Home gym..."
+                            style={styles.nameInput}
+                            placeholder="Home gym, Work gym..."
                             value={equipmentSetName}
                             onChangeText={setEquipmentSetName}
                         />
+                    </View>
 
+                    {/* Save Button */}
+                    <View style={styles.saveWrapper}>
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSaveOrUpdate}>
+                            <Text style={styles.saveButtonText}>
+                                {isEdit ? "Update" : "Create"}
+
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
-                <View style={styles.saveSection}>
-                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>Save</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
-        </Modal>
+        </KeyboardAvoidingView>
+        </Modal >
     );
 }
 
 const styles = StyleSheet.create({
-    modalContainer: {
-        flexGrow: 1,
-        backgroundColor: '#fff'
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#F3F1FF', // Light background
     },
-    modalHeader: {
-        flexDirection: 'column',
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F1FF',
+        paddingTop: 70,
         paddingHorizontal: 16,
-        paddingVertical: 10,
-        alignItems: 'flex-end',
-        // justifyContent: 'space-between',
-        // borderBottomWidth: 1,
-        // borderColor: '#ddd', 
-        marginTop: 50,
+        paddingBottom: 14,
     },
-    modalSubHeader: {
+    backButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'black',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 16,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: 'black',
+    },
+
+    subHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignContent: 'center',
-        width: '100%',
-        marginTop: 20,
+        alignItems: 'center',
+        marginTop: 10,
+        marginHorizontal: 16,
     },
-    modalTitle: {
+    subHeaderText: {
         fontSize: 16,
-        fontWeight: '600'
+        fontWeight: '600',
+        color: '#333',
     },
-    modalContent: {
+    selectAllButton: {
+        borderWidth: 1,
+        borderColor: 'black',
+        paddingVertical: 5,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+    },
+    selectAllText: {
+        fontSize: 12,
+        color: 'black',
+    },
+
+    scrollContainer: {
+        paddingBottom: 60,
+    },
+
+    // Each equipment section
+    sectionCard: {
+        backgroundColor: 'white',
+        marginHorizontal: 16,
+        marginTop: 16,
         padding: 16,
-        height: 400,
-    },
-    sectionContainer: {
-        marginBottom: 20
+        borderRadius: 12,
+        // shadow for iOS
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        // elevation for Android
+        elevation: 2,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8
+        marginBottom: 12,
+    },
+    sectionHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: 'bold'
+        fontWeight: '600',
+        color: '#333',
     },
     sectionToggle: {
-        fontSize: 14,
-        color: 'blue'
+        backgroundColor: '#E0F4DE',
+        borderWidth: 1,
+        borderColor: '#ADADAD',
+        paddingVertical: 2,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+        // color: 'black',
     },
+    sectionToggleText: {
+        fontSize: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        // borderWidth: 1,
+        // borderColor: '#6E44FF',
+        borderRadius: 6,
+        color: 'black',
+    },
+
     equipmentList: {
         flexDirection: 'row',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        // justifyContent: 'space-between',
     },
-    equipmentItem: {
+    optionButton: {
+        // Matches your "optionButton" style
+        // width: '48%',
+        borderWidth: 1,
+        borderColor: '#B0B0B0',
+        borderRadius: 10,
+        backgroundColor: 'white',
+        marginBottom: 10,
+        marginRight: 10,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    selectedOption: {
+        // Similar to "selectedOption" 
+        backgroundColor: 'white',
+        borderColor: 'black',
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderBottomWidth: 3,
+        borderRightWidth: 3,
+    },
+    optionCircle: {
+        // Replaces Ionicons checkbox with a circle
+        width: 20,
+        height: 20,
+        borderRadius: 15,
         borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 8,
-        marginRight: 8,
-        marginBottom: 8
+        borderColor: '#B0B0B0',
+        marginRight: 5,
     },
-    equipmentItemSelected: {
-        backgroundColor: '#eee'
+    optionCircleSelected: {
+        // When selected, highlight
+        borderColor: '#008080', // e.g. teal or your brand color
+        backgroundColor: '#DEF3F4',
     },
-    equipmentLabel: {
-        fontSize: 14
+    optionLabel: {
+        fontSize: 12,
+        color: '#333',
     },
-    saveContainer: {
-        marginTop: 0
+
+    nameContainer: {
+        marginTop: 20,
+        marginHorizontal: 16,
     },
-    saveLabel: {
+    nameLabel: {
         fontSize: 14,
-        marginBottom: 6
+        fontWeight: '500',
+        marginBottom: 6,
+        color: '#333',
     },
-    saveInput: {
+    nameInput: {
         borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 12,
-        borderRadius: 6
+        borderColor: '#CCC',
+        backgroundColor: 'white',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 15,
+        fontSize: 14,
+    },
+    saveWrapper: {
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     saveButton: {
+        marginTop: 20,
+        marginHorizontal: 16,
         backgroundColor: 'black',
-        padding: 15,
-        borderRadius: 6,
-        alignItems: 'center'
+        borderRadius: 20,
+        paddingVertical: 14,
+        alignItems: 'center',
+        width: '80%',
     },
     saveButtonText: {
         color: 'white',
-        fontWeight: 'bold'
-    },
-    saveSection: {
-        paddingTop: 20,
-        paddingLeft: 10,
-        paddingRight: 10,
-        marginBottom: 50,
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

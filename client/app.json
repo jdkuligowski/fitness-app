@@ -3,15 +3,15 @@
     "name": "Burst",
     "slug": "burst-slug",
     "owner": "jdkuligowski", 
-    "version": "1.0.35",
+    "version": "1.0.36",
     "orientation": "portrait",
     "icon": "./assets/images/burst_basic_icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/burst_basic_icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#d6f7f4"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fitnessapp.burst",
-      "buildNumber": "35"
+      "buildNumber": "36"
     },
     "android": {
       "adaptiveIcon": {

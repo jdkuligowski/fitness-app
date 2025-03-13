@@ -17,12 +17,12 @@ class ListAllEquipmentFilters(APIView):
     GET: Return all saved filters for a user specified by user_id in query params.
     """
     def get(self, request):
-        user_id = request.query_params.get("user_id")
-        if not user_id:
+        owner_id = request.query_params.get("user_id")
+        if not owner_id:
             return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = get_object_or_404(User, pk=user_id)
-        filters = SavedEquipmentFilter.objects.filter(user=user)
+        user = get_object_or_404(User, pk=owner_id)
+        filters = SavedEquipmentFilter.objects.filter(owner=user)
         serializer = SavedEquipmentFilterSerializer(filters, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -95,29 +95,29 @@ class GetSingleEquipmentFilter(APIView):
 
 class UpdateSingleEquipmentFilter(APIView):
     """
-    PUT: Update name/equipment for an existing filter (by filter_id & user_id).
+    PUT: Update filter_name / equipment for an existing filter (by filter_id & user_id).
     """
     def put(self, request, filter_id):
-        user_id = request.query_params.get("user_id")
-        if not user_id:
+        owner_id = request.query_params.get("user_id")
+        if not owner_id:
             return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = get_object_or_404(User, pk=user_id)
-        saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id, user=user)
+        user = get_object_or_404(User, pk=owner_id)
+        saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id, owner=user)
 
-        name = request.data.get("name", saved_filter.name)
+        new_name = request.data.get("name", saved_filter.filter_name)
         equipment_ids = request.data.get("equipmentIds", [])
 
         # Check uniqueness if changing the name
         if (SavedEquipmentFilter.objects
-             .filter(user=user, name=name)
+             .filter(owner=user, filter_name=new_name)
              .exclude(pk=saved_filter.pk)
              .exists()):
             return Response({"error": "Filter name must be unique for this user."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        saved_filter.name = name
-        equipment_qs = Equipment.objects.filter(id__in=equipment_ids)
+        saved_filter.filter_name = new_name
+        equipment_qs = Equipment.objects.filter(equipment_name__in=equipment_ids)
         saved_filter.equipment.set(equipment_qs)
         saved_filter.save()
 
@@ -125,17 +125,18 @@ class UpdateSingleEquipmentFilter(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 class DeleteEquipmentFilter(APIView):
     """
     DELETE: Remove an existing filter (by filter_id & user_id).
     """
     def delete(self, request, filter_id):
-        user_id = request.query_params.get("user_id")
-        if not user_id:
-            return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        owner_id = request.query_params.get("user_id")
+        if not owner_id:
+            return Response({"error": "owner_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = get_object_or_404(User, pk=user_id)
-        saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id, user=user)
+        user = get_object_or_404(User, pk=owner_id)
+        saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id, owner=user)
 
         saved_filter.delete()
         return Response({"message": "Filter deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
