@@ -24,4 +24,3 @@ class Workout(models.Model):
         null=True,
         db_index=True 
     )
-

@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from rest_framework import status
 from django.core.exceptions import ValidationError
 import logging  # ✅ Import logging
-from datetime import date
+from datetime import date, time, datetime
 from .models import Workout
 from workout_sections.models import Section
 from movements.models import Movement
@@ -36,6 +36,7 @@ from saved_mobility_details.models import SavedMobilityDetails
 from saved_hiit.models import SavedHIITWorkout
 from saved_hiit_details.models import SavedHIITDetails
 from saved_hiit_detail_movements.models import SavedHIITMovement
+from notifications.models import ScheduledNotification
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -161,6 +162,9 @@ class SaveWorkoutView(APIView):
                         movements=movement,
                         movement_order=movement_data['movement_order'],
                     )
+        
+        # schedule notification if required
+        self._create_scheduled_notification_if_needed(workout, user, data)
 
         serialized_workout = PopulatedWorkoutSerializer(workout).data
         return Response({'message': 'Gym workout saved successfully', 'workout': serialized_workout}, status=201)
@@ -230,6 +234,9 @@ class SaveWorkoutView(APIView):
                     actual_time=split_time.get('actual_time'),
                     comments=split_time.get('comments', None),
                 )
+                
+        # schedule notification if required
+        self._create_scheduled_notification_if_needed(workout, user, data)
 
         return Response({'message': 'Running workout saved successfully', 'workout_id': workout.id}, status=201)
 
@@ -294,6 +301,9 @@ class SaveWorkoutView(APIView):
         # If any movements were skipped, include a warning in the response
         if skipped_movements:
             response_data['warning'] = f"Skipped movements: {', '.join(skipped_movements)} (not found in database)."
+
+        # schedule notification if required
+        self._create_scheduled_notification_if_needed(workout, user, data)
 
         return Response(response_data, status=201)
 
@@ -383,6 +393,10 @@ class SaveWorkoutView(APIView):
                 "hiit_type": hiit_workout.workout_type,
                 "structure": hiit_workout.structure,
             }
+            
+            # schedule notification if required
+            self._create_scheduled_notification_if_needed(workout, user, data)
+            
             print(f"🎉 HIIT Workout Saved Successfully: {serialized_workout}")
             return Response({'message': 'HIIT workout saved successfully', 'workout': serialized_workout}, status=201)
 
@@ -497,6 +511,43 @@ class SaveWorkoutView(APIView):
 
         else:
             return "UNK-999"
+
+    def _create_scheduled_notification_if_needed(self, workout, user, data):
+        """
+        If the workout has a scheduled date, create a ScheduledNotification
+        row for that date/time.
+        """
+        # 1) Check if scheduled_date is present
+        scheduled_date = data.get('scheduled_date')
+        if not scheduled_date:
+            return  # No date => skip
+
+        # 2) Parse scheduled_date (assuming it's a string like "2025-04-10")
+        # If it's already a datetime or date object, skip the parsing part
+        try:
+            scheduled_date_obj = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
+        except ValueError:
+            # If user gave an invalid date format, skip or handle error
+            return
+
+        # 3) Decide on a default reminder time (e.g. 8:00 AM), 
+        #    or if your request has "reminder_time" you can parse that:
+        reminder_hour = 13
+        reminder_minute = 19
+        # If you want to store or parse them from data, do that here:
+        # reminder_hour = data.get('reminder_hour', 8)
+
+        # 4) Combine date + time
+        reminder_dt = datetime.combine(scheduled_date_obj, time(hour=reminder_hour, minute=reminder_minute))
+
+        # 5) Create the notification row
+        ScheduledNotification.objects.create(
+            owner=user,
+            workout=workout,
+            scheduled_datetime=reminder_dt,
+            title="Today's workout",
+            body=f"Don't forget your {workout.name} workout today",
+        )
 
 
 

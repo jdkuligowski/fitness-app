@@ -7,14 +7,14 @@ User = get_user_model()
 from saved_workouts.serializers.populated import PopulatedWorkoutSerializer
 from leaderboard.serializers.common import LeaderboardSerializer
 from saved_equipment_lists.serializers.common import SavedEquipmentFilterSerializer
-# from score_logs.serializers.common import ScoreLogSerializer
+from notifications.serializers.common import NotificationSerializer
 
 # define our own serializer class - this is generic and will return all fields from the Review model
 class PopulatedUserSerializer(UserSerializer):
     saved_workouts = PopulatedWorkoutSerializer(many=True)
     leaderboard = LeaderboardSerializer()
     equipment_filters = SavedEquipmentFilterSerializer(many=True)
-    # score_logs = ScoreLogSerializer(many=True)
+    notifications = NotificationSerializer(many=True)
     
     class Meta:
         model = User

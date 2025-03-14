@@ -13,5 +13,4 @@ class Section(models.Model):
         blank=True,
         null=True,
         db_index=True 
-
     )

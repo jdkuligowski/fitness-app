@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import environ
+from celery.schedules import crontab
 
 env = environ.Env()
 
@@ -75,6 +76,7 @@ INSTALLED_APPS = [
     'equipment',
     'equipment_movements',
     'saved_equipment_lists',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -228,3 +230,26 @@ LOGGING = {
         },
     },
 }
+
+
+# Celery settings
+
+# import os
+
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+
+# CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"  # or your Redis URL
+CELERY_BEAT_SCHEDULER = "celery.beat.PersistentScheduler"
+CELERY_BEAT_SCHEDULE_FILENAME = "/tmp/celerybeat-schedule"  # or some path
+CELERY_TIMEZONE = "UTC"  # or your local timezone
+
+
+
+CELERY_BEAT_SCHEDULE = {
+    "send-every-minute": {
+        "task": "notifications.tasks.send_due_notifications",
+        "schedule": 60.0,  # every 60 seconds
+    },
+}
+
+

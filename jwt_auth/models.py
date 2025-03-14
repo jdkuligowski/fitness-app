@@ -13,6 +13,7 @@ class User(AbstractUser):
     fitness_goals = models.CharField(max_length=100, null=True, blank=True)
     exercise_regularity = models.IntegerField(default=0, null=True, blank=True)
     non_negotiable_dislikes = models.CharField(max_length=100, null=True, blank=True)
+    expo_push_token = models.CharField(max_length=300, null=True, blank=True)
     five_k_mins = models.IntegerField(null=True, blank=True)
     five_k_secs = models.IntegerField(null=True, blank=True)
     first_login = models.DateTimeField(null=True, blank=True)  # Add the first_login field
