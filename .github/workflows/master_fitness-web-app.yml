@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11' # Change to 3.13 if absolutely necessary
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -25,6 +25,9 @@ jobs:
           source venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Set env vars  # <-- Move this before the test step
+        run: echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
 
       - name: Verify installed packages
         run: |
@@ -36,10 +39,6 @@ jobs:
           source venv/bin/activate
           python manage.py test
       
-      - name: Set env vars
-        run: echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-
-
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
