@@ -27,7 +27,17 @@ jobs:
           pip install -r requirements.txt
 
       - name: Set env vars  # <-- Move this before the test step
-        run: echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+          echo "DBNAME=${{ secrets.DBNAME }}" >> $GITHUB_ENV
+          echo "DBUSER=${{ secrets.DBUSER }}" >> $GITHUB_ENV
+          echo "DBPASSWORD=${{ secrets.DBPASSWORD }}" >> $GITHUB_ENV
+          echo "DBHOST=${{ secrets.DBHOST }}" >> $GITHUB_ENV
+          echo "CELERY_BROKER_URL=${{ secrets.CELERY_BROKER_URL }}" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_CONNECTION_STRING=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_ACCOUNT_NAME=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" >> $GITHUB_ENV
+
+
 
       - name: Verify installed packages
         run: |
