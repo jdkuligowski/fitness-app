@@ -250,6 +250,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "notifications.tasks.send_due_notifications",
         "schedule": 60.0,  # every 60 seconds
     },
+    
+    # New daily leaderboard aggregator (runs once a day at 2 AM)
+    "update-leaderboards-daily": {
+        "task": "leaderboard.tasks.update_leaderboards",
+        "schedule": crontab(hour=2, minute=0),  
+        # Alternatively, use an interval in seconds, e.g., schedule=86400.0 for once a day
+    },
+
 }
 
 

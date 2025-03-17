@@ -8,9 +8,12 @@ class Leaderboard(models.Model):
         related_name='leaderboard', 
         db_index=True
     )
-    total_score = models.IntegerField(default=0, db_index=True)  # Total score for leaderboard ranking
-    weekly_score = models.IntegerField(default=0)  # Score for the current week (resets weekly)
-    monthly_score = models.IntegerField(default=0)  # Score for the current week (resets weekly)
+    total_score = models.IntegerField(default=0, db_index=True)
+    weekly_score = models.IntegerField(default=0) 
+    monthly_score = models.IntegerField(default=0) 
+    total_rank = models.IntegerField(default=0)  
+    weekly_rank = models.IntegerField(default=0)
+    monthly_rank = models.IntegerField(default=0) 
     last_updated = models.DateTimeField(auto_now=True)  # Last time the score was updated
 
     def __str__(self):

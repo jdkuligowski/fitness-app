@@ -512,42 +512,118 @@ class SaveWorkoutView(APIView):
         else:
             return "UNK-999"
 
+    # def _create_scheduled_notification_if_needed(self, workout, user, data):
+    #     """
+    #     If the workout has a scheduled date, create a ScheduledNotification
+    #     row for that date/time.
+    #     """
+    #     # 1) Check if scheduled_date is present
+    #     scheduled_date = data.get('scheduled_date')
+    #     if not scheduled_date:
+    #         return  # No date => skip
+
+    #     # 2) Parse scheduled_date (assuming it's a string like "2025-04-10")
+    #     # If it's already a datetime or date object, skip the parsing part
+    #     try:
+    #         scheduled_date_obj = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
+    #     except ValueError:
+    #         # If user gave an invalid date format, skip or handle error
+    #         return
+
+    #     # 3) Decide on a default reminder time (e.g. 8:00 AM), 
+    #     #    or if your request has "reminder_time" you can parse that:
+    #     reminder_hour = 16
+    #     reminder_minute = 00
+    #     # If you want to store or parse them from data, do that here:
+    #     # reminder_hour = data.get('reminder_hour', 8)
+
+    #     # 4) Combine date + time
+    #     reminder_dt = datetime.combine(scheduled_date_obj, time(hour=reminder_hour, minute=reminder_minute))
+
+    #     # 5) Create the notification row
+    #     ScheduledNotification.objects.create(
+    #         owner=user,
+    #         workout=workout,
+    #         scheduled_datetime=reminder_dt,
+    #         title="Today's workout",
+    #         body=f"Don't forget to complete your {workout.name} workout to get points",
+    #     )
+
+
     def _create_scheduled_notification_if_needed(self, workout, user, data):
         """
-        If the workout has a scheduled date, create a ScheduledNotification
-        row for that date/time.
+        Simplified logic with debug logs:
+        - If scheduled_date > today => schedule at 20:00
+        - If scheduled_date == today => parse scheduled_time
+            if <17:00 => 20:00
+            else => user_scheduled_time + 2h
+        - If scheduled_date < today => skip
         """
-        # 1) Check if scheduled_date is present
-        scheduled_date = data.get('scheduled_date')
-        if not scheduled_date:
-            return  # No date => skip
 
-        # 2) Parse scheduled_date (assuming it's a string like "2025-04-10")
-        # If it's already a datetime or date object, skip the parsing part
-        try:
-            scheduled_date_obj = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
-        except ValueError:
-            # If user gave an invalid date format, skip or handle error
+        scheduled_date_str = data.get('scheduled_date')
+        if not scheduled_date_str:
+            logger.debug("No scheduled_date provided -> skipping notification.")
             return
 
-        # 3) Decide on a default reminder time (e.g. 8:00 AM), 
-        #    or if your request has "reminder_time" you can parse that:
-        reminder_hour = 13
-        reminder_minute = 19
-        # If you want to store or parse them from data, do that here:
-        # reminder_hour = data.get('reminder_hour', 8)
+        # Parse the scheduled_date
+        try:
+            scheduled_date_obj = datetime.strptime(scheduled_date_str, "%Y-%m-%d").date()
+            logger.debug(f"Parsed scheduled_date_obj={scheduled_date_obj}")
+        except ValueError:
+            logger.warning(f"Invalid date format for scheduled_date: {scheduled_date_str} -> skipping.")
+            return
 
-        # 4) Combine date + time
-        reminder_dt = datetime.combine(scheduled_date_obj, time(hour=reminder_hour, minute=reminder_minute))
+        today_date = now().date()
+        logger.debug(f"Today is {today_date}, scheduled_date is {scheduled_date_obj}")
 
-        # 5) Create the notification row
-        ScheduledNotification.objects.create(
-            owner=user,
-            workout=workout,
-            scheduled_datetime=reminder_dt,
-            title="Today's workout",
-            body=f"Don't forget your {workout.name} workout today",
-        )
+        if scheduled_date_obj < today_date:
+            logger.debug("scheduled_date < today -> skipping.")
+            return
+
+        # If future date -> always 20:00
+        if scheduled_date_obj > today_date:
+            reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
+            logger.debug(f"scheduled_date > today -> reminder at {reminder_dt}")
+        else:
+            # scheduled_date == today
+            # parse user_scheduled_time
+            scheduled_time_str = data.get('scheduled_time')
+            if not scheduled_time_str:
+                logger.debug("No scheduled_time for same-day -> skipping.")
+                return
+
+            try:
+                user_time = datetime.strptime(scheduled_time_str, "%H:%M").time()
+                logger.debug(f"parsed user_time={user_time}")
+            except ValueError:
+                logger.warning(f"Invalid time format for scheduled_time: {scheduled_time_str} -> skipping.")
+                return
+
+            # Convert to datetime
+            base_dt = datetime.combine(scheduled_date_obj, user_time)
+            logger.debug(f"base_dt for user_time is {base_dt}")
+
+            threshold_17 = datetime.combine(scheduled_date_obj, time(hour=17, minute=0))
+            if base_dt < threshold_17:
+                # <17:00 => set to 20:00
+                reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
+                logger.debug(f"user_time <17:00, so reminder_dt={reminder_dt}")
+            else:
+                # otherwise => user_time + 2h
+                reminder_dt = base_dt + timedelta(hours=2)
+                logger.debug(f"user_time >=17:00 => reminder_dt={reminder_dt}")
+
+        # Finally, create the row if we have a reminder_dt
+        if reminder_dt:
+            ScheduledNotification.objects.create(
+                owner=user,
+                workout=workout,
+                scheduled_datetime=reminder_dt,
+                title="Workout Reminder",
+                body=f"Don't forget to complete your {workout.name} workout to get points",
+            )
+            logger.info(f"Created reminder -> {reminder_dt} for user={user.id}, workout={workout.id}")
+
 
 
 
@@ -695,246 +771,6 @@ class GetSingleWorkoutView(APIView):
             print(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-# class GetSingleWorkoutView(APIView):
-#     """
-#     Get a single workout and return all related workout details along with 
-#     the last 3 movement histories for each movement within the workout.
-#     """
-
-#     def get(self, request, workout_id):
-#         user_id = request.query_params.get('user_id')
-
-#         try:
-#             # Fetch the workout and its related data
-#             try:
-#                 workout = Workout.objects.prefetch_related(
-#                     Prefetch(
-#                         'workout_sections__section_movement_details',
-#                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
-#                     )
-#                 ).select_related('owner').get(id=workout_id, owner=user_id)
-#                 print(f"Fetched workout {workout_id} for user {user_id}")
-#             except Workout.DoesNotExist:
-#                 print(f"Workout {workout_id} does not exist for user {user_id}")
-#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#             # Serialize workout data
-#             serializer = PopulatedWorkoutSerializer(workout)
-#             workout_data = serializer.data
-
-#             # Extract movement IDs for history query
-#             movement_ids = [
-#                 movement['movements']['id']
-#                 for section in workout_data['workout_sections']
-#                 for movement in section['section_movement_details']
-#                 if movement.get('movements')
-#             ]
-#             print(f"Movement IDs extracted: {movement_ids}")
-
-#             if not movement_ids:
-#                 print("No movement IDs found for this workout.")
-#                 return Response({"workout": workout_data, "movement_history": {}}, status=status.HTTP_200_OK)
-
-#             # Get the last 3 workouts for each movement
-#             movement_history = {}
-
-#             for movement_id in movement_ids:
-#                 print(f"Fetching history for movement ID {movement_id}")
-
-#                 # Query the last 3 workouts where this movement appears
-#                 history_records = list(Set.objects.filter(
-#                     section_movement__movements__id=movement_id,
-#                     section_movement__section__workout__owner=user_id,
-#                     section_movement__section__workout__status="Completed"
-#                 ).select_related(
-#                     'section_movement__movements',
-#                     'section_movement__section__workout'
-#                 ).order_by(
-#                     '-section_movement__section__workout__completed_date',
-#                     'section_movement__section__workout__id'
-#                 ).values(
-#                     'section_movement__movements__id',
-#                     'section_movement__section__workout__id',
-#                     'section_movement__section__workout__completed_date',
-#                     'set_number',
-#                     'reps',
-#                     'weight',
-#                     'section_movement__movement_difficulty'
-#                 )[:3])
-
-#                 print(f"History records for movement ID {movement_id}: {history_records}")
-
-#                 # Process records for the movement
-#                 for record in history_records:
-#                     movement_id = record['section_movement__movements__id']
-#                     workout_id = record['section_movement__section__workout__id']
-#                     completed_date = record['section_movement__section__workout__completed_date']
-
-#                     if movement_id not in movement_history:
-#                         movement_history[movement_id] = []
-
-#                     # Find or create a workout entry for this movement
-#                     workout_entry = next(
-#                         (entry for entry in movement_history[movement_id] if entry['workout_id'] == workout_id),
-#                         None
-#                     )
-#                     if not workout_entry:
-#                         workout_entry = {
-#                             "workout_id": workout_id,
-#                             "completed_date": completed_date,
-#                             "movement_difficulty": record['section_movement__movement_difficulty'],
-#                             "sets": []
-#                         }
-#                         movement_history[movement_id].append(workout_entry)
-
-#                     # Add the set details
-#                     workout_entry['sets'].append({
-#                         "set_number": record['set_number'],
-#                         "reps": record['reps'],
-#                         "weight": record['weight']
-#                     })
-
-#             # Sort each movement's workout history by date
-#             for movement_id in movement_history:
-#                 movement_history[movement_id].sort(key=lambda x: x['completed_date'], reverse=True)
-
-#             print(f"Processed movement history: {movement_history}")
-
-#             return Response({
-#                 "workout": workout_data,
-#                 "movement_history": movement_history
-#             }, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             print(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
-#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-# # Get single gym workouts
-# class GetSingleWorkoutView(APIView):
-#     """
-#     Get a single workout and return all related workout details along with 
-#     the last 4 movement histories for each movement within the workout.
-#     """
-
-#     def get(self, request, workout_id):
-#         user_id = request.query_params.get('user_id')
-
-#         try:
-#             # 1️⃣ --- Get Workout and Related Data ---
-#             try:
-#                 workout = Workout.objects.prefetch_related(
-#                     Prefetch(
-#                         'workout_sections__section_movement_details',
-#                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
-#                     )
-#                 ).select_related('owner').get(id=workout_id, owner=user_id)
-#             except Workout.DoesNotExist:
-#                 logger.error(f"Workout with id {workout_id} does not exist for user {user_id}")
-#                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
-#             except Exception as e:
-#                 logger.error(f"Error querying workout: {str(e)}")
-#                 return Response({'error': f'Error querying workout: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 2️⃣ --- Serialize Workout Data (already optimized with prefetch/select_related) ---
-#             try:
-#                 serializer = PopulatedWorkoutSerializer(workout)
-#                 workout_data = serializer.data
-#             except Exception as e:
-#                 logger.error(f"Error serializing workout data: {str(e)}")
-#                 return Response({'error': f'Error serializing workout data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 3️⃣ --- Extract Movement IDs for History Query ---
-#             try:
-#                 movement_ids = [
-#                     movement['movements']['id']
-#                     for section in workout_data['workout_sections']
-#                     for movement in section['section_movement_details']
-#                     if movement.get('movements')
-#                 ]
-#             except Exception as e:
-#                 logger.error(f"Error extracting movement IDs: {str(e)}")
-#                 return Response({'error': f'Error extracting movement IDs: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 4️⃣ --- Get Movement History for the Last 4 Completed Dates ---
-#             try:
-#                 movement_history = {}
-#                 if movement_ids:
-#                     # ✅ Get the last 4 completed workout dates (batch for all movements)
-#                     last_4_dates = (
-#                         Workout.objects.filter(
-#                             owner=user_id,
-#                             status="Completed"
-#                         )
-#                         .values('completed_date')
-#                         .distinct()
-#                         .order_by('-completed_date')[:4]  # ✅ Last 4 completed dates for this user
-#                     )
-
-#                     last_4_dates_list = [item['completed_date'] for item in last_4_dates]
-
-#                     # ✅ Query all relevant sets in ONE query for these last 4 dates
-#                     history_records = Set.objects.filter(
-#                         section_movement__movements__id__in=movement_ids,
-#                         section_movement__section__workout__completed_date__in=last_4_dates_list
-#                     ).select_related(
-#                         'section_movement__movements',
-#                         'section_movement__section__workout'
-#                     ).order_by(
-#                         'section_movement__movements__id',
-#                         '-section_movement__section__workout__completed_date'
-#                     ).values(
-#                         'section_movement__movements__id',
-#                         'section_movement__movement_difficulty',
-#                         'section_movement__section__workout__completed_date',
-#                         'set_number',
-#                         'reps',
-#                         'weight',
-#                     )
-
-#                     # Group sets by movement ID and workout date
-#                     for record in history_records:
-#                         movement_id = record['section_movement__movements__id']
-#                         workout_date = record['section_movement__section__workout__completed_date']
-
-#                         if movement_id not in movement_history:
-#                             movement_history[movement_id] = {}
-
-#                         if workout_date not in movement_history[movement_id]:
-#                             movement_history[movement_id][workout_date] = {
-#                                 "workout_date": workout_date,
-#                                 "movement_difficulty": record['section_movement__movement_difficulty'],
-#                                 "sets": []
-#                             }
-
-#                         movement_history[movement_id][workout_date]["sets"].append({
-#                             "set_number": record['set_number'],
-#                             "reps": record['reps'],
-#                             "weight": record['weight'],
-#                         })
-
-#                     # Flatten the dictionary into a list for easier usage
-#                     movement_history = {
-#                         movement_id: list(workout_data.values())
-#                         for movement_id, workout_data in movement_history.items()
-#                     }
-
-#             except Exception as e:
-#                 logger.error(f"Error querying movement history: {str(e)}")
-#                 return Response({'error': f'Error querying movement history: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#             # 5️⃣ --- Return Response (Workout Data + Movement History) ---
-#             return Response({
-#                 "workout": workout_data,
-#                 "movement_history": movement_history
-#             }, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             logger.error(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
-#             return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class GetSingleRunningWorkoutView(APIView):
@@ -1288,7 +1124,6 @@ class UpdateWorkoutDateView(APIView):
 
 
 
-
 class CompleteWorkoutAPIView(APIView):
     def put(self, request, workout_id):
         user_id = request.query_params.get('user_id')
@@ -1305,9 +1140,10 @@ class CompleteWorkoutAPIView(APIView):
             workout.completed_date = now().date()
             workout.save()
 
-            # 3️⃣ --- Award Points for Workout Completion ---
+            # 3️⃣ --- Award Points for Workout Completion (50 points) ---
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
+                # Real-time scoreboard update
                 leaderboard.total_score += 50
                 leaderboard.weekly_score += 50
                 leaderboard.monthly_score += 50
@@ -1320,7 +1156,7 @@ class CompleteWorkoutAPIView(APIView):
                     workout_id=workout.id
                 )
 
-            # 4️⃣ --- Process Sections and Movements ---
+            # 4️⃣ --- Process Sections and Movements (same as before) ---
             sections_data = request.data.get('sections', [])
             section_ids = [section['section_id'] for section in sections_data]
             
@@ -1336,84 +1172,98 @@ class CompleteWorkoutAPIView(APIView):
 
             new_sets = []
             sets_to_update = []
-            valid_movement_ids = set()  # Only add movements with at least one set with valid reps/weight
             conditioning_updates = []  # For bulk updating ConditioningWorkout entries
 
+            # We will track how many "strength" movements exist and how many are "fully logged"
+            strength_keywords = ["strong", "build", "pump"]  # case-insensitive
+            strength_movements_count = 0
+            strength_fully_logged_count = 0
+
             for section_data in sections_data:
+                # Update conditioning workouts
                 if 'conditioning_workouts' in section_data:
-                    # Handle ConditioningWorkout details
                     for conditioning_data in section_data['conditioning_workouts']:
                         conditioning_id = conditioning_data.get('conditioning_id')
                         conditioning_instance = ConditioningWorkout.objects.filter(id=conditioning_id).first()
-
                         if conditioning_instance:
                             conditioning_instance.comments = conditioning_data.get('comments', conditioning_instance.comments)
                             conditioning_instance.rpe = conditioning_data.get('rpe', conditioning_instance.rpe)
                             conditioning_updates.append(conditioning_instance)
 
-                # Handle standard movements
+                # Update standard movements (sets)
                 for movement_data in section_data.get('movements', []):
                     movement_id = movement_data.get('movement_id')
                     movement = next((m for m in movements if m.id == movement_id), None)
                     
-                    movement_has_valid_set = False  # Flag to check if at least one set is valid
+                    if not movement:
+                        continue
 
-                    if movement:
-                        for set_data in movement_data.get('sets', []):
-                            reps = set_data.get('reps') or 0
-                            weight = set_data.get('weight') or 0
-                            set_number = set_data.get('set_number')
+                    # Determine if this movement belongs to a "strength" section
+                    section_obj = movement.section  # from .select_related('section')
+                    section_name_lower = section_obj.section_name.lower() if section_obj.section_name else ""
+                    is_strength_section = any(kw in section_name_lower for kw in strength_keywords)
 
-                            existing_set = existing_sets_map.get((movement_id, set_number))
+                    # We'll track if this movement is "fully logged" if it has at least one set with reps>0, weight>0
+                    movement_has_valid_set = False
 
-                            if existing_set:
-                                # Update existing set
-                                existing_set.reps = reps
-                                existing_set.weight = weight
-                                sets_to_update.append(existing_set)
-                            else:
-                                # Create new set
-                                new_sets.append(
-                                    Set(
-                                        section_movement=movement,
-                                        set_number=set_number,
-                                        reps=reps,
-                                        weight=weight
-                                    )
+                    # Process sets
+                    for set_data in movement_data.get('sets', []):
+                        reps = set_data.get('reps') or 0
+                        weight = set_data.get('weight') or 0
+                        set_number = set_data.get('set_number')
+
+                        existing_set = existing_sets_map.get((movement_id, set_number))
+                        if existing_set:
+                            # Update existing set
+                            existing_set.reps = reps
+                            existing_set.weight = weight
+                            sets_to_update.append(existing_set)
+                        else:
+                            # Create new set
+                            new_sets.append(
+                                Set(
+                                    section_movement=movement,
+                                    set_number=set_number,
+                                    reps=reps,
+                                    weight=weight
                                 )
+                            )
 
-                            # Check if this set has valid reps and weight
-                            if reps > 0 and weight > 0:
-                                movement_has_valid_set = True
+                        # If any set has reps>0 and weight>0, we consider this movement "fully logged"
+                        if reps > 0 and weight > 0:
+                            movement_has_valid_set = True
 
-                        if movement_has_valid_set:  # Add movement to unique list if at least one set is valid
-                            valid_movement_ids.add(movement_id)
+                    # If this is a "strength" section's movement
+                    if is_strength_section:
+                        # Count total strength movements
+                        strength_movements_count += 1
+                        if movement_has_valid_set:
+                            strength_fully_logged_count += 1
 
             # Save sets and conditioning updates
             if new_sets:
                 Set.objects.bulk_create(new_sets)
-            
             if sets_to_update:
                 Set.objects.bulk_update(sets_to_update, ['reps', 'weight'])
-            
             if conditioning_updates:
                 ConditioningWorkout.objects.bulk_update(conditioning_updates, ['comments', 'rpe'])
 
-            # 6️⃣ --- Award Points for Movement Tracking ---
-            for movement_id in valid_movement_ids:
-                if not ScoreLog.objects.filter(user=user, section_movement_id=movement_id, score_type='Movement Score').exists():
-                    leaderboard.total_score += 5
-                    leaderboard.weekly_score += 5
+            # 5️⃣ --- NEW: Award Single +20 If ALL "Strength" Movements Are Fully Logged ---
+            if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
+                # Avoid double awarding if they've completed this before
+                if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
+                    leaderboard.total_score += 20
+                    leaderboard.weekly_score += 20
+                    leaderboard.monthly_score += 20
                     leaderboard.save()
 
                     ScoreLog.objects.create(
                         user=user,
-                        score_type='Movement Score',
-                        score_value=5,
-                        section_movement_id=movement_id
+                        score_type='Full Strength Logging',
+                        score_value=20,
+                        workout_id=workout.id
                     )
-
-                    logger.info(f"✅ 5 points awarded for movement tracking (movement_id: {movement_id}, user_id: {user_id})")
+                    logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
 
             logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
             return Response({'message': 'Workout completed successfully!'}, status=200)
