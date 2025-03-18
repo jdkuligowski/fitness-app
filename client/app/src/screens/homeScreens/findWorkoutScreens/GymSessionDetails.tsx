@@ -124,77 +124,155 @@ export default function WorkoutScreen({ route }) {
 
 
     // Filter workout data for a section
+    // const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
+    //     if (!filters || !Array.isArray(filters)) {
+    //         console.warn("Invalid filters provided to filterWorkoutData:", filters);
+    //         return [];
+    //     }
+
+    //     const normalizeAndSplit = (str) => {
+    //         if (typeof str !== "string") return [];
+    //         return str
+    //             .replace(/[\(\)]/g, "") // Remove parentheses
+    //             .replace(/\s+/g, " ") // Replace multiple spaces with a single space
+    //             .trim()
+    //             .toLowerCase()
+    //             .split(",")
+    //             .map((item) => item.trim());
+    //     };
+
+    //     // Apply all filters in conjunction
+    //     const filteredMovements = filteredWorkoutData.filter((exercise) => {
+    //         const exerciseKeyValues = {};
+
+    //         // Normalize all exercise values
+    //         Object.keys(exercise).forEach((key) => {
+    //             exerciseKeyValues[key] = normalizeAndSplit(exercise[key] || "");
+    //         });
+
+    //         // Check if the exercise satisfies all filters in all filter sets
+    //         const allFilterSetsPass = filters.every((filterSet) => {
+    //             if (!Array.isArray(filterSet)) filterSet = [filterSet];
+
+    //             // Each filter set must pass
+    //             return filterSet.every(({ key, value, operator }) => {
+    //                 const exerciseValue = exerciseKeyValues[key]; // Normalized exercise values
+    //                 const filterValue = Array.isArray(value)
+    //                     ? value.map((v) => normalizeAndSplit(v)).flat()
+    //                     : normalizeAndSplit(value);
+
+    //                 if (!exerciseValue.length) {
+    //                     // console.warn(`Key "${key}" not found in exercise:`, exercise);
+    //                     return false;
+    //                 }
+
+    //                 if (operator === "contains") {
+    //                     return filterValue.some((filterWord) =>
+    //                         exerciseValue.some((exerciseWord) => exerciseWord.includes(filterWord))
+    //                     );
+    //                 }
+
+    //                 if (operator === "equals") {
+    //                     return filterValue.every((filterWord) =>
+    //                         exerciseValue.some((exerciseWord) => exerciseWord === filterWord)
+    //                     );
+    //                 }
+
+    //                 console.warn("Unknown operator:", operator);
+    //                 return false;
+    //             });
+    //         });
+    //         return allFilterSetsPass; // Include only exercises that pass all filters
+    //     });
+
+    //     console.log("Filtered Movements (Pre-Deduplication):", JSON.stringify(filteredMovements, null, 2));
+
+    //     // Deduplicate, shuffle, and exclude already used exercises
+    //     const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));
+    //     console.log("Unique Movements:", JSON.stringify(uniqueMovements, null, 2));
+
+    //     return uniqueMovements
+    //         .sort(() => Math.random() - 0.5) // Shuffle randomly
+    //         .filter((movement) => !usedExercises.has(movement)); // Exclude already used
+    // };
+
+    // Filter workout data for a section
     const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
         if (!filters || !Array.isArray(filters)) {
             console.warn("Invalid filters provided to filterWorkoutData:", filters);
             return [];
         }
 
-        const normalizeAndSplit = (str) => {
-            if (typeof str !== "string") return [];
-            return str
-                .replace(/[\(\)]/g, "") // Remove parentheses
-                .replace(/\s+/g, " ") // Replace multiple spaces with a single space
+        // Normalize a single string (remove parentheses, trim, lower-case).
+        // We do NOT split on commas/spaces anymore – substring matching for 'contains'.
+        const normalize = (str) => {
+            return String(str || "")
+                .replace(/[\(\)]/g, "") // remove parentheses
                 .trim()
-                .toLowerCase()
-                .split(",")
-                .map((item) => item.trim());
+                .toLowerCase();
         };
 
-        // Apply all filters in conjunction
+        // Filter out movements that fail any filter sets
         const filteredMovements = filteredWorkoutData.filter((exercise) => {
+            // Build a map of normalized string values for each field
             const exerciseKeyValues = {};
-
-            // Normalize all exercise values
             Object.keys(exercise).forEach((key) => {
-                exerciseKeyValues[key] = normalizeAndSplit(exercise[key] || "");
+                exerciseKeyValues[key] = normalize(exercise[key]);
             });
 
-            // Check if the exercise satisfies all filters in all filter sets
+            // Each item in 'filters' can be a single filter or an array (filterSet).
+            // We require *all* filter sets to pass (i.e., AND logic).
             const allFilterSetsPass = filters.every((filterSet) => {
+                // If filterSet is not an array, wrap it
                 if (!Array.isArray(filterSet)) filterSet = [filterSet];
 
-                // Each filter set must pass
+                // Every condition in this set must pass
                 return filterSet.every(({ key, value, operator }) => {
-                    const exerciseValue = exerciseKeyValues[key]; // Normalized exercise values
-                    const filterValue = Array.isArray(value)
-                        ? value.map((v) => normalizeAndSplit(v)).flat()
-                        : normalizeAndSplit(value);
+                    const exerciseValue = exerciseKeyValues[key];
+                    if (!exerciseValue) return false;
 
-                    if (!exerciseValue.length) {
-                        // console.warn(`Key "${key}" not found in exercise:`, exercise);
-                        return false;
-                    }
+                    // If 'value' is a single string, wrap into an array so we handle multiple values consistently
+                    const valueArr = Array.isArray(value) ? value : [value];
+                    // Normalize each piece of the filter
+                    const filterValues = valueArr.map((v) => normalize(v));
+
+                    // // Debug log
+                    // console.log(
+                    //     `RowID=${exercise.id} Checking key="${key}" | operator="${operator}" | exerciseValue="${exerciseValue}" | filterValues=${JSON.stringify(filterValues)}`
+                    // );
 
                     if (operator === "contains") {
-                        return filterValue.some((filterWord) =>
-                            exerciseValue.some((exerciseWord) => exerciseWord.includes(filterWord))
-                        );
+                        // Return true if ANY filterValue is a substring of exerciseValue
+                        return filterValues.some((filterWord) => exerciseValue.includes(filterWord));
                     }
 
                     if (operator === "equals") {
-                        return filterValue.every((filterWord) =>
-                            exerciseValue.some((exerciseWord) => exerciseWord === filterWord)
-                        );
+                        // Return true if EVERY filterValue exactly matches exerciseValue
+                        return filterValues.every((filterWord) => exerciseValue === filterWord);
                     }
 
                     console.warn("Unknown operator:", operator);
                     return false;
                 });
             });
-            return allFilterSetsPass; // Include only exercises that pass all filters
+
+            return allFilterSetsPass;
         });
 
-        // console.log("Filtered Movements (Pre-Deduplication):", JSON.stringify(filteredMovements, null, 2));
+        console.log(
+            "Filtered Movements (Pre-Deduplication):",
+            JSON.stringify(filteredMovements, null, 2)
+        );
 
-        // Deduplicate, shuffle, and exclude already used exercises
+        // Deduplicate by 'exercise' name, then shuffle, then exclude used
         const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));
         console.log("Unique Movements:", JSON.stringify(uniqueMovements, null, 2));
 
         return uniqueMovements
-            .sort(() => Math.random() - 0.5) // Shuffle randomly
-            .filter((movement) => !usedExercises.has(movement)); // Exclude already used
+            .sort(() => Math.random() - 0.5)
+            .filter((movement) => !usedExercises.has(movement));
     };
+
 
 
 
@@ -477,7 +555,15 @@ export default function WorkoutScreen({ route }) {
             plans.push(generateWorkoutPlan());
         }
         setWorkoutPlans(plans);
-        console.log("Generated workout plans:", JSON.stringify(plans, null, 2));
+        // console.log("Generated workout plans:", JSON.stringify(filteredWorkoutData, null, 2));
+        console.log("Filtered data length:", filteredWorkoutData.length);
+        // console.log("Original data:", JSON.stringify(plans, null, 2));
+        // Are #304 and #305 present in the array?
+        const has304 = filteredWorkoutData.some(item => item.id === 304);
+        const has305 = filteredWorkoutData.some(item => item.id === 305);
+
+        console.log("Has ID #304?", has304);
+        console.log("Has ID #305?", has305);
     };
 
     // Fetch data and generate workout plans
@@ -617,9 +703,9 @@ export default function WorkoutScreen({ route }) {
 
     const findConditioningByExercise = (movement) => {
         return workoutData.find((data) =>
-          (data.exercise || "").trim().toLowerCase() === (movement.exercise || "").trim().toLowerCase()
+            (data.exercise || "").trim().toLowerCase() === (movement.exercise || "").trim().toLowerCase()
         );
-      };
+    };
 
 
     return (
@@ -1075,6 +1161,7 @@ const styles = StyleSheet.create({
         color: "#555",
         lineHeight: 24, // Match the label line height for alignment
         paddingBottom: 5,
+        paddingRight: 5,
     },
     buttonContainer: {
         marginVertical: 0,

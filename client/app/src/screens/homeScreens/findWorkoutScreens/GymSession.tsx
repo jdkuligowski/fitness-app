@@ -677,6 +677,7 @@ const styles = StyleSheet.create({
   },
   conditioningMessage: {
     fontSize: 14,
+    marginBottom: 20,
   },
   filterButton: {
     width: '100%',

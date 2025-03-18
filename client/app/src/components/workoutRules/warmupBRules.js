@@ -29,13 +29,13 @@ const ruleSet = {
         movement3: "Split Stance Pallof Press",
         movement4: "Walking Lunge"
     },
-    "Lower Body 1 (Option 1)": {
+    "Lower Body 1 (Option 2)": {
         movement1: "90/90 Shin Box Rotations", //changed
         movement2: "Side Lying Thoracic Sweeps",
         movement3: "Split Stance Rotation",
         movement4: "Skater Squat" //changed
     },
-    "Lower Body 2 (Option 2)": {
+    "Lower Body 2 (Option 1)": {
         mobility: "Couch, Lateral Flexion",
         movement2: "Bent Over Lock Rotation ( Hinge Postion)",
         movement3: "Suitcase Carry",
@@ -54,13 +54,13 @@ const ruleSet = {
         movement3: "Low to High",
         movement4: "Push up to Beast" // changed
     },
-    "Upper Body 1 (Option 1)": {
+    "Upper Body 1 (Option 2)": {
         movement1: "Pec Stretch Rack",
         movement2: "Crab Reach",
         movement3: "Tall Plank",
         movement4: "Cable Face Pull"
     },
-    "Upper Body 2 (Option 2)": {
+    "Upper Body 2 (Option 1)": {
         movement1: "Deep Squat Banded Dislocate",
         movement2: "Banded Lat Stretch",
         movement3: "Farmers Carry",

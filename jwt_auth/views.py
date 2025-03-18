@@ -60,6 +60,7 @@ import re
 
 from django.utils.timezone import now
 from .serializers.populated import PopulatedUserSerializer
+from .serializers.populated import SimplifiedPopulatedUserSerializer
 
 from django.utils.crypto import get_random_string
 
@@ -262,47 +263,96 @@ class UpdateUserView(APIView):
 
 
 
+# class FullUserView(APIView):
+#     def get(self, request, user_id):
+#         user = User.objects.select_related('leaderboard').get(id=user_id)
+
+#         # Batch workout queries
+#         today = now().date()
+#         start_of_month = today.replace(day=1)
+#         workouts = Workout.objects.filter(owner=user, status='Completed')
+#         workout_stats = workouts.aggregate(
+#             workouts_this_month=Count('id', filter=Q(completed_date__gte=start_of_month)),
+#             workouts_all_time=Count('id'),
+#             most_recent_completed=Max('completed_date')
+#         )
+#         recent_workouts = workouts.order_by('-completed_date')[:2].values('id', 'name', 'completed_date', 'duration')
+
+#         # Leaderboard rank (Window Function)
+#         rank_data = Leaderboard.objects.annotate(
+#             rank=Window(
+#                 expression=DenseRank(),
+#                 order_by=F('total_score').desc()
+#             )
+#         ).filter(user=user).values('rank')
+#         rank = rank_data[0]['rank'] if rank_data else 1
+
+#         leaderboard = user.leaderboard
+#         leaderboard_scores = {
+#             'total_score': leaderboard.total_score,
+#             'weekly_score': leaderboard.weekly_score,
+#             'monthly_score': leaderboard.monthly_score
+#         }
+
+#         serialized_user = PopulatedUserSerializer(user).data
+#         stats = {
+#             'workouts_this_month': workout_stats['workouts_this_month'],
+#             'workouts_all_time': workout_stats['workouts_all_time'],
+#             'recent_workouts': list(recent_workouts),
+#             'leaderboard': leaderboard_scores,
+#             'leaderboard_rank': rank
+#         }
+
+#         return Response({'user': serialized_user, 'stats': stats}, status=status.HTTP_200_OK)
+
 class FullUserView(APIView):
     def get(self, request, user_id):
         user = User.objects.select_related('leaderboard').get(id=user_id)
 
-        # Batch workout queries
+        # Aggregate basic workouts
         today = now().date()
         start_of_month = today.replace(day=1)
         workouts = Workout.objects.filter(owner=user, status='Completed')
         workout_stats = workouts.aggregate(
             workouts_this_month=Count('id', filter=Q(completed_date__gte=start_of_month)),
-            workouts_all_time=Count('id'),
-            most_recent_completed=Max('completed_date')
+            workouts_all_time=Count('id')
         )
-        recent_workouts = workouts.order_by('-completed_date')[:2].values('id', 'name', 'completed_date', 'duration')
 
-        # Leaderboard rank (Window Function)
-        # rank_data = Leaderboard.objects.annotate(
-        #     rank=Window(
-        #         expression=DenseRank(),
-        #         order_by=F('total_score').desc()
-        #     )
-        # ).filter(user=user).values('rank')
-        # rank = rank_data[0]['rank'] if rank_data else 1
+        # Grab the leaderboard record (already joined above via select_related)
+        leaderboard = user.leaderboard  # or None if not found
 
-        # leaderboard = user.leaderboard
-        # leaderboard_scores = {
-        #     'total_score': leaderboard.total_score,
-        #     'weekly_score': leaderboard.weekly_score,
-        #     'monthly_score': leaderboard.monthly_score
-        # }
+        if leaderboard:
+            leaderboard_scores = {
+                'total_score': leaderboard.total_score,
+                'weekly_score': leaderboard.weekly_score,
+                'monthly_score': leaderboard.monthly_score,
+            }
+            # Pull your stored ranks directly
+            leaderboard_ranks = {
+                'total_rank': leaderboard.total_rank,
+                'weekly_rank': leaderboard.weekly_rank,
+                'monthly_rank': leaderboard.monthly_rank,
+            }
+        else:
+            # If there's no leaderboard record for some reason, default
+            leaderboard_scores = {}
+            leaderboard_ranks = {}
 
-        serialized_user = PopulatedUserSerializer(user).data
-        stats = {
-            'workouts_this_month': workout_stats['workouts_this_month'],
-            'workouts_all_time': workout_stats['workouts_all_time'],
-            'recent_workouts': list(recent_workouts),
-            # 'leaderboard': leaderboard_scores,
-            # 'leaderboard_rank': rank
+        # If you use a serializer for the user, that’s fine—if not, just pass needed fields
+        serialized_user = SimplifiedPopulatedUserSerializer(user).data
+
+        data = {
+            'user': serialized_user,
+            'stats': {
+                'workouts_this_month': workout_stats['workouts_this_month'],
+                'workouts_all_time': workout_stats['workouts_all_time'],
+                # 'recent_workouts': ... # omitted if you don’t need it
+                'leaderboard': leaderboard_scores,
+                'ranks': leaderboard_ranks,
+            }
         }
 
-        return Response({'user': serialized_user, 'stats': stats}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 

@@ -68,7 +68,7 @@ const strengthRules60 = {
                         { key: "primary_body_part", value: "Shoulder", operator: "contains" },
                     ],
                     [
-                        { key: "movement", value: "Biceps", operator: "contains" },
+                        { key: "movement", value: "Bicep", operator: "contains" },
                     ],
                 ],
             },
@@ -142,7 +142,7 @@ const strengthRules60 = {
                         { key: "primary_body_part", value: "Chest", operator: "contains" },
                     ],
                     [
-                        { key: "movement", value: "Triceps", operator: "contains" },
+                        { key: "movement", value: "Tricep", operator: "contains" },
                     ],
                 ],
             },
@@ -198,7 +198,7 @@ const strengthRules60 = {
                 section: "Pump 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement", value: "Biceps", operator: "contains" },
+                        { key: "movement", value: "Bicep", operator: "contains" },
                     ],
                     [
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
@@ -210,10 +210,10 @@ const strengthRules60 = {
                 section: "Pump 2", movements: 2,
                 filters: [
                     [
-                        { key: "movement", value: "Biceps", operator: "contains" },
+                        { key: "movement", value: "Bicep", operator: "contains" },
                     ],
                     [
-                        { key: "movement", value: "Triceps", operator: "contains" },
+                        { key: "movement", value: "Tricep", operator: "contains" },
                     ],
                 ],
             },
@@ -269,7 +269,7 @@ const strengthRules60 = {
                 section: "Pump 1", movements: 2,
                 filters: [
                     [
-                        { key: "movement", value: "Biceps", operator: "contains" },
+                        { key: "movement", value: "Bicep", operator: "contains" },
                     ],
                     [
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
@@ -281,10 +281,10 @@ const strengthRules60 = {
                 section: "Pump 2", movements: 2,
                 filters: [
                     [
-                        { key: "movement", value: "Biceps", operator: "contains" },
+                        { key: "movement", value: "Bicep", operator: "contains" },
                     ],
                     [
-                        { key: "movement", value: "Triceps", operator: "contains" },
+                        { key: "movement", value: "Tricep", operator: "contains" },
                     ],
                 ],
             },

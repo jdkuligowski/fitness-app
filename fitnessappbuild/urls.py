@@ -36,4 +36,5 @@ urlpatterns = [
     path('api/suggested_strength_overview/', include('suggested_strength_overview.urls')),
     path('api/equipment_filters/', include('saved_equipment_lists.urls')),
     path('api/notifications/', include('notifications.urls')),
+    path('api/leaderboard/', include('leaderboard.urls')),
 ]

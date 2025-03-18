@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CORE_EQUIPMENT = [
     { id: 'Barbell', label: 'Barbell' },
-    { id: 'Dumbbells', label: 'Dumbbells' },
+    { id: 'Dumbbell', label: 'Dumbbell' },
     { id: 'Kettlebell', label: 'Kettlebell' },
     { id: 'Bench', label: 'Bench' },
     { id: 'Rack', label: 'Rack' },
@@ -27,7 +27,7 @@ const CARDIO_EQUIPMENT = [
     { id: 'Assault Bike', label: 'Assault Bike' },
     { id: 'Rower', label: 'Rower' },
     { id: 'Treadmill', label: 'Treadmill' },
-    { id: 'Ski Erg', label: 'Ski Erg' },
+    { id: 'Ski', label: 'Ski' },
     { id: 'Bike', label: 'Bike' },
 ];
 
