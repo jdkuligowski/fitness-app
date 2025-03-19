@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Dimensions, Button } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Dimensions, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { Colours } from '@/app/src/components/styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ENV from '../../../../../env';
+import EquipmentFilterModal from '../../modalScreens/GymEquipmentFilter';
 
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
@@ -16,6 +19,12 @@ export default function HiitSession() {
     const [selectedValue, setSelectedValue] = useState(10); // Default selected value
     const data = Array.from({ length: 45 }, (_, i) => i); // Minutes from 0 to 60
     const flatListRef = useRef(null); // Reference to FlatList
+    const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
+    const [activeFilterSet, setActiveFilterSet] = useState(null);
+    const [allFilters, setAllFilters] = useState([]);  // <-- to store all user filters
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [filterToEdit, setFilterToEdit] = useState(null);
+
 
     useEffect(() => {
         // Automatically scroll to the default value
@@ -23,6 +32,114 @@ export default function HiitSession() {
             flatListRef.current.scrollToIndex({ index: selectedValue, animated: true });
         }
     }, []);
+
+    useEffect(() => {
+        const loadActiveFilter = async () => {
+            try {
+                const storedFilter = await AsyncStorage.getItem("activeEquipmentFilter");
+                if (storedFilter) {
+                    const parsedFilter = JSON.parse(storedFilter);
+                    setActiveFilterSet(parsedFilter);
+                    console.log('Filter: ', parsedFilter)
+                }
+            } catch (error) {
+                console.error("Error loading active equipment filter:", error);
+            }
+        };
+        loadActiveFilter();
+    }, []);
+
+
+    // Fetch ALL filters from the server
+    useEffect(() => {
+        const fetchUserFilters = async () => {
+            try {
+                const userId = await AsyncStorage.getItem("userId");
+                if (!userId) return;
+                const url = `${ENV.API_URL}/api/equipment_filters/get_all?user_id=${userId}`;
+                console.log("Fetching all filters from:", url);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}`);
+                }
+                const data = await response.json();
+                setAllFilters(data); // data is an array of filter objects
+                console.log('filter list: ', data)
+            } catch (err) {
+                console.error("Error fetching user filters:", err);
+                Alert.alert("Error", "Could not load your saved filters.");
+            }
+        };
+        fetchUserFilters();
+    }, []);
+
+    // 4) Mark filter as active if user taps the radio circle
+    const selectFilterAsActive = async (filter) => {
+        const filterToStore = {
+            filterId: filter.id,
+            filterName: filter.filter_name,
+            equipment: filter.equipment, // or however your serializer returns it
+        };
+        setActiveFilterSet(filterToStore);
+        await AsyncStorage.setItem("activeEquipmentFilter", JSON.stringify(filterToStore));
+    };
+
+
+    // 5) Delete filter
+    const deleteFilter = async (filter) => {
+        try {
+            // confirm the user wants to delete
+            Alert.alert(
+                "Delete Filter",
+                `Are you sure you want to delete "${filter.filter_name}"?`,
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: async () => {
+                            const userId = await AsyncStorage.getItem("userId");
+                            const url = `${ENV.API_URL}/api/equipment_filters/${filter.id}/delete?user_id=${userId}`;
+                            const res = await fetch(url, { method: 'DELETE' });
+                            if (res.ok) {
+                                // remove from local list
+                                setAllFilters((prev) => prev.filter((f) => f.id !== filter.id));
+                                // if it was active, clear it
+                                if (activeFilterSet?.filterId === filter.id) {
+                                    setActiveFilterSet(null);
+                                    await AsyncStorage.removeItem("activeEquipmentFilter");
+                                }
+                            } else {
+                                Alert.alert("Error", "Failed to delete filter");
+                            }
+                        },
+                    },
+                ]
+            );
+        } catch (error) {
+            console.error("Error deleting filter:", error);
+            Alert.alert("Error", "Something went wrong while deleting.");
+        }
+    };
+
+
+    // For creating a new filter
+    const openCreateModal = () => {
+        setIsEditMode(false);
+        setFilterToEdit(null);
+        setEquipmentModalVisible(true);
+    };
+
+    // For editing an existing filter
+    const openEditModal = (filter) => {
+        setIsEditMode(true);
+        setFilterToEdit({
+            filterId: filter.id,
+            filterName: filter.filter_name,
+            equipment: filter.equipment, // array of {id, equipment_name} or however your data looks
+        });
+        setEquipmentModalVisible(true);
+    };
 
 
 
@@ -37,6 +154,45 @@ export default function HiitSession() {
             <View style={[styles.tick, selectedValue === item && styles.selectedTick]} />
         </View>
     );
+
+    const renderFilterItem = ({ item }) => {
+        // check if it's the active one
+        const isActive = (activeFilterSet && activeFilterSet.filterId === item.id);
+
+        return (
+            <View style={[styles.filterCard, isActive && styles.filterCardActive]}>
+                {/* Left side: the radio circle and Filter name + subtext */}
+                <TouchableOpacity
+                    style={styles.filterLeft}
+                    onPress={() => selectFilterAsActive(item)}
+                    activeOpacity={0.7}
+                >
+                    {/* The circle */}
+                    <View style={[styles.radioCircle, isActive && styles.radioCircleSelected]}>
+                        {isActive && <Ionicons name="checkmark" size={16} color="white" />}
+                    </View>
+
+                    <View style={styles.filterTextContainer}>
+                        <Text style={styles.filterTitle}>{item.filter_name}</Text>
+                        <Text style={styles.filterSubtitle}>
+                            {item.equipment_count || item.equipment?.length || 0} Equipment Selected
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+
+                {/* Right side: Eye + Trash */}
+                <View style={styles.filterRight}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => openEditModal(item)}>
+                        <Ionicons name="eye-outline" size={20} color="#4D4D4D" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => deleteFilter(item)}>
+                        <Ionicons name="trash-outline" size={20} color="#D30000" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
+
 
 
     return (
@@ -114,6 +270,36 @@ export default function HiitSession() {
                             />
                         </View>
                     </View>
+
+                    {/* Equipment filter section */}
+                    <View style={styles.workoutInfoDetails}>
+                        <Text style={styles.workoutSubtitle}>Include what equipment you have</Text>
+                        <View style={styles.savedFiltersTextBlock}>
+                            <Text style={styles.savedFiltersText}>Saved filters</Text>
+                            <View style={styles.subDividerLine}></View>
+                        </View>
+                        <View style={styles.filterSummarySection}>
+                            {allFilters && allFilters.length === 0 ?
+                                <Text style={styles.savedFiltersText}>No filters</Text>
+                                : allFilters.length === 1 ?
+                                    <Text style={styles.savedFiltersText}>{allFilters && allFilters.length} filter</Text>
+                                    :
+                                    <Text style={styles.savedFiltersText}>{allFilters && allFilters.length} filters</Text>
+                            }
+                            <TouchableOpacity style={styles.createFilterButton} onPress={openCreateModal}>
+                                <View style={styles.addCircle} >
+                                    <Ionicons name='add-outline' size={14} color="#7B7C8C" />
+                                </View>
+                                <Text style={styles.createFilterText}>Create new filter</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {allFilters.length > 0 ? (
+
+                            allFilters.map((f) =>
+                                renderFilterItem({ item: f }))
+                        ) : ''}
+                    </View>
+
                     {selectedWorkout ?
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
@@ -132,6 +318,51 @@ export default function HiitSession() {
                             </TouchableOpacity>
                         </View>
                         : ''}
+
+                    <EquipmentFilterModal
+                        visible={equipmentModalVisible}
+                        onClose={() => setEquipmentModalVisible(false)}
+                        isEdit={isEditMode}
+                        existingFilter={filterToEdit}
+                        onSave={(newFilter) => {
+                            console.log("New filter created:", newFilter);
+
+                            // 1) Add to allFilters
+                            setAllFilters((prev) => [...prev, newFilter]);
+
+                            // 2) Make it active
+                            const filterToStore = {
+                                filterId: newFilter.id,
+                                filterName: newFilter.filter_name,
+                                equipment: newFilter.equipment,
+                            };
+                            setActiveFilterSet(filterToStore);
+                            AsyncStorage.setItem("activeEquipmentFilter", JSON.stringify(filterToStore));
+
+                            // 3) Close modal
+                            setEquipmentModalVisible(false);
+                        }}
+                        onUpdate={(updatedFilter) => {
+                            console.log("Filter updated:", updatedFilter);
+
+                            // 1) Update this filter in allFilters
+                            setAllFilters((prev) =>
+                                prev.map((f) => (f.id === updatedFilter.id ? updatedFilter : f))
+                            );
+
+                            // 2) Make updated filter active
+                            const filterToStore = {
+                                filterId: updatedFilter.id,
+                                filterName: updatedFilter.filter_name,
+                                equipment: updatedFilter.equipment,
+                            };
+                            setActiveFilterSet(filterToStore);
+                            AsyncStorage.setItem("activeEquipmentFilter", JSON.stringify(filterToStore));
+
+                            // 3) Close modal
+                            setEquipmentModalVisible(false);
+                        }}
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView >
@@ -356,5 +587,96 @@ const styles = StyleSheet.create({
     },
     conditioningMessage: {
         fontSize: 14,
-    }
+    },
+    filterSummarySection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    createFilterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderWidth: 1,
+        borderRadius: 20,
+        borderColor: '#7B7C8C',
+    },
+    addCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 20,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+        borderColor: '#7B7C8C',
+
+    },
+    createFilterText: {
+        color: '#7B7C8C',
+    },
+    filterCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#DDD',
+        backgroundColor: 'white',
+        // marginHorizontal: 16,
+        marginBottom: 10,
+        borderRadius: 12,
+        padding: 12,
+
+    },
+    filterCardActive: {
+        borderColor: 'black',
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 4,
+        borderBottomWidth: 4,
+    },
+    filterLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    radioCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'black',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    radioCircleSelected: {
+        backgroundColor: '#DEF3F4',
+        // borderColor: '#4CAF50',
+    },
+    filterTextContainer: {
+        flexDirection: 'column',
+    },
+    filterTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#222',
+        marginBottom: 5,
+    },
+    filterSubtitle: {
+        fontSize: 12,
+        color: '#888',
+    },
+    filterRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    iconButton: {
+        marginLeft: 20,
+        borderWidth: 1,
+        padding: 5,
+        borderRadius: 10,
+    },
 });

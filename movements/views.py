@@ -61,37 +61,93 @@ class MovementList(APIView):
 #         serializer = MovementSerializer(feasible, many=True)
 #         return Response(serializer.data, status=status.HTTP_200_OK)
 
+# class FilteredMovements(APIView):
+#     def get(self, request):
+#         filter_id = request.query_params.get("filter_id")
+#         if not filter_id:
+#             return Response({"error": "filter_id query param is required."},
+#                             status=status.HTTP_400_BAD_REQUEST)
+
+#         # 1) Get the user filter
+#         saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id)
+#         user_equipment_ids = list(saved_filter.equipment.values_list("id", flat=True))
+
+#         # 2) Find all combos fully covered by user_equipment_ids
+#         #    i.e. the user has all items in the combo
+#         covered_combos = EquipmentMovement.objects.annotate(
+#             eq_needed=Count('equipment', distinct=True),
+#             eq_have=Count(
+#                 'equipment',
+#                 filter=Q(equipment__id__in=user_equipment_ids),
+#                 distinct=True
+#             )
+#         ).filter(eq_needed=F('eq_have'))
+
+#         # 3) We want movements that:
+#         #    (A) have at least one "covered" combo
+#         #        OR
+#         #    (B) have no combos at all => treat as "bodyweight"
+#         feasible_movements = Movement.objects.filter(
+#             Q(equipment_combos__in=covered_combos)
+#             | Q(equipment_combos__isnull=True)
+#         ).distinct()
+
+#         # 4) Serialize and return
+#         serializer = MovementSerializer(feasible_movements, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+
 class FilteredMovements(APIView):
     def get(self, request):
         filter_id = request.query_params.get("filter_id")
         if not filter_id:
-            return Response({"error": "filter_id query param is required."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "filter_id query param is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # 1) Get the user filter
         saved_filter = get_object_or_404(SavedEquipmentFilter, pk=filter_id)
         user_equipment_ids = list(saved_filter.equipment.values_list("id", flat=True))
 
-        # 2) Find all combos fully covered by user_equipment_ids
-        #    i.e. the user has all items in the combo
-        covered_combos = EquipmentMovement.objects.annotate(
-            eq_needed=Count('equipment', distinct=True),
-            eq_have=Count(
-                'equipment',
-                filter=Q(equipment__id__in=user_equipment_ids),
-                distinct=True
-            )
-        ).filter(eq_needed=F('eq_have'))
+        #
+        # 1) PREPARE TWO KINDS OF COMBOS:
+        #
+        # A) Bodyweight combos => eq_needed=0
+        # B) Covered combos => eq_needed=eq_have
+        #
+        bodyweight_combos = EquipmentMovement.objects.annotate(
+            eq_needed=Count('equipment', distinct=True)
+        ).filter(eq_needed=0)
 
-        # 3) We want movements that:
-        #    (A) have at least one "covered" combo
-        #        OR
-        #    (B) have no combos at all => treat as "bodyweight"
-        feasible_movements = Movement.objects.filter(
-            Q(equipment_combos__in=covered_combos)
-            | Q(equipment_combos__isnull=True)
-        ).distinct()
+        # If user has equipment, compute "covered combos"
+        if user_equipment_ids:
+            covered_combos = EquipmentMovement.objects.annotate(
+                eq_needed=Count('equipment', distinct=True),
+                eq_have=Count(
+                    'equipment',
+                    filter=Q(equipment__id__in=user_equipment_ids),
+                    distinct=True
+                )
+            ).filter(eq_needed=F('eq_have'))
+        else:
+            covered_combos = EquipmentMovement.objects.none()  # No covered combos if no user equipment
 
-        # 4) Serialize and return
+        #
+        # 2) BUILD THE MOVEMENT QUERY
+        #
+        # If user’s equipment is empty -> we only want movements that have at least one bodyweight combo
+        # If user’s equipment is non-empty -> we want movements with either a covered combo OR a bodyweight combo
+        #
+        if not user_equipment_ids:
+            # Bodyweight-only
+            feasible_movements = Movement.objects.filter(
+                equipment_combos__in=bodyweight_combos
+            ).distinct()
+        else:
+            # Bodyweight + combos user can do
+            feasible_movements = Movement.objects.filter(
+                Q(equipment_combos__in=covered_combos) |
+                Q(equipment_combos__in=bodyweight_combos)
+            ).distinct()
+
         serializer = MovementSerializer(feasible_movements, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

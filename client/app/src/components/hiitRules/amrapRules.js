@@ -12,13 +12,13 @@ const baseAmrapBlocks = [
         movements: [
             { key: "movement", value: "Lunge", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" }
+            { key: "advanced_movements", value: "Accessory", operator: "contains" }
         ]
     },
     {
         repScheme: "10 + 45s",
         movements: [
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "movement", value: "Conditioning", operator: "contains" }
         ]
     },
@@ -27,7 +27,7 @@ const baseAmrapBlocks = [
         movements: [
             { key: "movement", value: "Squat", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" }
+            { key: "advanced_movements", value: "Accessory", operator: "contains" }
         ]
     },
     {
@@ -87,7 +87,7 @@ const amrapWorkouts = [
             repScheme: "8-6-30s",
             movements: [
                 { key: "movement", value: "Hinge", operator: "contains" },
-                { key: "movement_type", value: "Metcon", operator: "contains" },
+                { key: "advanced_movements", value: "Accessory", operator: "contains" },
                 { key: "movement", value: "Conditioning", operator: "contains" }
             ]
         }
@@ -196,7 +196,7 @@ const amrapWorkouts = [
                 movements: [
                     { key: "movement", value: "Squat", operator: "contains" },
                     { key: "primary_body_part", value: "Core", operator: "contains" },
-                    { key: "advanced_movements", value: "Metcon", operator: "contains" }
+                    { key: "advanced_movements", value: "Accessory", operator: "contains" }
                 ]
             },
         ]
@@ -217,7 +217,7 @@ const amrapWorkouts = [
             {
                 repScheme: "10 + 10 + 10 + 60s",
                 movements: [
-                    { key: "advanced_movements", value: "Metcon", operator: "contains" },
+                    { key: "advanced_movements", value: "Accessory", operator: "contains" },
                     { key: "primary_body_part", value: "Core", operator: "contains" },
                     { key: "movement", value: "Push H", operator: "contains" },
                     { key: "movement", value: "Conditioning", operator: "contains" }
@@ -228,7 +228,7 @@ const amrapWorkouts = [
                 movements: [
                     { key: "movement", value: "Jumps", operator: "contains" },
                     { key: "primary_body_part", value: "Core", operator: "contains" },
-                    { key: "advanced_movements", value: "Metcon", operator: "contains" },
+                    { key: "advanced_movements", value: "Accessory", operator: "contains" },
                     { key: "movement", value: "Conditioning", operator: "contains" }
                 ]
             },

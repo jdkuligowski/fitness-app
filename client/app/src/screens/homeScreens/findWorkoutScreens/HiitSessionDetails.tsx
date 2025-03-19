@@ -31,6 +31,8 @@ export default function HiitScreen({ route }) {
     const flatListRef = useRef(null);
     const [currentWorkout, setCurrentWorkout] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [filteredWorkoutData, setFilteredWorkoutData] = useState([]); // Store the current workout for the modal
+
 
     const workoutDurationLimits = {
         "AMRAP": [10, 15, 20, 30, 40],
@@ -52,9 +54,45 @@ export default function HiitScreen({ route }) {
     };
 
 
+    useEffect(() => {
+        const loadFilteredMovements = async () => {
+            try {
+                setIsBouncerLoading(true);
+
+                const stored = await AsyncStorage.getItem("activeEquipmentFilter");
+                if (!stored) {
+                    console.warn("No stored filter found; fallback to all movements?");
+                    // Optionally fetch all movements or do nothing
+                    return;
+                }
+                const parsed = JSON.parse(stored);
+                const filterId = parsed.filterId; // e.g. 12
+                if (!filterId) {
+                    console.warn("No filterId in active filter data; fallback?");
+                    return;
+                }
+
+                const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
+                console.log("Fetching filtered movements from:", url);
+                const response = await fetch(url);
+                const data = await response.json();
+
+                setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
+                // console.log('Filtered movements: ', data)
+            } catch (error) {
+                console.error("Error fetching filtered movements:", error);
+            } finally {
+                setIsBouncerLoading(false);
+            }
+        };
+
+        loadFilteredMovements();
+    }, []);
+
+
+
     const generateHiitWorkout = (selectedWorkout, selectedTime, movementsDB) => {
         const hiitMovementsDB = movementsDB.filter(movement => movement.hiit_flag === 1);
-        console.log(`🔥 Filtering HIIT Movements → Found ${hiitMovementsDB.length} suitable exercises`);
 
         let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30, 40, 50];
         let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
@@ -70,7 +108,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
                     "Tabata",
-                    hiitMovementsDB,
+                    movementsDB,
                     5
                 ));
             }
@@ -78,7 +116,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     amrapWorkouts.filter(w => Number(w.duration) === adjustedTime).map(w => ({ ...w, style: w.type })),
                     "AMRAP",
-                    hiitMovementsDB,
+                    movementsDB,
                     3
                 ));
             }
@@ -104,7 +142,7 @@ export default function HiitScreen({ route }) {
                     ...generateMultipleWorkouts(
                         possibleEmoms,
                         "EMOM",
-                        hiitMovementsDB,
+                        movementsDB,
                         4
                     )
                 );
@@ -116,7 +154,7 @@ export default function HiitScreen({ route }) {
                         adjustedTime === 15 ? fifteenMinBlocks :
                             twentyMinBlocks,
                     "30/30",
-                    hiitMovementsDB,
+                    movementsDB,
                     3
                 ));
             }
@@ -125,7 +163,7 @@ export default function HiitScreen({ route }) {
                 .sort(() => Math.random() - 0.5)
                 .slice(0, numWorkouts);
 
-            console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
+            // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
             return formattedWorkouts;
         }
 
@@ -141,7 +179,7 @@ export default function HiitScreen({ route }) {
                 allWorkouts.push(...generateMultipleWorkouts(
                     tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
                     "Tabata",
-                    hiitMovementsDB,
+                    movementsDB,
                     numWorkouts
                 ));
                 break;
@@ -155,7 +193,7 @@ export default function HiitScreen({ route }) {
                             type: "AMRAP"   // <— Force "AMRAP" so formatWorkout sees it
                         })),
                     "AMRAP",
-                    hiitMovementsDB,
+                    movementsDB,
                     numWorkouts
                 ));
                 break;
@@ -185,7 +223,7 @@ export default function HiitScreen({ route }) {
                     ...generateMultipleWorkouts(
                         possibleEmoms,
                         "EMOM",
-                        hiitMovementsDB,
+                        movementsDB,
                         numWorkouts
                     )
                 );
@@ -197,7 +235,7 @@ export default function HiitScreen({ route }) {
                         adjustedTime === 15 ? fifteenMinBlocks :
                             twentyMinBlocks,
                     "30/30",
-                    hiitMovementsDB,
+                    movementsDB,
                     numWorkouts
                 ));
                 break;
@@ -207,7 +245,7 @@ export default function HiitScreen({ route }) {
         }
 
         let formattedWorkouts = allWorkouts.sort(() => Math.random() - 0.5);
-        console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
+        // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
 
         return formattedWorkouts;
     };
@@ -230,21 +268,21 @@ export default function HiitScreen({ route }) {
         let usedMovements = new Set();
 
         const getRandomMovement = (filter) => {
-            console.log(`🔎 Filtering for: ${filter.key} contains '${filter.value}'`);
+            // console.log(`🔎 Filtering for: ${filter.key} contains '${filter.value}'`);
 
             let matchingMovements = movementsDB.filter(movement =>
                 movement[filter.key]?.includes(filter.value)
             );
 
-            console.log(`✅ Found ${matchingMovements.length} matching movements:`, matchingMovements.map(m => m.exercise));
+            // console.log(`✅ Found ${matchingMovements.length} matching movements:`, matchingMovements.map(m => m.exercise));
 
             if (matchingMovements.length === 0) {
-                console.warn(`⚠️ No match found for: ${filter.value}, returning default.`);
+                // console.warn(`⚠️ No match found for: ${filter.value}, returning default.`);
                 return { exercise: filter.value };
             }
 
             matchingMovements.sort(() => Math.random() - 0.5);
-            console.log("🔀 Shuffled Movements:", matchingMovements.map(m => m.exercise));
+            // console.log("🔀 Shuffled Movements:", matchingMovements.map(m => m.exercise));
 
             let selectedMovement = matchingMovements.find(movement =>
                 filter.value.toLowerCase().includes("conditioning") || !usedMovements.has(movement.exercise)
@@ -252,11 +290,11 @@ export default function HiitScreen({ route }) {
 
             if (selectedMovement) {
                 usedMovements.add(selectedMovement.exercise);
-                console.log(`✅ Selected movement: ${selectedMovement.exercise}`);
+                // console.log(`✅ Selected movement: ${selectedMovement.exercise}`);
                 return selectedMovement;
             }
 
-            console.warn(`⚠️ All possible matches were used. Returning fallback: ${filter.value}`);
+            // console.warn(`⚠️ All possible matches were used. Returning fallback: ${filter.value}`);
             return { exercise: filter.value };
         };
 
@@ -328,10 +366,12 @@ export default function HiitScreen({ route }) {
     }, []);
 
     useEffect(() => {
-        if (workoutData.length > 0) {
-            setWorkoutPlans(generateHiitWorkout(selectedWorkout, selectedTime, workoutData));
+        if (filteredWorkoutData.length > 0) {
+            setWorkoutPlans(generateHiitWorkout(selectedWorkout, selectedTime, filteredWorkoutData));
         }
-    }, [selectedWorkout, selectedTime, workoutData]);
+    }, [selectedWorkout, selectedTime, filteredWorkoutData]);
+
+
 
 
 
