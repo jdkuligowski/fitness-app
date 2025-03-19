@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
 import TimerVideoMobilityModal from '../../../screens/modalScreens/TimerVideoMobilityModal';
+import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -41,6 +42,7 @@ export default function MobilityWorkout({ route, navigation }) {
         session_rpe: workout.running_sessions[0]?.rpe || 0, // Default to 0
     })
     const [isTimerModalVisible, setIsTimerModalVisible] = useState(false);
+    const [rpeModalVisible, setRpeModalVisible] = useState(false);
 
 
     const updateMobilityWorkout = async () => {
@@ -268,13 +270,16 @@ export default function MobilityWorkout({ route, navigation }) {
                                         updatedLogData.session_comments = value;
                                         setLogData(updatedLogData);
                                     }}
-                                    placeholder="How was this session?"
+                                    placeholder="Really nice stretch..."
                                 />
                             </View>
 
                             {/* RPE Block for Running Session */}
                             <View style={styles.commentBlock}>
-                                <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                <View style={styles.RPEBlock}>
+                                    <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                    <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                </View>
                                 <View style={styles.sliderContainer}>
                                     <Slider
                                         style={styles.slider}
@@ -356,6 +361,10 @@ export default function MobilityWorkout({ route, navigation }) {
                     isVisible={isTimerModalVisible}
                     workout_name={workout.name}
                     onClose={() => setIsTimerModalVisible(false)}
+                />
+                <RPEInfoModal
+                    visible={rpeModalVisible}
+                    onClose={() => setRpeModalVisible(false)}
                 />
             </View>
         </SafeAreaView>
@@ -619,6 +628,11 @@ const styles = StyleSheet.create({
         color: 'black',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    RPEBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     commentBlock: {
         marginTop: 10,

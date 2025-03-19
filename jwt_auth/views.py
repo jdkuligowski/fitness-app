@@ -54,6 +54,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 from saved_workouts.models import Workout
 from leaderboard.models import Leaderboard
+from user_stats.models import UserStats
 env = environ.Env()
 import re
 
@@ -309,7 +310,7 @@ class FullUserView(APIView):
     def get(self, request, user_id):
         user = User.objects.select_related('leaderboard').get(id=user_id)
 
-        # Aggregate basic workouts
+        # 1. Basic workout stats
         today = now().date()
         start_of_month = today.replace(day=1)
         workouts = Workout.objects.filter(owner=user, status='Completed')
@@ -318,27 +319,23 @@ class FullUserView(APIView):
             workouts_all_time=Count('id')
         )
 
-        # Grab the leaderboard record (already joined above via select_related)
-        leaderboard = user.leaderboard  # or None if not found
-
+        # 2. Leaderboard info
+        leaderboard = getattr(user, 'leaderboard', None)
         if leaderboard:
             leaderboard_scores = {
                 'total_score': leaderboard.total_score,
                 'weekly_score': leaderboard.weekly_score,
                 'monthly_score': leaderboard.monthly_score,
             }
-            # Pull your stored ranks directly
             leaderboard_ranks = {
                 'total_rank': leaderboard.total_rank,
                 'weekly_rank': leaderboard.weekly_rank,
                 'monthly_rank': leaderboard.monthly_rank,
             }
         else:
-            # If there's no leaderboard record for some reason, default
             leaderboard_scores = {}
             leaderboard_ranks = {}
 
-        # If you use a serializer for the user, that’s fine—if not, just pass needed fields
         serialized_user = SimplifiedPopulatedUserSerializer(user).data
 
         data = {
@@ -346,13 +343,28 @@ class FullUserView(APIView):
             'stats': {
                 'workouts_this_month': workout_stats['workouts_this_month'],
                 'workouts_all_time': workout_stats['workouts_all_time'],
-                # 'recent_workouts': ... # omitted if you don’t need it
                 'leaderboard': leaderboard_scores,
                 'ranks': leaderboard_ranks,
             }
         }
 
+        # 3. Insert user_stats if it exists
+        # Suppose your model has something like `owner = OneToOneField(User, related_name='user_stats')`
+        user_stats = getattr(user, 'user_stats', None)
+        if user_stats:
+            # Example: Just place all of user_stats' JSON fields under 'stats["aggregates"]'
+            data['stats']['aggregates'] = {
+                'weekly_body_part': user_stats.weekly_body_part,
+                'monthly_body_part': user_stats.monthly_body_part,
+                'yearly_body_part': user_stats.yearly_body_part,
+
+                'weekly_activity_type': user_stats.weekly_activity_type,
+                'monthly_activity_type': user_stats.monthly_activity_type,
+                'yearly_activity_type': user_stats.yearly_activity_type,
+            }
+
         return Response(data, status=status.HTTP_200_OK)
+
 
 
 

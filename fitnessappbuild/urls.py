@@ -37,4 +37,5 @@ urlpatterns = [
     path('api/equipment_filters/', include('saved_equipment_lists.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/leaderboard/', include('leaderboard.urls')),
+    path('api/stats/', include('user_stats.urls')),
 ]

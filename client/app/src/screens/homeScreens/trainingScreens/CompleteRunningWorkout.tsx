@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import RPEGauge from "@/app/src/components/RPEGauge";
+import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 
@@ -37,6 +38,7 @@ export default function RunningWorkout({ route, navigation }) {
             })),
         })) || [],
     });
+    const [rpeModalVisible, setRpeModalVisible] = useState(false);
 
 
 
@@ -367,13 +369,16 @@ export default function RunningWorkout({ route, navigation }) {
                                         updatedLogData.session_comments = value;
                                         setLogData(updatedLogData);
                                     }}
-                                    placeholder="How was this session?"
+                                    placeholder="Brutal session... Absolutely smashed it..."
                                 />
                             </View>
 
                             {/* RPE Block for Running Session */}
                             <View style={styles.commentBlock}>
-                                <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                <View style={styles.RPEBlock}>
+                                    <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                    <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                </View>
                                 <View style={styles.sliderContainer}>
                                     <Slider
                                         style={styles.slider}
@@ -523,6 +528,10 @@ export default function RunningWorkout({ route, navigation }) {
                         <Ionicons name="arrow-forward" size={24} color="white" />
                     </TouchableOpacity> */}
                 </View>
+                <RPEInfoModal
+                    visible={rpeModalVisible}
+                    onClose={() => setRpeModalVisible(false)}
+                />
                 {/* {activeTab === "History" && renderHistory()} */}
             </View>
         </SafeAreaView >
@@ -777,6 +786,11 @@ const styles = StyleSheet.create({
         color: 'black',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    RPEBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     commentBlock: {
         marginTop: 10,

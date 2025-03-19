@@ -128,30 +128,34 @@ export default function RunningScreen({ route }) {
                                 </View>
                             </View>
                             {/* Current 5km Time Section */}
-                            {!(userData?.five_k_mins && userData?.five_k_secs) && (
-                                <View style={styles.workoutInfoDetails}>
-                                    <Text style={styles.workoutSubtitle}>Current 5km Time</Text>
-                                    <View style={styles.timeInputContainer}>
-                                        <TextInput
-                                            style={styles.timeInput}
-                                            value={fiveKmMinutes}
-                                            onChangeText={setFiveKmMinutes}
-                                            placeholder="Min"
-                                            keyboardType="numeric"
-                                            maxLength={2}
-                                        />
-                                        <Text style={styles.timeSeparator}>:</Text>
-                                        <TextInput
-                                            style={styles.timeInput}
-                                            value={fiveKmSeconds}
-                                            onChangeText={setFiveKmSeconds}
-                                            placeholder="Sec"
-                                            keyboardType="numeric"
-                                            maxLength={2}
-                                        />
+                            {(
+                                userData?.five_k_mins == null ||
+                                userData?.five_k_secs == null
+                            ) && (
+                                    <View style={styles.workoutInfoDetails}>
+                                        <Text style={styles.workoutSubtitle}>Current 5km Time</Text>
+                                        <View style={styles.timeInputContainer}>
+                                            <TextInput
+                                                style={styles.timeInput}
+                                                value={fiveKmMinutes}
+                                                onChangeText={setFiveKmMinutes}
+                                                placeholder="Min"
+                                                keyboardType="numeric"
+                                                maxLength={2}
+                                            />
+                                            <Text style={styles.timeSeparator}>:</Text>
+                                            <TextInput
+                                                style={styles.timeInput}
+                                                value={fiveKmSeconds}
+                                                onChangeText={setFiveKmSeconds}
+                                                placeholder="Sec"
+                                                keyboardType="numeric"
+                                                maxLength={2}
+                                            />
+                                        </View>
                                     </View>
-                                </View>
-                            )}
+                                )}
+
 
 
                             {selectedWorkout ?

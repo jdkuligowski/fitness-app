@@ -22,6 +22,8 @@ import ENV from '../../../../../env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
+import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
+
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -37,6 +39,7 @@ export default function HiitWorkout({ route, navigation }) {
         session_comments: workout.hiit_sessions[0]?.comments || "", // Default to an empty string
         session_rpe: workout.hiit_sessions[0]?.rpe || 0, // Default to 0
     });
+    const [rpeModalVisible, setRpeModalVisible] = useState(false);
 
     // useEffect(() => {
     //     console.log('Hiit workout loaded: ', JSON.stringify(workout, null, 2))
@@ -252,12 +255,15 @@ export default function HiitWorkout({ route, navigation }) {
                                     style={styles.commentInput}
                                     value={logData.session_comments || ''}
                                     onChangeText={(value) => setLogData({ ...logData, session_comments: value })}
-                                    placeholder="How was this session?"
+                                    placeholder="Brutal session... Absolutely smashed it..."
                                 />
                             </View>
 
                             <View style={styles.commentBlock}>
-                                <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                <View style={styles.RPEBlock}>
+                                    <Text style={styles.exerciseLabel}>Session RPE: {logData.session_rpe ?? 0}</Text>
+                                    <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                </View>
                                 <Slider
                                     style={styles.slider}
                                     minimumValue={0}
@@ -307,6 +313,10 @@ export default function HiitWorkout({ route, navigation }) {
                         </TouchableOpacity>
                     </View>
                 </Modal>
+                <RPEInfoModal
+                    visible={rpeModalVisible}
+                    onClose={() => setRpeModalVisible(false)}
+                />
             </View>
         </SafeAreaView>
     );
@@ -571,6 +581,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    RPEBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
     commentBlock: {
         marginTop: 10,
         marginBottom: 20,
@@ -601,7 +616,7 @@ const styles = StyleSheet.create({
     },
     blockHeader: {
         fontSize: 16,
-        fontWeight: 600, 
+        fontWeight: 600,
         marginBottom: 5,
     },
     thumb: {

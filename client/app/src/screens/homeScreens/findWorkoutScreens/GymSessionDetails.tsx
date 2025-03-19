@@ -122,80 +122,6 @@ export default function WorkoutScreen({ route }) {
     }, []);
 
 
-
-    // Filter workout data for a section
-    // const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
-    //     if (!filters || !Array.isArray(filters)) {
-    //         console.warn("Invalid filters provided to filterWorkoutData:", filters);
-    //         return [];
-    //     }
-
-    //     const normalizeAndSplit = (str) => {
-    //         if (typeof str !== "string") return [];
-    //         return str
-    //             .replace(/[\(\)]/g, "") // Remove parentheses
-    //             .replace(/\s+/g, " ") // Replace multiple spaces with a single space
-    //             .trim()
-    //             .toLowerCase()
-    //             .split(",")
-    //             .map((item) => item.trim());
-    //     };
-
-    //     // Apply all filters in conjunction
-    //     const filteredMovements = filteredWorkoutData.filter((exercise) => {
-    //         const exerciseKeyValues = {};
-
-    //         // Normalize all exercise values
-    //         Object.keys(exercise).forEach((key) => {
-    //             exerciseKeyValues[key] = normalizeAndSplit(exercise[key] || "");
-    //         });
-
-    //         // Check if the exercise satisfies all filters in all filter sets
-    //         const allFilterSetsPass = filters.every((filterSet) => {
-    //             if (!Array.isArray(filterSet)) filterSet = [filterSet];
-
-    //             // Each filter set must pass
-    //             return filterSet.every(({ key, value, operator }) => {
-    //                 const exerciseValue = exerciseKeyValues[key]; // Normalized exercise values
-    //                 const filterValue = Array.isArray(value)
-    //                     ? value.map((v) => normalizeAndSplit(v)).flat()
-    //                     : normalizeAndSplit(value);
-
-    //                 if (!exerciseValue.length) {
-    //                     // console.warn(`Key "${key}" not found in exercise:`, exercise);
-    //                     return false;
-    //                 }
-
-    //                 if (operator === "contains") {
-    //                     return filterValue.some((filterWord) =>
-    //                         exerciseValue.some((exerciseWord) => exerciseWord.includes(filterWord))
-    //                     );
-    //                 }
-
-    //                 if (operator === "equals") {
-    //                     return filterValue.every((filterWord) =>
-    //                         exerciseValue.some((exerciseWord) => exerciseWord === filterWord)
-    //                     );
-    //                 }
-
-    //                 console.warn("Unknown operator:", operator);
-    //                 return false;
-    //             });
-    //         });
-    //         return allFilterSetsPass; // Include only exercises that pass all filters
-    //     });
-
-    //     console.log("Filtered Movements (Pre-Deduplication):", JSON.stringify(filteredMovements, null, 2));
-
-    //     // Deduplicate, shuffle, and exclude already used exercises
-    //     const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));
-    //     console.log("Unique Movements:", JSON.stringify(uniqueMovements, null, 2));
-
-    //     return uniqueMovements
-    //         .sort(() => Math.random() - 0.5) // Shuffle randomly
-    //         .filter((movement) => !usedExercises.has(movement)); // Exclude already used
-    // };
-
     // Filter workout data for a section
     const filterWorkoutData = (filters, usedExercises = new Set(), workoutType) => {
         if (!filters || !Array.isArray(filters)) {
@@ -259,10 +185,10 @@ export default function WorkoutScreen({ route }) {
             return allFilterSetsPass;
         });
 
-        console.log(
-            "Filtered Movements (Pre-Deduplication):",
-            JSON.stringify(filteredMovements, null, 2)
-        );
+        // console.log(
+        //     "Filtered Movements (Pre-Deduplication):",
+        //     JSON.stringify(filteredMovements, null, 2)
+        // );
 
         // Deduplicate by 'exercise' name, then shuffle, then exclude used
         const uniqueMovements = Array.from(new Set(filteredMovements.map((m) => m.exercise)));

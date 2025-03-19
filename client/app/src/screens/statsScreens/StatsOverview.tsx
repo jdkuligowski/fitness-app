@@ -15,7 +15,8 @@ import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env'
 import RPEGauge from '../../components/RPEGauge';
 import { Colours } from '../../components/styles';
-
+import ActivityTypePieChart from './Charts/ActivityPieChart';
+import BodyPartBarChart from './Charts/BodyPartChart';
 
 export default function StatsOverview() {
     const navigation = useNavigation();
@@ -61,6 +62,7 @@ export default function StatsOverview() {
             const response = await axios.get(`${ENV.API_URL}/api/auth/full-profile/${userId}/`);
             const freshStats = response.data.stats;
             setStats(freshStats);
+            console.log('Stats: ', response.data.stats)
 
             // Cache the fresh stats
             await AsyncStorage.setItem('cachedStats', JSON.stringify(freshStats));
@@ -206,6 +208,33 @@ export default function StatsOverview() {
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
                     </View>
                 </TouchableOpacity>
+
+                {/* Donut Chart for Weekly Activity */}
+
+                <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
+                    <Text style={styles.workoutsCompletedTitle}>Workouts this month</Text>
+                    <View style={{ marginVertical: 16, alignItems: 'center' }}>
+                        {stats?.aggregates?.weekly_activity_type ? (
+                            <ActivityTypePieChart dataObject={stats.aggregates.monthly_activity_type} />
+                        ) : (
+                            <Text>No weekly activity data yet</Text>
+                        )}
+                    </View>
+                </View>
+
+                {/* Bar Chart for Body Part Activity */}
+                <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
+                    <Text style={styles.workoutsCompletedTitle}>Body parts targetted this month</Text>
+                    <View style={{ alignItems: 'center' }}>
+                        {stats?.aggregates?.monthly_body_part ? (
+                            <BodyPartBarChart dataObject={stats.aggregates.monthly_body_part} />
+                        ) : (
+                            <Text>No body part data yet</Text>
+                        )}
+                    </View>
+                </View>
+
+
             </ScrollView>
         </SafeAreaView>
     );
@@ -222,6 +251,7 @@ const styles = StyleSheet.create({
     statsPageContainer: {
         flexGrow: 1,
         backgroundColor: Colours.primaryBackground,
+        paddingBottom: 100,
     },
     header: {
         padding: 20,
@@ -347,7 +377,9 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     leaderboardOverviewContainer: {
-        margin: 20,
+        marginLeft: 20,
+        marginRight: 20,
+        marginTop: 20,
         padding: 20,
         borderRadius: 20,
         borderTopWidth: 1,

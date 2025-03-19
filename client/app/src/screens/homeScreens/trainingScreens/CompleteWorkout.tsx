@@ -26,6 +26,7 @@ import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { Colours } from '@/app/src/components/styles';
 import { Video } from 'expo-av';
+import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -44,6 +45,7 @@ export default function CompleteWorkout({ route, navigation }) {
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedMovement, setSelectedMovement] = useState(null);
+    const [rpeModalVisible, setRpeModalVisible] = useState(false);
 
     useEffect(() => {
         const initialLogs = {};
@@ -425,10 +427,13 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                         style={styles.commentInput}
                                                                         value={conditioningDetails[conditioning.id]?.comments || ''}
                                                                         onChangeText={(value) => handleConditioningChange(conditioning.id, 'comments', value)}
-                                                                        placeholder="Enter your comments" />
+                                                                        placeholder="Brutal conditioning..." />
                                                                 </View>
                                                                 <View style={styles.commentBlock}>
-                                                                    <Text style={styles.exerciseLabel}>RPE: {conditioningDetails[conditioning.id]?.rpe || 0}</Text>
+                                                                    <View style={styles.RPEBlock}>
+                                                                        <Text style={styles.exerciseLabel}>RPE: {conditioningDetails[conditioning.id]?.rpe || 0}</Text>
+                                                                        <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                                                    </View>
                                                                     <Slider
                                                                         style={styles.slider}
                                                                         minimumValue={0}
@@ -646,13 +651,16 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                     style={styles.commentInput}
                                                                     value={movementSummaryDetails[movement.id]?.movement_comments ?? ''}
                                                                     onChangeText={(value) => handleSummaryChange(movement.id, 'movement_comments', value)}
-                                                                    placeholder="Enter your comments"
+                                                                    placeholder="Smashed it, increase weight next week..."
                                                                 />
                                                             </View>
 
                                                             {/* RPE Block */}
                                                             <View style={styles.commentBlock}>
-                                                                <Text style={styles.exerciseLabel}>RPE: {movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}</Text>
+                                                                <View style={styles.RPEBlock}>
+                                                                    <Text style={styles.exerciseLabel}>RPE: {movementSummaryDetails[movement.id]?.movement_difficulty ?? 0}</Text>
+                                                                    <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                                                </View>
                                                                 <Slider
                                                                     style={styles.slider}
                                                                     minimumValue={0}
@@ -782,6 +790,10 @@ export default function CompleteWorkout({ route, navigation }) {
                         setCurrentStage(index);
                         Keyboard.dismiss(); // Dismiss the keyboard when swiping
                     }}
+                />
+                <RPEInfoModal
+                    visible={rpeModalVisible}
+                    onClose={() => setRpeModalVisible(false)}
                 />
 
 
@@ -1034,6 +1046,11 @@ const styles = StyleSheet.create({
     commentBlock: {
         marginTop: 10,
     },
+    RPEBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
     commentInput: {
         width: '100%',
         minHeight: 50,
@@ -1189,7 +1206,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     movementDetails: {
-        flexDirection: 'row', 
+        flexDirection: 'row',
         marginBottom: 5,
 
     }
