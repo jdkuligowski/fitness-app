@@ -27,6 +27,7 @@ import TimerVideoMobilityModal from '../../../screens/modalScreens/TimerVideoMob
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const ITEM_WIDTH = SCREEN_WIDTH - 85;
 
 export default function MobilityWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive the workout data as a parameter
@@ -162,30 +163,39 @@ export default function MobilityWorkout({ route, navigation }) {
                             <FlatList
                                 data={movements}
                                 horizontal
-                                pagingEnabled
-                                keyExtractor={(item, index) => index.toString()}
+                                // pagingEnabled
+                                snapToInterval={ITEM_WIDTH}     // So each swipe snaps to the item width
+                                decelerationRate="fast"         // Usually helps snapping feel smooth
                                 showsHorizontalScrollIndicator={false}
-                                renderItem={({ item, index }) => (
-                                    <TouchableOpacity
-                                        style={[styles.thumbnailContainer]}
-                                        onPress={() => {
-                                            setSelectedVideo(item.movements?.portrait_video_url);
-                                            setIsModalVisible(true);
-                                        }}
-                                    >
-                                        <Image
-                                            source={{ uri: item.movements?.landscape_thumbnail }}
-                                            style={styles.thumbnail}
-                                            resizeMode="cover"
-                                        />
-                                    </TouchableOpacity>
+                                keyExtractor={(item, index) => index.toString()}
+                                renderItem={({ item }) => (
+                                    // Each item is ITEM_WIDTH wide
+                                    <View style={{ width: ITEM_WIDTH, height: 200 }}>
+                                        <TouchableOpacity
+                                            style={styles.thumbnailContainer}
+                                            onPress={() => {
+                                                setSelectedVideo(item.movements?.portrait_video_url);
+                                                setIsModalVisible(true);
+                                            }}
+                                        >
+                                            <Image
+                                                source={{ uri: item.movements?.landscape_thumbnail }}
+                                                style={styles.thumbnailImage}
+                                                resizeMode="cover"
+                                            />
+                                            <View style={styles.playIconOverlay}>
+                                                <Ionicons name="play-circle" size={48} color="white" />
+                                            </View>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                                 onMomentumScrollEnd={(e) => {
-                                    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                                    setCurrentIndex(index); // Update carousel indicator
+                                    const offsetX = e.nativeEvent.contentOffset.x;
+                                    // index = how many item-widths we’ve scrolled
+                                    const index = Math.round(offsetX / ITEM_WIDTH);
+                                    setCurrentIndex(index);
                                 }}
                             />
-
                             {/* Carousel Dots */}
                             <View style={styles.carouselContainer}>
                                 {movements.map((_, index) => (
@@ -829,17 +839,29 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     thumbnailContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        height: 200, // Total height of the thumbnail area
+        position: 'relative', // ensures the child overlay can be absolutely positioned
+        // margin: 8,
         width: SCREEN_WIDTH - 85, // Ensures each item spans the full width of the screen
-        // marginRight: 5, // Add padding for consistent spacing
+        height: 200,
     },
-    thumbnail: {
-        width: '100%', // Set width to 90% of the screen for some padding
-        height: 200, // Keeps the intended height of the thumbnail
+    thumbnailImage: {
+        width: '100%',
+        // margin: 12,
+        height: 200,
         borderRadius: 10,
+        // marginBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    playIconOverlay: {
+        position: 'absolute',
+        // Center the icon
+        top: '50%',
+        left: '50%',
+        // Shift it back up/left by half its size to truly center
+        transform: [{ translateX: -24 }, { translateY: -24 }],
+        zIndex: 9999,
     },
     carouselContainer: {
         flexDirection: "row",

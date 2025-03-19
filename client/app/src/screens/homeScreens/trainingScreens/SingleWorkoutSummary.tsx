@@ -131,6 +131,9 @@ export default function WorkoutSummary({ route, navigation }) {
         }
     };
 
+    const findMovementByExercise = (exerciseName) => {
+        return userWorkouts.find((movement) => movement.exercise === exerciseName);
+    };
 
 
     const IntervalTime = ({ time }) => (
@@ -234,15 +237,54 @@ export default function WorkoutSummary({ route, navigation }) {
                             // Gym Layout
                             userWorkouts?.workout_sections?.map((section, index) => (
                                 <View key={index} style={styles.sectionContainer}>
-                                    <Text style={styles.sectionTitle}>{section.section_name}</Text>
-                                    {section.section_movement_details.map((movement, i) => (
-                                        <View key={i} style={styles.movementRow}>
-                                            <Text>
-                                                <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
-                                                <Text style={styles.movementDetail}>{movement.movements.exercise}</Text>
-                                            </Text>
-                                        </View>
-                                    ))}
+                                    {section.section_name === "Conditioning" ?
+                                        <Text style={styles.sectionTitle}>{`${section.section_name}: ${section.conditioning_elements[0].conditioning_overview.name}`}</Text> :
+                                        <Text style={styles.sectionTitle}>{section.section_name}</Text>
+                                    }
+                                    {section.section_name === "Warm up A" ?
+                                        <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
+                                        section.section_name === "Warm up B" ?
+                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 8-12 reps in each</Text> :
+                                            section.section_name === "Strong 1" || section.section_name === "Strong 2" ?
+                                                <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 5-8 reps</Text> :
+                                                section.section_name === "Build 1" || section.section_name === "Build 2" ?
+                                                    <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 8-12 reps with no rest between movements</Text> :
+                                                    section.section_name === "Pump 1" || section.section_name === "Pump 2" ?
+                                                        <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 12-15 reps with no rest between movements</Text> :
+                                                        section.section_name === "Conditioning" ?
+                                                            <Text style={styles.sectionSubTitle}>{section.conditioning_elements[0].conditioning_overview.notes}</Text> :
+                                                            ''}
+
+                                    {section.section_movement_details.map((movementDetail, i) => {
+                                        // Destructure the movement for clarity
+                                        const currentMovement = movementDetail.movements;
+
+                                        return (
+                                            <View key={i} style={styles.movementRow}>
+                                                <View style={styles.rowText}>
+                                                    <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                    <Text style={styles.movementGymDetail}>{currentMovement.exercise}</Text>
+                                                </View>
+
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        // If there's a valid video URL, store it in state
+                                                        if (currentMovement.portrait_video_url || currentMovement.landscape_video_url) {
+                                                            // Example: setSelectedMovement just the object or the URL
+                                                            setSelectedMovement(currentMovement);
+                                                        } else {
+                                                            Alert.alert(
+                                                                "No video found",
+                                                                "This movement doesn't have an associated video."
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        );
+                                    })}
                                     <View style={styles.subDividerLine}></View>
                                 </View>
                             ))
@@ -481,37 +523,39 @@ export default function WorkoutSummary({ route, navigation }) {
                         </TouchableOpacity>
                     </View>
                 </View>
-                {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
-                        visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.videoModalContainer}>
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
-                )}
-            </View>
-        </SafeAreaView>
+                {
+                    selectedMovement && (
+                        <Modal
+                            animationType="slide"
+                            transparent={false}
+                            visible={!!selectedMovement}
+                            onRequestClose={() => setSelectedMovement(null)}
+                        >
+                            <View style={styles.videoModalContainer}>
+                                {selectedMovement?.portrait_video_url ? (
+                                    <Video
+                                        source={{ uri: selectedMovement.portrait_video_url }}
+                                        style={styles.fullScreenVideo}
+                                        resizeMode="contain"
+                                        useNativeControls
+                                        shouldPlay
+                                        onError={(error) => console.error("Video Error:", error)}
+                                    />
+                                ) : (
+                                    <Text style={styles.noVideoText}>Video coming soon</Text>
+                                )}
+                                <TouchableOpacity
+                                    style={styles.closeButton}
+                                    onPress={() => setSelectedMovement(null)}
+                                >
+                                    <Ionicons name="close" size={30} color="white" />
+                                </TouchableOpacity>
+                            </View>
+                        </Modal>
+                    )
+                }
+            </View >
+        </SafeAreaView >
     );
 }
 
@@ -657,12 +701,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         margin: 20,
         marginTop: 10,
-        // marginLeft: 30,
-        // marginRight: 30,
     },
     subDividerLine: {
-        marginTop: 5,
-        marginBottom: 5,
+        marginTop: 10,
+        marginBottom: 10,
         borderBottomColor: 'rgba(0, 0, 0, 0.12)',
         borderBottomWidth: 1,
     },
@@ -703,7 +745,9 @@ const styles = StyleSheet.create({
         color: "black",
         fontSize: 16,
         fontWeight: "600",
-
+    },
+    sectionSubTitle: {
+        marginTop: 5,
     },
     movementText: {
         fontSize: 16,
@@ -721,9 +765,17 @@ const styles = StyleSheet.create({
     movementRow: {
         marginVertical: 5, // Space between rows
         flexDirection: 'row',
-        paddingLeft: 10,
+        paddingLeft: 0,
         alignItems: 'center',
         justifyContent: 'space-between',
+        width: '100%',
+    },
+    rowText: {
+        flexDirection: 'row',
+        paddingLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '80%',
     },
     movementLeft: {
         flexDirection: 'row',
@@ -739,10 +791,16 @@ const styles = StyleSheet.create({
         color: '#6456B1',
         fontWeight: "500",
         lineHeight: 24,
-        width: '30%',
+        width: '10%',
     },
     movementDetail: {
         fontSize: 16,
+        // width: '85%',
+        color: 'black', // Example color for movement details
+    },
+    movementGymDetail: {
+        fontSize: 16,
+        width: '85%',
         color: 'black', // Example color for movement details
     },
     movementDescription: {
@@ -823,6 +881,7 @@ const styles = StyleSheet.create({
     timeBox: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-start',
     },
     intervalTimeContainer: {
         marginLeft: 5,

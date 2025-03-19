@@ -26,6 +26,7 @@ import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const ITEM_WIDTH = SCREEN_WIDTH - 85;
 
 export default function HiitWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive workout data as a parameter
@@ -151,33 +152,41 @@ export default function HiitWorkout({ route, navigation }) {
                         <View style={styles.summaryContent}>
                             {/* Horizontal Video FlatList */}
                             <FlatList
-                                data={hiitBlocks.flatMap(block => block.hiit_movements)} // Flatten all movements into a single list
+                                data={hiitBlocks.flatMap(block => block.hiit_movements)}
                                 horizontal
-                                pagingEnabled
+                                pagingEnabled            // because item width = SCREEN_WIDTH
                                 keyExtractor={(item, index) => index.toString()}
                                 showsHorizontalScrollIndicator={false}
                                 renderItem={({ item, index }) => (
-                                    <TouchableOpacity
-                                        style={[styles.thumbnailContainer]}
-                                        onPress={() => {
-                                            if (item.movements?.portrait_video_url) {
-                                                setSelectedVideo(item.movements.portrait_video_url);
-                                                setIsModalVisible(true);
-                                            } else {
-                                                alert("No video available for this movement.");
-                                            }
-                                        }}
-                                    >
-                                        <Image
-                                            source={{ uri: item.movements?.landscape_thumbnail || "" }} // Use thumbnail if available
-                                            style={styles.thumbnail}
-                                            resizeMode="cover"
-                                        />
-                                    </TouchableOpacity>
+                                    <View style={{ width: ITEM_WIDTH }}>  {/* Full-screen width */}
+                                        <TouchableOpacity
+                                            style={styles.thumbnailContainer}
+                                            onPress={() => {
+                                                if (item.movements?.portrait_video_url) {
+                                                    setSelectedVideo(item.movements.portrait_video_url);
+                                                    setIsModalVisible(true);
+                                                } else {
+                                                    alert("No video available for this movement.");
+                                                }
+                                            }}
+                                        >
+                                            <Image
+                                                source={{ uri: item.movements?.landscape_thumbnail }}
+                                                style={styles.thumbnailImage}
+                                                resizeMode="cover"
+                                            />
+                                            <View style={styles.playIconOverlay}>
+                                                <Ionicons name="play-circle" size={48} color="white" />
+                                            </View>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                                 onMomentumScrollEnd={(e) => {
-                                    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                                    setCurrentBlockIndex(index); // Update carousel indicator
+                                    // offsetX = how far the user has scrolled
+                                    const offsetX = e.nativeEvent.contentOffset.x;
+                                    // each item’s width is SCREEN_WIDTH
+                                    const currentIndex = Math.round(offsetX / ITEM_WIDTH);
+                                    setCurrentBlockIndex(currentIndex); // or setCurrentIndex
                                 }}
                             />
 
@@ -789,17 +798,29 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     thumbnailContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        height: 200, // Total height of the thumbnail area
+        position: 'relative', // ensures the child overlay can be absolutely positioned
+        // margin: 8,
         width: SCREEN_WIDTH - 85, // Ensures each item spans the full width of the screen
-        // marginRight: 5, // Add padding for consistent spacing
+        height: 200,
     },
-    thumbnail: {
-        width: '100%', // Set width to 90% of the screen for some padding
-        height: 200, // Keeps the intended height of the thumbnail
+    thumbnailImage: {
+        width: '100%',
+        // margin: 12,
+        height: 200,
         borderRadius: 10,
+        // marginBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    playIconOverlay: {
+        position: 'absolute',
+        // Center the icon
+        top: '50%',
+        left: '50%',
+        // Shift it back up/left by half its size to truly center
+        transform: [{ translateX: -24 }, { translateY: -24 }],
+        zIndex: 9999,
     },
     carouselContainer: {
         flexDirection: "row",
