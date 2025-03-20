@@ -26,3 +26,4 @@ export default function RootNavigator() {
 
   return isOnboardingComplete ? <RootStackNavigator /> : <OnboardingModal isVisible={true} />;
 }
+

@@ -57,7 +57,10 @@ export default function SupportOverview() {
                 <View style={styles.header}>
                     <View style={styles.appIntro}>
                         <View style={styles.introContainer}>
-                            <TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('ProfileStack', {
+                                    screen: 'ProfilePage'
+                                })}>
                                 {userData?.profile_image ? (
                                     <Image
                                         style={styles.profileImage}

@@ -121,7 +121,10 @@ export default function StatsOverview() {
                 <View style={styles.header}>
                     <View style={styles.appIntro}>
                         <View style={styles.introContainer}>
-                            <TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('ProfileStack', {
+                                    screen: 'ProfilePage'
+                                })}>
                                 {userData?.profile_image ? (
                                     <Image
                                         style={styles.profileImage}
@@ -213,11 +216,11 @@ export default function StatsOverview() {
 
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
                     <Text style={styles.workoutsCompletedTitle}>Workouts this month</Text>
-                    <View style={{ marginVertical: 16, alignItems: 'center' }}>
-                        {stats?.aggregates?.weekly_activity_type ? (
+                    <View style={{ marginVertical: 10 }}>
+                        {stats?.aggregates?.monthly_activity_type ? (
                             <ActivityTypePieChart dataObject={stats.aggregates.monthly_activity_type} />
                         ) : (
-                            <Text>No weekly activity data yet</Text>
+                            <Text style={styles.noDataMessage}>Do some workouts to see your ectivity</Text>
                         )}
                     </View>
                 </View>
@@ -225,11 +228,11 @@ export default function StatsOverview() {
                 {/* Bar Chart for Body Part Activity */}
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
                     <Text style={styles.workoutsCompletedTitle}>Body parts targetted this month</Text>
-                    <View style={{ alignItems: 'center' }}>
+                    <View style={{ marginVertical: 10 }}>
                         {stats?.aggregates?.monthly_body_part ? (
                             <BodyPartBarChart dataObject={stats.aggregates.monthly_body_part} />
                         ) : (
-                            <Text>No body part data yet</Text>
+                            <Text style={styles.noDataMessage}>Save some gym workouts to track your gains</Text>
                         )}
                     </View>
                 </View>
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 10,
-        marginRight: 15,
+        // marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFE0E1',

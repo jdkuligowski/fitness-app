@@ -13,7 +13,7 @@ import { Colours } from '../../components/styles';
 
 export default function LoginPage() {
     const navigation = useNavigation();
-    const { setIsAuthenticated } = useAuth();
+    const { setIsAuthenticated, setIsOnboardingComplete } = useAuth();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -33,10 +33,12 @@ export default function LoginPage() {
 
         try {
             const response = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
-            const { token, user_id } = response.data;
+            const { token, user_id, is_onboarding_complete } = response.data;
 
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
+            await AsyncStorage.setItem('is_onboarding_complete', is_onboarding_complete ? 'true' : 'false');
+            setIsOnboardingComplete(is_onboarding_complete);
 
             Alert.alert('Login Successful', 'You have logged in successfully!');
             setIsAuthenticated(true);
@@ -68,7 +70,7 @@ export default function LoginPage() {
                             <View style={styles.imageContainer}>
                                 <Image
                                     style={styles.brandImage}
-                                    source={require('../../../../assets/images/burst_logo.png')} 
+                                    source={require('../../../../assets/images/burst_logo.png')}
                                 />
                             </View>
 
@@ -97,10 +99,10 @@ export default function LoginPage() {
                                             onChangeText={(text) => setFormData({ ...formData, password: text })}
                                         />
                                         <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                                            <Ionicons 
-                                                name={isPasswordVisible ? "eye-off" : "eye"} 
-                                                size={24} 
-                                                color="black" 
+                                            <Ionicons
+                                                name={isPasswordVisible ? "eye-off" : "eye"}
+                                                size={24}
+                                                color="black"
                                             />
                                         </TouchableOpacity>
                                     </View>

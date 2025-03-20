@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { Colours } from '@/app/src/components/styles';
+import RunningInfoModal from '../../modalScreens/InfoModals/RunningInfo';
 
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
@@ -20,6 +21,7 @@ export default function RunningScreen({ route }) {
     // Pre-fill if user has already set a 5k time
     const [fiveKmMinutes, setFiveKmMinutes] = useState(null)
     const [fiveKmSeconds, setFiveKmSeconds] = useState(null);
+    const [infoModalVisible, setInfoModalVisible] = useState(false);
 
     console.log('user data: ', userData)
 
@@ -73,7 +75,10 @@ export default function RunningScreen({ route }) {
                         {/* Options */}
                         <View style={styles.workoutInfo}>
                             <View style={styles.workoutInfoDetails}>
-                                <Text style={styles.workoutSubtitle}>What kind of running session do you want to do?</Text>
+                                <View style={styles.sessionBlock}>
+                                    <Text style={styles.workoutSubtitle}>What kind of running session do you want to do?</Text>
+                                    <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setInfoModalVisible(true)} />
+                                </View>
                                 <View style={styles.workoutType}>
                                     {['Intervals', 'Tempo', 'Easy', 'Not sure'].map((option, index) => (
                                         // {['Intervals', 'Tempo', 'Long run', 'Not sure'].map((option, index) => (
@@ -179,6 +184,10 @@ export default function RunningScreen({ route }) {
                                     </TouchableOpacity>
                                 </View>
                                 : ''}
+                            <RunningInfoModal
+                                visible={infoModalVisible}
+                                onClose={() => setInfoModalVisible(false)}
+                            />
                         </View>
                     </ScrollView>
                 </TouchableWithoutFeedback>
@@ -261,10 +270,17 @@ const styles = StyleSheet.create({
     workoutInfoDetails: {
         marginBottom: 20,
     },
+    sessionBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginRight: 20,
+    },
     workoutSubtitle: {
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 20,
+        paddingRight: 5,
     },
     workoutType: {
         flexDirection: 'row',

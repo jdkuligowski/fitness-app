@@ -250,13 +250,11 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 10,
-        marginRight: 15,
     },
     initialsContainer: {
         width: 50,
         height: 50,
         borderRadius: 10,
-        marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFE0E1',

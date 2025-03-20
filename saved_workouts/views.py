@@ -20,6 +20,8 @@ from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
+from django.utils import timezone
+
 import traceback
 
 from saved_runs.models import SavedRunningSession
@@ -550,83 +552,156 @@ class SaveWorkoutView(APIView):
     #     )
 
 
+    # def _create_scheduled_notification_if_needed(self, workout, user, data):
+    #     """
+    #     Simplified logic with debug logs:
+    #     - If scheduled_date > today => schedule at 20:00
+    #     - If scheduled_date == today => parse scheduled_time
+    #         if <17:00 => 20:00
+    #         else => user_scheduled_time + 2h
+    #     - If scheduled_date < today => skip
+    #     """
+
+    #     scheduled_date_str = data.get('scheduled_date')
+    #     if not scheduled_date_str:
+    #         logger.debug("No scheduled_date provided -> skipping notification.")
+    #         return
+
+    #     # Parse the scheduled_date
+    #     try:
+    #         scheduled_date_obj = datetime.strptime(scheduled_date_str, "%Y-%m-%d").date()
+    #         logger.debug(f"Parsed scheduled_date_obj={scheduled_date_obj}")
+    #     except ValueError:
+    #         logger.warning(f"Invalid date format for scheduled_date: {scheduled_date_str} -> skipping.")
+    #         return
+
+    #     today_date = now().date()
+    #     logger.debug(f"Today is {today_date}, scheduled_date is {scheduled_date_obj}")
+
+    #     if scheduled_date_obj < today_date:
+    #         logger.debug("scheduled_date < today -> skipping.")
+    #         return
+
+    #     # If future date -> always 20:00
+    #     if scheduled_date_obj > today_date:
+    #         reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
+    #         logger.debug(f"scheduled_date > today -> reminder at {reminder_dt}")
+    #     else:
+    #         # scheduled_date == today
+    #         # parse user_scheduled_time
+    #         scheduled_time_str = data.get('scheduled_time')
+    #         if not scheduled_time_str:
+    #             logger.debug("No scheduled_time for same-day -> skipping.")
+    #             return
+
+    #         try:
+    #             user_time = datetime.strptime(scheduled_time_str, "%H:%M").time()
+    #             logger.debug(f"parsed user_time={user_time}")
+    #         except ValueError:
+    #             logger.warning(f"Invalid time format for scheduled_time: {scheduled_time_str} -> skipping.")
+    #             return
+
+    #         # Convert to datetime
+    #         base_dt = datetime.combine(scheduled_date_obj, user_time)
+    #         logger.debug(f"base_dt for user_time is {base_dt}")
+
+    #         threshold_17 = datetime.combine(scheduled_date_obj, time(hour=17, minute=0))
+    #         if base_dt < threshold_17:
+    #             # <17:00 => set to 20:00
+    #             reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
+    #             logger.debug(f"user_time <17:00, so reminder_dt={reminder_dt}")
+    #         else:
+    #             # otherwise => user_time + 2h
+    #             reminder_dt = base_dt + timedelta(hours=2)
+    #             logger.debug(f"user_time >=17:00 => reminder_dt={reminder_dt}")
+
+    #     # Finally, create the row if we have a reminder_dt
+    #     if reminder_dt:
+    #         ScheduledNotification.objects.create(
+    #             owner=user,
+    #             workout=workout,
+    #             scheduled_datetime=reminder_dt,
+    #             title="Workout Reminder",
+    #             body=f"Don't forget to complete your {workout.name} workout to get points",
+    #         )
+    #         logger.info(f"Created reminder -> {reminder_dt} for user={user.id}, workout={workout.id}")
+
+
     def _create_scheduled_notification_if_needed(self, workout, user, data):
         """
-        Simplified logic with debug logs:
-        - If scheduled_date > today => schedule at 20:00
-        - If scheduled_date == today => parse scheduled_time
-            if <17:00 => 20:00
-            else => user_scheduled_time + 2h
+        Timezone-aware approach using the server's timezone (UTC).
         - If scheduled_date < today => skip
+        - If scheduled_date > today => schedule for 20:00 that day
+        - If scheduled_date == today => compare now() with 17:00
+            * if now < 17:00 => schedule 20:00
+            * else => schedule now + 3 hours
         """
-
         scheduled_date_str = data.get('scheduled_date')
         if not scheduled_date_str:
             logger.debug("No scheduled_date provided -> skipping notification.")
             return
 
-        # Parse the scheduled_date
+        # 1) Parse the user's date as a naive datetime at midnight
         try:
-            scheduled_date_obj = datetime.strptime(scheduled_date_str, "%Y-%m-%d").date()
-            logger.debug(f"Parsed scheduled_date_obj={scheduled_date_obj}")
+            # e.g. "2025-03-21" -> datetime(2025,3,21,0,0)
+            scheduled_date_naive = datetime.strptime(scheduled_date_str, "%Y-%m-%d")
         except ValueError:
             logger.warning(f"Invalid date format for scheduled_date: {scheduled_date_str} -> skipping.")
             return
 
-        today_date = now().date()
-        logger.debug(f"Today is {today_date}, scheduled_date is {scheduled_date_obj}")
+        # 2) Convert that naive datetime to an aware datetime in your server’s timezone (UTC)
+        server_tz = timezone.get_default_timezone()  # Usually UTC if USE_TZ = True and TIME_ZONE='UTC'
+        scheduled_date_aware = timezone.make_aware(scheduled_date_naive, server_tz)
+        # That gives e.g. 2025-03-21 00:00 UTC
 
-        if scheduled_date_obj < today_date:
+        # 3) Compare to current time (aware, in server_tz)
+        current_dt = timezone.now()
+        logger.debug(f"current_dt (UTC)={current_dt}, scheduled_date_aware={scheduled_date_aware}")
+
+        # If scheduled_date < today => skip
+        # We'll compare just the date() parts in the same timezone
+        if scheduled_date_aware.date() < current_dt.date():
             logger.debug("scheduled_date < today -> skipping.")
             return
 
-        # If future date -> always 20:00
-        if scheduled_date_obj > today_date:
-            reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
-            logger.debug(f"scheduled_date > today -> reminder at {reminder_dt}")
+        # We'll eventually fill in reminder_dt (aware in server time)
+        reminder_dt = None
+
+        if scheduled_date_aware.date() > current_dt.date():
+            # A future day => schedule 20:00 UTC that day
+            naive_20 = datetime.combine(scheduled_date_aware.date(), time(hour=20, minute=0))
+            reminder_dt = timezone.make_aware(naive_20, server_tz)
+            logger.debug(f"scheduled_date > today -> reminder_dt={reminder_dt}")
         else:
             # scheduled_date == today
-            # parse user_scheduled_time
-            scheduled_time_str = data.get('scheduled_time')
-            if not scheduled_time_str:
-                logger.debug("No scheduled_time for same-day -> skipping.")
-                return
+            # We'll compare now() to 17:00 UTC
+            naive_17 = datetime.combine(current_dt.date(), time(hour=17, minute=0))
+            threshold_17 = timezone.make_aware(naive_17, server_tz)
 
-            try:
-                user_time = datetime.strptime(scheduled_time_str, "%H:%M").time()
-                logger.debug(f"parsed user_time={user_time}")
-            except ValueError:
-                logger.warning(f"Invalid time format for scheduled_time: {scheduled_time_str} -> skipping.")
-                return
-
-            # Convert to datetime
-            base_dt = datetime.combine(scheduled_date_obj, user_time)
-            logger.debug(f"base_dt for user_time is {base_dt}")
-
-            threshold_17 = datetime.combine(scheduled_date_obj, time(hour=17, minute=0))
-            if base_dt < threshold_17:
-                # <17:00 => set to 20:00
-                reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
-                logger.debug(f"user_time <17:00, so reminder_dt={reminder_dt}")
+            if current_dt < threshold_17:
+                # schedule 20:00 today in UTC
+                naive_20 = datetime.combine(current_dt.date(), time(hour=20, minute=0))
+                reminder_dt = timezone.make_aware(naive_20, server_tz)
+                logger.debug(f"current_dt <17:00 => reminder_dt={reminder_dt}")
             else:
-                # otherwise => user_time + 2h
-                reminder_dt = base_dt + timedelta(hours=2)
-                logger.debug(f"user_time >=17:00 => reminder_dt={reminder_dt}")
+                # schedule now + 3 hours
+                reminder_dt = current_dt + timedelta(hours=3)
+                logger.debug(f"current_dt >=17:00 => reminder_dt={reminder_dt}")
 
-        # Finally, create the row if we have a reminder_dt
+        # 4) Save the aware reminder_dt to DB
         if reminder_dt:
             ScheduledNotification.objects.create(
                 owner=user,
                 workout=workout,
-                scheduled_datetime=reminder_dt,
+                scheduled_datetime=reminder_dt,  # fully aware, in UTC
                 title="Workout Reminder",
                 body=f"Don't forget to complete your {workout.name} workout to get points",
             )
-            logger.info(f"Created reminder -> {reminder_dt} for user={user.id}, workout={workout.id}")
-
-
-
-
+            logger.info(f"Created reminder -> {reminder_dt.isoformat()} for user={user.id}, workout={workout.id}")
+            
+            
+        
+        
 # Show all workouts of all types
 class GetAllWorkoutsView(APIView):
     # permission_classes = [IsAuthenticated]

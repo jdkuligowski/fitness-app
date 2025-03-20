@@ -164,15 +164,23 @@ export default function TrainingOverview() {
     * Filter workouts for the selected week based on the start and end of the week.
     */
     const filterWorkoutsForWeek = () => {
-        const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Week starts on Monday
+        const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
         const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
-
+      
+        // 1) Filter
         const filtered = workouts.filter(workout => {
-            const workoutDate = new Date(workout.scheduled_date);
-            return workoutDate >= weekStart && workoutDate <= weekEnd;
+          const workoutDate = new Date(workout.scheduled_date);
+          return workoutDate >= weekStart && workoutDate <= weekEnd;
         });
-        setWeeklyWorkouts(filtered);
-    };
+      
+        // 2) Sort from earliest to latest date
+        const sorted = filtered.sort((a, b) => {
+          return new Date(a.scheduled_date) - new Date(b.scheduled_date);
+        });
+      
+        // 3) Store in state
+        setWeeklyWorkouts(sorted);
+      };
 
     /**
      * Move to the previous or next week.

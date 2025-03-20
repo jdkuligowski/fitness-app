@@ -7,6 +7,7 @@ import { Colours } from '@/app/src/components/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ENV from '../../../../../env';
 import EquipmentFilterModal from '../../modalScreens/GymEquipmentFilter';
+import HiitInfoModal from '../../modalScreens/InfoModals/HiitWorkoutInfo';
 
 
 const SLIDER_WIDTH = Dimensions.get('window').width;
@@ -24,6 +25,7 @@ export default function HiitSession() {
     const [allFilters, setAllFilters] = useState([]);  // <-- to store all user filters
     const [isEditMode, setIsEditMode] = useState(false);
     const [filterToEdit, setFilterToEdit] = useState(null);
+    const [infoModalVisible, setInfoModalVisible] = useState(false);
 
 
     useEffect(() => {
@@ -218,7 +220,11 @@ export default function HiitSession() {
                 {/* Options */}
                 <View style={styles.workoutInfo}>
                     <View style={styles.workoutInfoDetails}>
-                        <Text style={styles.workoutSubtitle}>What kind of hiit session do you want to do?</Text>
+                        <View style={styles.sessionBlock}>
+                            <Text style={styles.workoutSubtitle}>What kind of hiit session do you want to do?</Text>
+                            <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setInfoModalVisible(true)} />
+                        </View>
+
                         <View style={styles.workoutType}>
                             {['Tabata', 'AMRAP', 'EMOM', '30/30', "I don't mind"].map((option, index) => (
                                 <TouchableOpacity
@@ -363,7 +369,12 @@ export default function HiitSession() {
                             setEquipmentModalVisible(false);
                         }}
                     />
+                    <HiitInfoModal
+                        visible={infoModalVisible}
+                        onClose={() => setInfoModalVisible(false)}
+                    />
                 </View>
+
             </ScrollView>
         </SafeAreaView >
     );
@@ -444,6 +455,13 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 20,
+        paddingRight: 5, 
+    },
+    sessionBlock: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginRight: 20,
     },
     workoutType: {
         flexDirection: 'row',

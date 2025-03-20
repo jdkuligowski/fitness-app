@@ -9,7 +9,7 @@ import MainTabNavigator from './app/src/navigation/MainTabNavigator';
 import AuthStackNavigator from './app/src/navigation/AuthStackNavigator';
 import { useColorScheme } from './hooks/useColorScheme';
 import { WorkoutProvider } from './app/src/context/WorkoutContext';
-import { AuthProvider } from './app/src/context/AuthContext';
+import { AuthProvider, useAuth } from './app/src/context/AuthContext';
 import { LoaderProvider } from './app/src/context/LoaderContext';
 import RootNavigator from './app/src/navigation/RootNavigator';
 import BouncingLoader from './app/src/components/BouncingLoader';
@@ -17,6 +17,8 @@ import { View } from 'react-native';
 import OnboardingModal from '../client/app/src/screens/modalScreens/RegistrationModal';
 import * as Device from 'expo-device';
 import ENV from './env';
+import axios from 'axios';
+
 
 
 // Prevent the splash screen from auto-hiding before assets load
@@ -55,24 +57,25 @@ async function registerForPushNotificationsAsync() {
 }
 
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+function InnerApp() {
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading } = useAuth();  // from AuthContext
 
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     SpaceMono: require('./assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  // Check authentication on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = await AsyncStorage.getItem('token');
-      setIsAuthenticated(!!token); // Set true if token exists
-      setIsLoading(false);
-    };
-    checkAuth();
-  }, []);
+  // // Check authentication on mount
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     const token = await AsyncStorage.getItem('token');
+  //     setIsAuthenticated(!!token); // Set true if token exists
+  //     setIsLoading(false);
+  //   };
+  //   checkAuth();
+  // }, []);
 
   // Manage splash screen
   // useEffect(() => {
@@ -91,14 +94,15 @@ export default function App() {
         (async () => {
           const expoToken = await registerForPushNotificationsAsync();
           if (expoToken) {
-            // send to your backend
-            const userId = 1; // or grab from your context or storage
+            // Send expoToken + user_id to your backend
+            const storedUserId = await AsyncStorage.getItem('userId');
             try {
-              await fetch(`${ENV.API_URL}/api/notifications/set_token/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, token: expoToken }),
-              });
+              const response = await axios.post(
+                `${ENV.API_URL}/api/notifications/set_token/`,
+                { user_id: storedUserId, token: expoToken },
+                { headers: { 'Content-Type': 'application/json' } }
+              );
+              console.log('Successfully saved push token:', response.data);
             } catch (err) {
               console.error('Error saving push token:', err);
             }
@@ -116,15 +120,24 @@ export default function App() {
 
 
   return (
+    // <AuthProvider>
+    <LoaderProvider> {/* Wrap everything in LoaderProvider */}
+      <WorkoutProvider>
+        <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <RootNavigator />
+          <BouncingLoader /> {/* The global loader is on top of everything */}
+        </NavigationContainer>
+      </WorkoutProvider>
+    </LoaderProvider>
+    // </AuthProvider>
+  );
+}
+
+
+export default function App() {
+  return (
     <AuthProvider>
-      <LoaderProvider> {/* Wrap everything in LoaderProvider */}
-        <WorkoutProvider>
-          <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <RootNavigator />
-            <BouncingLoader /> {/* The global loader is on top of everything */}
-          </NavigationContainer>
-        </WorkoutProvider>
-      </LoaderProvider>
+      <InnerApp />
     </AuthProvider>
   );
 }
