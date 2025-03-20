@@ -52,6 +52,15 @@ export default function TrainingOverview() {
 
     const isSelected = (view) => selectedView === view;
 
+    function parseLocalDate(dateString) {
+        // If dateString is missing, return null or some fallback
+        if (!dateString) {
+            return null;
+        }
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+
 
     useEffect(() => {
         // Find the index of the current date
@@ -166,21 +175,20 @@ export default function TrainingOverview() {
     const filterWorkoutsForWeek = () => {
         const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
         const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
-      
-        // 1) Filter
+
         const filtered = workouts.filter(workout => {
-          const workoutDate = new Date(workout.scheduled_date);
-          return workoutDate >= weekStart && workoutDate <= weekEnd;
+            const workoutDate = parseLocalDate(workout.scheduled_date);  // <-- SHIFTING (UTC)
+            return workoutDate >= weekStart && workoutDate <= weekEnd;
         });
-      
-        // 2) Sort from earliest to latest date
+
+        // Sort from earliest to latest
         const sorted = filtered.sort((a, b) => {
-          return new Date(a.scheduled_date) - new Date(b.scheduled_date);
+            return parseLocalDate(a.scheduled_date) - parseLocalDate(b.scheduled_date);
         });
-      
-        // 3) Store in state
+
         setWeeklyWorkouts(sorted);
-      };
+    };
+
 
     /**
      * Move to the previous or next week.
