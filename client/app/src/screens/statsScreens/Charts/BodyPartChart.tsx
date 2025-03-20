@@ -51,7 +51,7 @@ export default function BodyPartBarChart({ dataObject }) {
       {/* <Text style={{ fontWeight: '600', marginBottom: 8 }}>Body Part Usage (%)</Text> */}
       <VictoryChart
         domainPadding={{ x: 20, y: 20 }} // expand spacing
-        width={350}
+        width={320}
         height={270}
         padding={{ left: 80, right: 40, top: 20, bottom: 30 }}
 

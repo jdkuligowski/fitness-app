@@ -166,7 +166,8 @@ class LoginView(APIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
-            }
+            },
+            'is_onboarding_complete': user.is_onboarding_complete  # <-- add this line
         }, status=status.HTTP_202_ACCEPTED)
 
 
@@ -313,10 +314,12 @@ class FullUserView(APIView):
         # 1. Basic workout stats
         today = now().date()
         start_of_month = today.replace(day=1)
+        start_of_week = today - timedelta(days=today.weekday())
         workouts = Workout.objects.filter(owner=user, status='Completed')
         workout_stats = workouts.aggregate(
             workouts_this_month=Count('id', filter=Q(completed_date__gte=start_of_month)),
-            workouts_all_time=Count('id')
+            workouts_all_time=Count('id'),
+            workouts_this_week=Count('id', filter=Q(completed_date__gte=start_of_week))
         )
 
         # 2. Leaderboard info
@@ -343,6 +346,7 @@ class FullUserView(APIView):
             'stats': {
                 'workouts_this_month': workout_stats['workouts_this_month'],
                 'workouts_all_time': workout_stats['workouts_all_time'],
+                'workouts_this_week': workout_stats['workouts_this_week'],
                 'leaderboard': leaderboard_scores,
                 'ranks': leaderboard_ranks,
             }

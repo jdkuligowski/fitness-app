@@ -98,7 +98,7 @@ export default function LeaderboardScreen() {
                 {renderProfileImage(item.user.profile_image, name)}
                 <View style={{ marginLeft: 12 }}>
                     <Text style={styles.userNameText}>{name}</Text>
-                    <Text style={styles.userScoreText}>{item.weekly_score} Points</Text>
+                    <Text style={styles.userScoreText}>{item.monthly_score} Points</Text>
                 </View>
             </View>
         );
@@ -123,7 +123,7 @@ export default function LeaderboardScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
-                    <Text style={styles.headingText}>Weekly leaderboard</Text>
+                    <Text style={styles.headingText}>Monthly leaderboard</Text>
                 </View>
 
                 {/* Leaderboard box from previous page */}
@@ -147,16 +147,16 @@ export default function LeaderboardScreen() {
                         </View>
                         {/* Weekly Score */}
                         <View style={styles.pointsBox}>
-                            <Text style={styles.leaderboardSubTitle}>WEEKLY</Text>
+                            <Text style={styles.leaderboardSubTitle}>MONTHLY</Text>
                             <Text style={styles.leaderboardScore}>
-                                {currentUser?.stats?.leaderboard?.weekly_score ?? '...'}
+                                {currentUser?.stats?.leaderboard?.monthly_score ?? '...'}
                             </Text>
                         </View>
                         {/* Weekly Rank */}
                         <View style={styles.pointsBox}>
                             <Text style={styles.leaderboardSubTitle}>RANK</Text>
                             <Text style={styles.leaderboardScore}>
-                                {currentUser?.stats?.ranks?.weekly_rank ?? '...'}
+                                {currentUser?.stats?.ranks?.monthly_rank ?? '...'}
                             </Text>
                         </View>
                         <Ionicons name="chevron-forward-outline" color={'black'} size={0} />
@@ -174,7 +174,7 @@ export default function LeaderboardScreen() {
                                 <View key={item.user.id} style={styles.podiumSlot}>
                                     {renderProfileImage(item.user.profile_image, name)}
                                     <Text style={styles.podiumName}>{name}</Text>
-                                    <Text style={styles.podiumPoints}>{item.weekly_score} Points</Text>
+                                    <Text style={styles.podiumPoints}>{item.monthly_score} Points</Text>
                                     <View style={[
                                         styles.rankBadge,
                                         rankPosition === 1 && styles.firstPlace,

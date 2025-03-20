@@ -32,12 +32,15 @@ export default function LoginPage() {
         }
 
         try {
+            await AsyncStorage.removeItem('is_onboarding_complete');
+            await AsyncStorage.removeItem('activeEquipmentFilter');
             const response = await axios.post(`${ENV.API_URL}/api/auth/login/`, { email, password });
             const { token, user_id, is_onboarding_complete } = response.data;
-
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userId', String(user_id));
             await AsyncStorage.setItem('is_onboarding_complete', is_onboarding_complete ? 'true' : 'false');
+            // console.log('Login data: ', response.data)
+            // console.log('Login onboarding bit: ', is_onboarding_complete)
             setIsOnboardingComplete(is_onboarding_complete);
 
             Alert.alert('Login Successful', 'You have logged in successfully!');

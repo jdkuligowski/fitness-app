@@ -60,12 +60,13 @@ async function registerForPushNotificationsAsync() {
 function InnerApp() {
   // const [isAuthenticated, setIsAuthenticated] = useState(false);
   // const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, isLoading } = useAuth();  // from AuthContext
+  const { isAuthenticated, isLoading, isOnboardingComplete } = useAuth();  // from AuthContext
 
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     SpaceMono: require('./assets/fonts/SpaceMono-Regular.ttf'),
   });
+  // console.log('App onboarding bit: ', isOnboardingComplete)
 
   // // Check authentication on mount
   // useEffect(() => {

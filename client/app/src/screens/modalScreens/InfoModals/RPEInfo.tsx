@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function RPEInfoModal({ visible, onClose }) {
     return (
@@ -17,9 +18,7 @@ export default function RPEInfoModal({ visible, onClose }) {
             <View style={styles.bottomSheet}>
                 <View style={styles.header}>
                     <Text style={styles.title}>What is RPE?</Text>
-                    <Pressable style={styles.closeButton} onPress={onClose}>
-                        <Text style={{ color: 'white', fontSize: '16' }}>x</Text>
-                    </Pressable>
+                    <Ionicons onPress={onClose} name="close-circle-outline" size={30} color="#4D4D4D" />
                 </View>
                 <Text style={styles.info}>
                     RPE (Rate of Perceived Exertion) is a subjective measure of how hard
@@ -58,6 +57,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         padding: 20,
+        paddingBottom: 50,
+        
     },
     title: {
         fontSize: 18,

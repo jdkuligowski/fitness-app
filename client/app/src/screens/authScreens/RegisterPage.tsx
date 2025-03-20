@@ -278,8 +278,16 @@ export default function RegisterPage() {
         }
     };
 
-    const handleOnboardingComplete = () => {
+    const handleOnboardingComplete = async () => {
         setIsOnboardingVisible(false);
+  
+        // 1) set the context state to true
+        setIsOnboardingComplete(true);
+      
+        // 2) also store in AsyncStorage for future sessions
+        await AsyncStorage.setItem('is_onboarding_complete', 'true');
+    
+        // 3) navigate to your home or main screen
         navigation.navigate('Home');
     };
 

@@ -19,6 +19,12 @@ import OnboardingModal from '../screens/modalScreens/RegistrationModal'
 
 export default function RootNavigator() {
   const { isAuthenticated, isOnboardingComplete } = useAuth();
+  // console.log(
+  //   'RootNavigator -> isAuthenticated:',
+  //   isAuthenticated,
+  //   ', isOnboardingComplete:',
+  //   isOnboardingComplete
+  // );
 
   if (!isAuthenticated) {
     return <AuthStackNavigator />;

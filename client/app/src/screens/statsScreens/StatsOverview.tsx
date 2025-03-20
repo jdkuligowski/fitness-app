@@ -24,6 +24,61 @@ export default function StatsOverview() {
     const [stats, setStats] = useState(null);
     const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
     const [userData, setUserData] = useState('')
+    const [activeAggregatePeriod, setActiveAggregatePeriod] = useState('monthly');
+
+    const PERIOD_TABS = [
+        { id: 'weekly', label: 'Week' },
+        { id: 'monthly', label: 'Month' },
+        { id: 'yearly', label: 'Year' },
+    ];
+
+
+    // Helper to safely get scoreboard data
+
+    const getActivityTypeData = () => {
+        if (!stats?.aggregates) return null;
+        switch (activeAggregatePeriod) {
+            case 'weekly':
+                return stats.aggregates.weekly_activity_type;
+            case 'yearly':
+                return stats.aggregates.yearly_activity_type;
+            case 'monthly':
+            default:
+                return stats.aggregates.monthly_activity_type;
+        }
+    };
+
+    const getBodyPartData = () => {
+        if (!stats?.aggregates) return null;
+        switch (activeAggregatePeriod) {
+            case 'weekly':
+                return stats.aggregates.weekly_body_part;
+            case 'yearly':
+                return stats.aggregates.yearly_body_part;
+            case 'monthly':
+            default:
+                return stats.aggregates.monthly_body_part;
+        }
+    };
+
+    const getWorkoutsCompleted = () => {
+        if (!stats) return null;
+        switch (activeAggregatePeriod) {
+            case 'weekly':
+                return stats.workouts_this_week;
+            case 'yearly':
+                return stats.workouts_all_time;
+            case 'monthly':
+            default:
+                return stats.workouts_this_month;
+        }
+    };
+
+    const getActiveLabel = () => {
+        // e.g. find it in PERIOD_TABS
+        const activeTabObj = PERIOD_TABS.find((t) => t.id === activeAggregatePeriod);
+        return activeTabObj ? activeTabObj.label : '';
+    };
 
     // 1. Fetch basic user profile (for name, image, etc.)
     const getUser = async () => {
@@ -147,7 +202,7 @@ export default function StatsOverview() {
                 </View>
 
                 {/* Workouts Completed (Month + All Time) */}
-                <View style={styles.completedWorkoutsContainer}>
+                {/* <View style={styles.completedWorkoutsContainer}>
                     <Text style={styles.workoutsCompletedTitle}>Workouts Completed</Text>
                     <View style={styles.workoutsResults}>
                         <View style={styles.workoutsBox}>
@@ -163,7 +218,7 @@ export default function StatsOverview() {
                             </Text>
                         </View>
                     </View>
-                </View>
+                </View> */}
 
                 {/* Leaderboard Scores + Ranks */}
                 <TouchableOpacity
@@ -173,7 +228,7 @@ export default function StatsOverview() {
                         navigation.navigate('LeaderboardOverview');
                     }}
                 >
-                    <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+                    <Text style={styles.leaderboardTitle}>Monthly leaderboard</Text>
                     <View style={styles.leaderboardResults}>
                         {/* Example user info row */}
                         <View style={styles.profileBox}>
@@ -195,16 +250,16 @@ export default function StatsOverview() {
 
                         {/* Weekly Score */}
                         <View style={styles.pointsBox}>
-                            <Text style={styles.leaderboardSubTitle}>WEEKLY</Text>
+                            <Text style={styles.leaderboardSubTitle}>MONTHLY</Text>
                             <Text style={styles.leaderboardScore}>
-                                {stats?.leaderboard?.weekly_score ?? '...'}
+                                {stats?.leaderboard?.monthly_score ?? '...'}
                             </Text>
                         </View>
                         {/* Weekly Rank */}
                         <View style={styles.pointsBox}>
                             <Text style={styles.leaderboardSubTitle}>RANK</Text>
                             <Text style={styles.leaderboardScore}>
-                                {stats?.ranks?.weekly_rank ?? '...'}
+                                {stats?.ranks?.monthly_rank ?? '...'}
                             </Text>
                         </View>
 
@@ -212,30 +267,74 @@ export default function StatsOverview() {
                     </View>
                 </TouchableOpacity>
 
+
+
+                <View style={styles.tabs}>
+                    {PERIOD_TABS.map((tab) => {
+                        const isActive = (activeAggregatePeriod === tab.id);
+                        // You can define a map of background colors keyed by ID:
+                        const tabColors = {
+                            weekly: '#DFD7F3',
+                            monthly: '#DFD7F3',
+                            yearly: '#DFD7F3',
+                        };
+
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
+                                style={[
+                                    styles.tab,
+                                    { backgroundColor: isActive ? tabColors[tab.id] : '#FFFFFF' },
+                                ]}
+                                onPress={() => setActiveAggregatePeriod(tab.id)}
+                            >
+                                <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+                                    {tab.label}  {/* This is "Week", "Month", or "Year" */}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+
                 {/* Donut Chart for Weekly Activity */}
 
+                {/* Activity Chart */}
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
-                    <Text style={styles.workoutsCompletedTitle}>Workouts this month</Text>
+                    {/* <Text style={styles.workoutsCompletedTitle}>
+                        Workouts this {getActiveLabel().toLowerCase()}{`: ${getWorkoutsCompleted()}`}
+                    </Text> */}
+                    <View style={styles.sectionTitle}>
+
+                        <Text style={styles.workoutsCompletedTitle}>
+                            Workouts this {getActiveLabel().toLowerCase()}
+                        </Text>
+                        <Text style={styles.workoutsCompletedNumber}>{getWorkoutsCompleted()}</Text>
+
+                    </View>
                     <View style={{ marginVertical: 10 }}>
-                        {stats?.aggregates?.monthly_activity_type ? (
-                            <ActivityTypePieChart dataObject={stats.aggregates.monthly_activity_type} />
+                        {getActivityTypeData() ? (
+                            <ActivityTypePieChart dataObject={getActivityTypeData()} />
                         ) : (
                             <Text style={styles.noDataMessage}>Do some workouts to see your ectivity</Text>
                         )}
                     </View>
                 </View>
 
-                {/* Bar Chart for Body Part Activity */}
+                {/* Body Part Chart */}
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
-                    <Text style={styles.workoutsCompletedTitle}>Body parts targetted this month</Text>
+                    <Text style={styles.workoutsCompletedTitle}>
+                        Body parts targeted this {getActiveLabel().toLowerCase()}
+                    </Text>
                     <View style={{ marginVertical: 10 }}>
-                        {stats?.aggregates?.monthly_body_part ? (
-                            <BodyPartBarChart dataObject={stats.aggregates.monthly_body_part} />
+                        {getBodyPartData() ? (
+                            <BodyPartBarChart dataObject={getBodyPartData()} />
                         ) : (
                             <Text style={styles.noDataMessage}>Save some gym workouts to track your gains</Text>
                         )}
                     </View>
                 </View>
+
 
 
             </ScrollView>
@@ -453,5 +552,49 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 500,
         marginVertical: 2,
+    },
+    tabs: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        marginHorizontal: 20,
+        borderWidth: 1,
+        borderColor: 'black',
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 4,
+        borderBottomWidth: 4,
+    },
+    tab: {
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 10,
+        backgroundColor: 'white',
+        width: '30%',
+    },
+    activeTab: {
+        backgroundColor: '#DFD7F3',
+    },
+    tabText: {
+        fontSize: 14,
+        color: 'black',
+        textAlign: 'center',
+
+    },
+    activeTabText: {
+        fontWeight: 'bold',
+    },
+    sectionTitle: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    workoutsCompletedNumber: {
+        fontSize: 26,
+        fontWeight: '700',
+        marginRight: 20,
     }
 })
