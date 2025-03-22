@@ -26,7 +26,9 @@ class ScheduledNotification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     title = models.CharField(max_length=255, blank=True)
+    subtitle = models.CharField(max_length=255, blank=True)
     body = models.TextField(blank=True)
+    cleared_by_user = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} -> {self.scheduled_datetime} (sent={self.sent}, canceled={self.canceled})"

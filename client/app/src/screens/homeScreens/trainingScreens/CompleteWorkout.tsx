@@ -34,8 +34,9 @@ const ITEM_WIDTH = SCREEN_WIDTH - 45;
 
 export default function CompleteWorkout({ route, navigation }) {
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { workout, movementHistory } = route.params; // Get the workout data from the previous screen
-    console.log('Movement history: ', JSON.stringify(movementHistory, null, 2))
+    const { workout, movementHistory, conditioningHistory } = route.params; // Get the workout data from the previous screen
+    // console.log('Movement history: ', JSON.stringify(movementHistory, null, 2))
+    console.log('Conditioning history: ', JSON.stringify(conditioningHistory, null, 2))
     const [currentStage, setCurrentStage] = useState(0); // Current workout stage index
     const [activeTab, setActiveTab] = useState('Summary'); // Active tab for Summary, Log, History
     const flatListRef = useRef(null); // Ref for FlatList to programmatically scroll
@@ -564,11 +565,63 @@ export default function CompleteWorkout({ route, navigation }) {
                                                 </>
                                             )}
                                             {activeTab === 'History' && (
-                                                <View>
-                                                    {/* Add History-specific UI for Conditioning */}
-                                                    <Text style={styles.conditioningPlaceholder}>Conditioning history</Text>
+                                                <View style={styles.historyContent}>
+                                                    <Text style={styles.exerciseLabel}>Conditioning History</Text>
+                                                    {conditioningHistory && Object.keys(conditioningHistory).length > 0 ? (
+                                                        Object.entries(conditioningHistory).map(([overviewId, historyArray]) => (
+                                                            <View key={overviewId}>
+                                                                {/* If you want a separate header for each overview ID, do it here */}
+                                                                {/* e.g. <Text style={styles.exerciseLabel}>Conditioning Overview {overviewId} History</Text> */}
+
+                                                                {historyArray.length > 0 ? (
+                                                                    historyArray.map((dateGroup, index) => (
+                                                                        <View key={index} style={styles.historyItem}>
+                                                                            {/* Date */}
+                                                                            <View style={styles.dateBox}>
+                                                                                <Text style={styles.historyDate}>
+                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', {
+                                                                                        month: 'short',
+                                                                                        day: 'numeric',
+                                                                                    })}
+                                                                                </Text>
+                                                                                <View style={styles.divider}></View>
+                                                                            </View>
+
+                                                                            {/* Comments + RPE */}
+                                                                            <View style={styles.allScoresContainer}>
+                                                                                {/* We'll treat "entries" as the "sets container" area */}
+                                                                                <View style={styles.setsContainer}>
+                                                                                    {dateGroup.entries && dateGroup.entries.map((entry, eIndex) => (
+                                                                                        <View key={eIndex} style={styles.commentItem}>
+                                                                                            {/* Just display the comments text */}
+                                                                                            <Text style={styles.commentText}>{entry.comments}</Text>
+                                                                                        </View>
+                                                                                    ))}
+                                                                                </View>
+
+                                                                                {/* If you still want RPE gauge on the right */}
+                                                                                {dateGroup.entries && dateGroup.entries.length > 0 && (
+                                                                                    // Example: take the first entry's RPE if that's your main measure
+                                                                                    dateGroup.entries[0].rpe ? (
+                                                                                        <View style={styles.scoreContainer}>
+                                                                                            <RPEGauge score={dateGroup.entries[0].rpe} />
+                                                                                        </View>
+                                                                                    ) : null
+                                                                                )}
+                                                                            </View>
+                                                                        </View>
+                                                                    ))
+                                                                ) : (
+                                                                    <Text style={styles.noHistoryText}>No conditioning history available</Text>
+                                                                )}
+                                                            </View>
+                                                        ))
+                                                    ) : (
+                                                        <Text style={styles.noHistoryText}>No conditioning history available</Text>
+                                                    )}
                                                 </View>
                                             )}
+
                                         </View>
                                     </View>
                                     <View style={styles.navigationContainer}>
@@ -691,7 +744,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                         </View>
                                                     )}
                                                     <Text style={styles.movementName}>{movement.movements.exercise}</Text>
-                                                    
+
                                                 </View>
                                             )}
 
@@ -1274,6 +1327,14 @@ const styles = StyleSheet.create({
         width: '48%',
         marginBottom: 10,
     },
+    commentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '78%',
+        marginBottom: 10,
+        fontWeight: '700',
+    },
     setSubNumber: {
         width: 25,
         height: 25,
@@ -1286,6 +1347,10 @@ const styles = StyleSheet.create({
     },
     setValue: {
         fontWeight: 600,
+        fontSize: 14,
+    },
+    commentText: {
+        fontWeight: 400,
         fontSize: 14,
     },
     setMetric: {

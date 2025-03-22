@@ -10,6 +10,7 @@ import AuthStackNavigator from './app/src/navigation/AuthStackNavigator';
 import { useColorScheme } from './hooks/useColorScheme';
 import { WorkoutProvider } from './app/src/context/WorkoutContext';
 import { AuthProvider, useAuth } from './app/src/context/AuthContext';
+import { NotificationsProvider } from './app/src/context/NotificationsContext';
 import { LoaderProvider } from './app/src/context/LoaderContext';
 import RootNavigator from './app/src/navigation/RootNavigator';
 import BouncingLoader from './app/src/components/BouncingLoader';
@@ -124,10 +125,12 @@ function InnerApp() {
     // <AuthProvider>
     <LoaderProvider> {/* Wrap everything in LoaderProvider */}
       <WorkoutProvider>
-        <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootNavigator />
-          <BouncingLoader /> {/* The global loader is on top of everything */}
-        </NavigationContainer>
+        <NotificationsProvider>
+          <NavigationContainer theme={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <RootNavigator />
+            <BouncingLoader /> {/* The global loader is on top of everything */}
+          </NavigationContainer>
+        </NotificationsProvider> 
       </WorkoutProvider>
     </LoaderProvider>
     // </AuthProvider>

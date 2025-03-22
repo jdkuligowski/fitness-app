@@ -694,7 +694,8 @@ class SaveWorkoutView(APIView):
                 owner=user,
                 workout=workout,
                 scheduled_datetime=reminder_dt,  # fully aware, in UTC
-                title="Workout Reminder",
+                title="Burst",
+                subtitle="Workout reminder",
                 body=f"Don't forget to complete your {workout.name} workout to get points",
             )
             logger.info(f"Created reminder -> {reminder_dt.isoformat()} for user={user.id}, workout={workout.id}")
@@ -746,53 +747,62 @@ class GetUpcomingWorkouts(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
+
 class GetSingleWorkoutView(APIView):
     """
     Get a single workout and return all related workout details along with 
     the last 3 movement histories for each movement within the workout.
+    Also returns 'conditioning_history' for each conditioning_overview in the workout.
     """
 
     def get(self, request, workout_id):
         user_id = request.query_params.get('user_id')
 
         try:
-            # Fetch the workout and its related data
+            # -- 1) Fetch the workout and sections
             try:
                 workout = Workout.objects.prefetch_related(
                     Prefetch(
                         'workout_sections__section_movement_details',
                         queryset=SectionMovement.objects.prefetch_related('workout_sets')
+                    ),
+                    Prefetch(
+                        # We also prefetch the 'conditioning_elements' for each section
+                        'workout_sections__conditioning_elements',
+                        queryset=ConditioningWorkout.objects.select_related('conditioning_overview')
                     )
                 ).select_related('owner').get(id=workout_id, owner=user_id)
-                print(f"Fetched workout {workout_id} for user {user_id}")
             except Workout.DoesNotExist:
-                print(f"Workout {workout_id} does not exist for user {user_id}")
                 return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Serialize workout data
+            # -- 2) Serialize workout data
             serializer = PopulatedWorkoutSerializer(workout)
             workout_data = serializer.data
 
-            # Extract movement IDs for history query
+            # =======================================================
+            # MOVEMENT HISTORY (Unchanged)
+            # =======================================================
+            # A) Extract movement IDs
             movement_ids = [
                 movement['movements']['id']
                 for section in workout_data['workout_sections']
                 for movement in section['section_movement_details']
                 if movement.get('movements')
             ]
-            print(f"Movement IDs extracted: {movement_ids}")
 
+            # B) If no movements, just return
             if not movement_ids:
-                print("No movement IDs found for this workout.")
-                return Response({"workout": workout_data, "movement_history": {}}, status=status.HTTP_200_OK)
+                return Response({
+                    "workout": workout_data,
+                    "movement_history": {},
+                    "conditioning_history": {}  # We'll also return an empty conditioning history
+                }, status=status.HTTP_200_OK)
 
-            # Get the last 3 workouts for each movement
+            # C) Build movement_history by fetching last 3 completed workouts for each movement
             movement_history = {}
 
             for movement_id in movement_ids:
-                print(f"Fetching history for movement ID {movement_id}")
-
-                # Fetch the last 3 completed workouts for this movement
                 last_3_workouts = (
                     Workout.objects.filter(
                         workout_sections__section_movement_details__movements__id=movement_id,
@@ -803,10 +813,10 @@ class GetSingleWorkoutView(APIView):
                     .order_by('-completed_date')[:3]
                 )
 
-                for workout in last_3_workouts:
+                for w in last_3_workouts:
                     workout_sets = Set.objects.filter(
                         section_movement__movements__id=movement_id,
-                        section_movement__section__workout=workout
+                        section_movement__section__workout=w
                     ).select_related(
                         'section_movement__movements',
                         'section_movement__section__workout'
@@ -814,32 +824,95 @@ class GetSingleWorkoutView(APIView):
 
                     sets_data = [
                         {
-                            "set_number": workout_set.set_number,
-                            "reps": workout_set.reps,
-                            "weight": workout_set.weight
+                            "set_number": ws.set_number,
+                            "reps": ws.reps,
+                            "weight": ws.weight
                         }
-                        for workout_set in workout_sets
+                        for ws in workout_sets
                     ]
 
                     if movement_id not in movement_history:
                         movement_history[movement_id] = []
 
                     movement_history[movement_id].append({
-                        "workout_id": workout.id,
-                        "completed_date": workout.completed_date,
+                        "workout_id": w.id,
+                        "completed_date": w.completed_date,
                         "movement_difficulty": workout_sets[0].section_movement.movement_difficulty if workout_sets else None,
                         "sets": sets_data
                     })
 
-            # Sort each movement's workout history by date
-            for movement_id in movement_history:
-                movement_history[movement_id].sort(key=lambda x: x['completed_date'], reverse=True)
+            # Sort each movement's history by date desc
+            for mid in movement_history:
+                movement_history[mid].sort(key=lambda x: x['completed_date'], reverse=True)
 
-            print(f"Processed movement history: {movement_history}")
+            # =======================================================
+            # ### NEW for Conditioning: BUILD conditioning_history
+            # =======================================================
+            # A) Extract all conditioning_overview IDs
+            cond_overview_ids = []
+            for section in workout_data['workout_sections']:
+                for cond_item in section.get('conditioning_elements', []):
+                    overview = cond_item.get('conditioning_overview')
+                    if overview and overview.get('id'):
+                        cond_overview_ids.append(overview['id'])
 
+            # B) If no conditioning overviews, skip
+            if not cond_overview_ids:
+                return Response({
+                    "workout": workout_data,
+                    "movement_history": movement_history,
+                    "conditioning_history": {}
+                }, status=status.HTTP_200_OK)
+
+            # C) Build conditioning_history for each overview ID
+            conditioning_history = {}
+
+            for cond_id in cond_overview_ids:
+                last_3_cond_workouts = (
+                    Workout.objects.filter(
+                        workout_sections__conditioning_elements__conditioning_overview__id=cond_id,
+                        owner=user_id,
+                        status="Completed"
+                    )
+                    .distinct()
+                    .order_by('-completed_date')[:3]
+                )
+
+                for w in last_3_cond_workouts:
+                    # You could store more details, e.g. comments, rpe, etc.
+                    # from the "ConditioningWorkout" row(s) if relevant.
+                    cond_entries = ConditioningWorkout.objects.filter(
+                        section__workout=w,
+                        conditioning_overview__id=cond_id
+                    ).select_related('conditioning_overview')
+
+                    # Example: build a summary
+                    entries_data = []
+                    for ce in cond_entries:
+                        entries_data.append({
+                            "comments": ce.comments,
+                            "rpe": ce.rpe,
+                            # "any other fields if you want"
+                        })
+
+                    if cond_id not in conditioning_history:
+                        conditioning_history[cond_id] = []
+
+                    conditioning_history[cond_id].append({
+                        "workout_id": w.id,
+                        "completed_date": w.completed_date,
+                        "entries": entries_data
+                    })
+
+            # Sort each cond_overview's history by date desc
+            for cid in conditioning_history:
+                conditioning_history[cid].sort(key=lambda x: x['completed_date'], reverse=True)
+
+            # -- 3) Return data
             return Response({
                 "workout": workout_data,
-                "movement_history": movement_history
+                "movement_history": movement_history,
+                "conditioning_history": conditioning_history
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -1219,10 +1292,10 @@ class CompleteWorkoutAPIView(APIView):
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
                 # Real-time scoreboard update
-                leaderboard.total_score += 50
-                leaderboard.weekly_score += 50
-                leaderboard.monthly_score += 50
-                leaderboard.save()
+                # leaderboard.total_score += 50
+                # leaderboard.weekly_score += 50
+                # leaderboard.monthly_score += 50
+                # leaderboard.save()
 
                 ScoreLog.objects.create(
                     user=user,

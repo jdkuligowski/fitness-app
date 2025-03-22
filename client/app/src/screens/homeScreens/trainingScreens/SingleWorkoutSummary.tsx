@@ -24,6 +24,7 @@ export default function WorkoutSummary({ route, navigation }) {
     const [userWorkouts, setUserWorkouts] = useState(null); // Store the workout data
     const [isLoading, setIsLoading] = useState(true); // Loading state for fetching workout data
     const [movementHistory, setMovementHistory] = useState(null)
+    const [conditioningHistory, setConditioningHistory] = useState(null)
     const [selectedMovement, setSelectedMovement] = useState(null);
     const [recentWorkouts, setRecentWorkouts] = useState(null); // For running workouts
     const [similarWorkouts, setSimilarWorkouts] = useState(null); // For running workouts
@@ -57,10 +58,11 @@ export default function WorkoutSummary({ route, navigation }) {
 
 
                 if (activityType === 'Gym') {
-                    const { workout, movement_history } = response.data;
+                    const { workout, movement_history, conditioning_history } = response.data;
                     setUserWorkouts(workout);
                     setMovementHistory(movement_history);
-                    console.log('Running workouts: ', JSON.stringify(response.data, null, 2))
+                    setConditioningHistory(conditioning_history);
+                    console.log('Gym workouts: ', JSON.stringify(response.data, null, 2))
                 } else if (activityType === 'Running') {
                     const { workout, similar_workouts, recent_running_workouts } = response.data;
                     setUserWorkouts(workout);
@@ -103,7 +105,8 @@ export default function WorkoutSummary({ route, navigation }) {
             if (activityType === 'Gym') {
                 navigation.navigate('CompleteWorkout', {
                     workout: userWorkouts,
-                    movementHistory: movementHistory
+                    movementHistory: movementHistory,
+                    conditioningHistory: conditioningHistory
                 });
             } else if (activityType === 'Running') {
                 navigation.navigate('CompleteRunningWorkout', {

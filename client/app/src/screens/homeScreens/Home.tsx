@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, StyleSheet, Image, TouchableOpacity, StatusBar, SafeAreaView,
-  TextInput, Keyboard, TouchableWithoutFeedback, ScrollView, Alert
+  TextInput, Keyboard, TouchableWithoutFeedback, ScrollView, RefreshControl
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ import ENV from '../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { isToday, isTomorrow, parseISO } from 'date-fns';
 import { Colours } from '../../components/styles';
+import NotificationsModal from '../modalScreens/NotificationsModal';
+import { NotificationsContext } from '../../context/NotificationsContext'
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -33,6 +35,11 @@ export default function HomeScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
   const [suggestedWorkouts, setSuggestedWorkouts] = useState([]);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const { notifications } = useContext(NotificationsContext);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const notificationCount = notifications.length; // or filter if needed
 
 
   // fetch user data function
@@ -149,7 +156,21 @@ export default function HomeScreen() {
     }
   };
 
-
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Re-fetch any data you want to reload
+      await getUser();
+      await fetchUpcomingWorkouts();
+      await fetchSuggestedWorkouts();
+      // ... any other fresh data calls ...
+    } catch (err) {
+      console.error('Refresh error:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
 
 
   return (
@@ -158,7 +179,12 @@ export default function HomeScreen() {
       <TouchableWithoutFeedback onPress={handleOutsidePress}>
 
         {/* Overall Containier */}
-        < ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
 
           {/* Header section */}
           <View style={styles.header}>
@@ -188,8 +214,16 @@ export default function HomeScreen() {
                   <Text style={styles.subHeadingText}>{greeting ? greeting : ''}</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.profileButton}>
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => setNotificationsVisible(true)}
+              >
                 <Ionicons name="notifications-outline" color={'black'} size={20} />
+                {notificationCount > 0 && (
+                  <View style={styles.badgeContainer}>
+                    <Text style={styles.badgeText}>{notificationCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -394,6 +428,10 @@ export default function HomeScreen() {
           </View> */}
         </ScrollView>
       </TouchableWithoutFeedback>
+      <NotificationsModal
+        visible={notificationsVisible}
+        onClose={() => setNotificationsVisible(false)}
+      />
     </SafeAreaView >
   );
 }
@@ -482,6 +520,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderTopWidth: 1,
     borderLeftWidth: 1,
+    position: 'relative',
+
+  },
+  badgeContainer: {
+    // Position absolutely at bottom-left
+    position: 'absolute',
+    bottom: -7,       // tweak these if you want it further or inside
+    left: -7,
+    backgroundColor: 'red',
+    width: 25,
+    height: 25,
+    borderRadius: 15,    // full circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Optionally add a small border to match your style
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    // padding: 2, 
+
   },
   overlayBox: {
     marginTop: -45,

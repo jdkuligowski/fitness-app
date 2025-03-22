@@ -14,6 +14,7 @@ import SaveWorkoutModal from '../../modalScreens/SaveWorkoutModal';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../../env'
 import { Colours } from '@/app/src/components/styles';
+import SavedWorkoutFilters from '../../modalScreens/SavedWorkoutsFilter';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -36,13 +37,10 @@ export default function TrainingOverview() {
     const [filters, setFilters] = useState({
         workout: '',
         type: '',
-        level: '',
-        time: null
+        durationComparison: '',
+        duration: 40,
     });
-    const workoutOptions = ['Gym session', 'Running', 'Mobility'];
-    // const workoutOptions = ['Gym session', 'Running', 'Rowing', 'Mobility', 'Bodyweight'];
-    const typeOptions = ['Full body', 'Lower body', 'Upper body'];
-    // const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
+    const minutesArray = Array.from({ length: 75 }, (_, i) => i); // 0 to 60
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false); // Modal visibility state
     const flatListRef = useRef(null); // Ref for the FlatList
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
@@ -212,7 +210,7 @@ export default function TrainingOverview() {
         if (selectedView === 'Saved') {
             // Filter from all workouts to ensure unique workout IDs
             const uniqueWorkouts = workouts.reduce((acc, workout) => {
-                const isDuplicate = acc.some(savedWorkout => savedWorkout.workout_number === workout.workout_number);
+                const isDuplicate = acc.some(savedWorkout => savedWorkout.workout_code === workout.workout_code);
                 if (!isDuplicate) {
                     acc.push(workout);
                 }
@@ -225,30 +223,12 @@ export default function TrainingOverview() {
 
 
 
-    const filterMapping = {
-        "Full Body": "Full body Workout",
-        "Lower Body": "Lower Body Workout",
-        "Upper Body": "Upper Body Workout",
-    };
+
 
     const complexityFilterMapping = {
         "Beginner": 1,
         "Intermediate": 2,
         "Advanced": 3,
-    };
-
-    const applyFilters = () => {
-        const filtered = workouts.filter(workout => {
-            const selectedFilterName = filterMapping[filters.type]; // Map filter to actual workout name
-            const selectedFilterComplexity = complexityFilterMapping[filters.level]; // Map filter to actual workout name
-            const matchesType = !filters.type || workout.name === selectedFilterName;
-            const matchesComplexity = !filters.level || workout.complexity === selectedFilterComplexity;
-
-            return matchesType && matchesComplexity;
-        });
-
-        setSavedWorkouts(filtered);
-        setIsFilterModalVisible(false); // Close modal after applying filters
     };
 
     useEffect(() => {
@@ -622,115 +602,19 @@ export default function TrainingOverview() {
                     visible={isFilterModalVisible}
                     onRequestClose={() => setIsFilterModalVisible(false)}
                 >
-                    <View style={styles.modalBackdrop}>
-                        <TouchableOpacity style={styles.modalBackdrop} onPress={() => setIsFilterModalVisible(false)} />
-                        <View style={styles.modalContent}>
-                            {/* <ScrollView> */}
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Filter</Text>
-                                <Ionicons name="close-outline" color={'black'} size={26} onPress={() => setIsFilterModalVisible(false)} style={{ padding: 10 }} />
-                            </View>
-                            {/* Workout Filters */}
-                            <View style={styles.modalSubHeader}>
-                                <Text style={styles.filterLabel}>Workout</Text>
-                                <View style={styles.line} />
-                            </View>
-                            <View style={styles.filterContainer}>
-                                {workoutOptions.map((item) => (
-                                    <TouchableOpacity
-                                        key={item}
-                                        style={[
-                                            styles.filterOption,
-                                            filters.workout === item && styles.selectedFilterOption
-                                        ]}
-                                        onPress={() => setFilters((prev) => ({ ...prev, workout: item }))}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.filterOptionText,
-                                                filters.workout === item && styles.selectedFilterText
-                                            ]}
-                                        >
-                                            {item}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                    
+                    <SavedWorkoutFilters
+                        filters={filters}
+                        setFilters={setFilters}
+                        setIsFilterModalVisible={setIsFilterModalVisible}
+                        isFilterModalVisible={isFilterModalVisible}
+                        workouts={workouts}
+                        setSavedWorkouts={setSavedWorkouts}
+                    />
 
-                            {/* Workout Type Filters */}
-                            <View style={styles.modalSubHeader}>
-                                <Text style={styles.filterLabel}>Workout type</Text>
-                                <View style={styles.line} />
-                            </View>
-                            <View style={styles.filterContainer}>
-                                {typeOptions.map((item) => (
-                                    <TouchableOpacity
-                                        key={item}
-                                        style={[
-                                            styles.filterOption,
-                                            filters.type === item && styles.selectedFilterOption
-                                        ]}
-                                        onPress={() => setFilters((prev) => ({ ...prev, type: item }))}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.filterOptionText,
-                                                filters.type === item && styles.selectedFilterText
-                                            ]}
-                                        >
-                                            {item}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            {/* Level Filters */}
-                            {/* <View style={styles.modalSubHeader}>
-                                <Text style={styles.filterLabel}>Level</Text>
-                                <View style={styles.line} />
-                            </View>
-                            <View style={styles.filterContainer}>
-                                {levelOptions.map((item) => (
-                                    <TouchableOpacity
-                                        key={item}
-                                        style={[
-                                            styles.filterOption,
-                                            filters.level === item && styles.selectedFilterOption
-                                        ]}
-                                        onPress={() => setFilters((prev) => ({ ...prev, level: item }))}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.filterOptionText,
-                                                filters.level === item && styles.selectedFilterText
-                                            ]}
-                                        >
-                                            {item}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View> */}
-
-
-                            {/* Apply Filters Button */}
-                            <View style={styles.filterActions}>
-                                <TouchableOpacity
-                                    style={styles.resetButton}
-                                    onPress={() =>
-                                        setFilters({ workout: '', type: '', level: '', time: null })
-                                    }
-                                >
-                                    <Ionicons name="refresh" color={'white'} size={20} />
-                                    {/* <Text style={styles.resetButtonText}>Reset</Text> */}
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                                    <Text style={styles.applyButtonText}>Apply</Text>
-                                </TouchableOpacity>
-                            </View>
-                            {/* </ScrollView> */}
-                        </View>
-                    </View>
                 </Modal>
+
+
 
                 {/* Modal for resaving the workout */}
                 {currentWorkout && (
@@ -1036,89 +920,7 @@ const styles = StyleSheet.create({
         marginLeft: 5,
         fontWeight: 500,
     },
-    modalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)', // Semi-transparent background
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginVertical: 10,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    filterLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginVertical: 10,
-        marginRight: 20,
-    },
-    filterContainer: {
-        flexWrap: 'wrap',
-        flexDirection: 'row',
-    },
-    filterOption: {
-        padding: 10,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#DDD',
-        marginRight: 5,
-        marginBottom: 10,
-        width: 110,
-    },
-    selectedFilterOption: {
-        backgroundColor: 'white',
-        borderColor: '#6B6BF7',
-    },
-    filterOptionText: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    selectedFilterText: {
-        color: '#6B6BF7',
-    },
-    filterActions: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginVertical: 20,
-    },
-    resetButton: {
-        padding: 15,
-        backgroundColor: 'black',
-        borderRadius: 30,
-        marginRight: 20,
-    },
-    resetButtonText: {
-        fontSize: 14,
-        color: '#6B6BF7',
-    },
-    applyButton: {
-        padding: 15,
-        backgroundColor: 'black',
-        borderRadius: 25,
-        width: 200,
 
-    },
-    applyButtonText: {
-        fontSize: 16,
-        fontWeight: 600,
-        color: 'white',
-        textAlign: 'center',
-    },
-    modalSubHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     loadingContainer: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.3)',

@@ -87,6 +87,12 @@ export default function WorkoutScreen({ route }) {
     };
 
     useEffect(() => {
+        if (flatListRef.current && workoutPlans.length > 0) {
+          flatListRef.current.scrollToIndex({ index: 0, animated: true });
+        }
+      }, [workoutPlans]);
+
+    useEffect(() => {
         const loadFilteredMovements = async () => {
             try {
                 setIsBouncerLoading(true);
@@ -539,7 +545,7 @@ export default function WorkoutScreen({ route }) {
             const formattedDate = new Date().toISOString().split("T")[0];
             const payload = {
                 user_id: userId,
-                name: `${selectedWorkout} Workout`,
+                name: `${selectedWorkout}`,
                 description: "Custom generated workout",
                 duration: selectedTime,
                 complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
@@ -601,9 +607,10 @@ export default function WorkoutScreen({ route }) {
                 { params: { user_id: userId } }
             );
 
-            const { workout, movement_history } = workoutDetailsResponse.data;
+            const { workout, movement_history, conditioning_history } = workoutDetailsResponse.data;
             console.log("Workout details ->", workout);
             console.log("Movement history ->", movement_history);
+            console.log("Movement history ->", conditioning_history);
 
             setIsBouncerLoading(false);
 
@@ -613,6 +620,7 @@ export default function WorkoutScreen({ route }) {
                 params: {
                     workout: workout,
                     movementHistory: movement_history,
+                    conditioningHistory: conditioning_history,
                 },
             });
         } catch (error) {

@@ -212,10 +212,10 @@ class CompleteRunningWorkoutAPIView(APIView):
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
-                leaderboard.total_score += 50
-                leaderboard.weekly_score += 50
-                leaderboard.monthly_score += 50
-                leaderboard.save()
+                # leaderboard.total_score += 50
+                # leaderboard.weekly_score += 50
+                # leaderboard.monthly_score += 50
+                # leaderboard.save()
 
                 ScoreLog.objects.create(
                     user=user,
