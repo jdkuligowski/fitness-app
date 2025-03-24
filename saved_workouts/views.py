@@ -72,6 +72,8 @@ class SaveWorkoutView(APIView):
                     return self._save_mobility_workout(data, user)
                 elif workout_type == 'Hiit':  
                     return self._save_hiit_workout(data, user)
+                elif workout_type == 'Hyrox':  
+                    return self._save_hyrox_workout(data, user)
                 else:
                     return Response({'error': f'Unsupported workout type: {workout_type}'}, status=400)
 
@@ -100,6 +102,99 @@ class SaveWorkoutView(APIView):
             scheduled_date=data.get('scheduled_date'),
             owner=user,
             activity_type="Gym",
+        )
+
+        # Save sections and movements
+        for section_data in data['sections']:
+            section = Section.objects.create(
+                workout=workout,
+                section_type=section_data['section_type'],
+                section_name=section_data['section_name'],
+                section_order=section_data['section_order'],
+            )
+
+            # Check if the section is "Conditioning"
+            if section_data['section_name'] == "Conditioning" and 'conditioning_workout' in section_data:
+                conditioning_workout = section_data['conditioning_workout']
+                conditioning_overview_id = conditioning_workout.get('conditioning_overview_id')
+
+                if conditioning_overview_id is None:  # Use None to check for missing values
+                    return Response({"error": "conditioning_overview_id is required for Conditioning sections"}, status=400)
+
+                try:
+                    conditioning_overview = ConditioningOverview.objects.get(id=conditioning_overview_id)
+                except ConditioningOverview.DoesNotExist:
+                    return Response(
+                        {'error': f"ConditioningOverview with ID {conditioning_overview_id} does not exist"},
+                        status=400
+                    )
+
+                # Create ConditioningWorkout
+                ConditioningWorkout.objects.create(
+                    section=section,
+                    conditioning_overview=conditioning_overview,
+                    comments=conditioning_workout.get('comments'),
+                    rpe=conditioning_workout.get('rpe'),
+                )
+
+                # Save Conditioning movements
+                for movement_data in conditioning_workout['movements']:
+                    try:
+                        movement = Movement.objects.get(exercise=movement_data['movement_name'])
+                    except Movement.DoesNotExist:
+                        return Response(
+                            {'error': f"Movement '{movement_data['movement_name']}' does not exist"},
+                            status=400
+                        )
+                    SectionMovement.objects.create(
+                        section=section,
+                        movements=movement,
+                        movement_order=movement_data['movement_order'],
+                    )
+            else:
+                # Save standard movements for non-conditioning sections
+                for movement_data in section_data['movements']:
+                    try:
+                        movement = Movement.objects.get(exercise=movement_data['movement_name'])
+                    except Movement.DoesNotExist:
+                        return Response(
+                            {'error': f"Movement '{movement_data['movement_name']}' does not exist"},
+                            status=400
+                        )
+                    SectionMovement.objects.create(
+                        section=section,
+                        movements=movement,
+                        movement_order=movement_data['movement_order'],
+                    )
+        
+        # schedule notification if required
+        self._create_scheduled_notification_if_needed(workout, user, data)
+
+        serialized_workout = PopulatedWorkoutSerializer(workout).data
+        return Response({'message': 'Gym workout saved successfully', 'workout': serialized_workout}, status=201)
+
+
+    def _save_hyrox_workout(self, data, user):
+        # Determine workout number
+        if data.get('workout_number'):
+            workout_number = data['workout_number']  # Use provided workout_number for duplication
+        else:
+            workout_number = self._get_workout_number(user)  # Generate a new workout_number
+
+        template_code = self._build_template_code(data)
+
+        # Process and save gym workout
+        workout = Workout.objects.create(
+            name=data['name'],
+            workout_code=template_code,
+            workout_number=workout_number,
+            description=data['description'],
+            duration=data['duration'],
+            complexity=data['complexity'],
+            status=data.get('status', 'Saved'),
+            scheduled_date=data.get('scheduled_date'),
+            owner=user,
+            activity_type="Hyrox",
         )
 
         # Save sections and movements
@@ -514,117 +609,6 @@ class SaveWorkoutView(APIView):
         else:
             return "UNK-999"
 
-    # def _create_scheduled_notification_if_needed(self, workout, user, data):
-    #     """
-    #     If the workout has a scheduled date, create a ScheduledNotification
-    #     row for that date/time.
-    #     """
-    #     # 1) Check if scheduled_date is present
-    #     scheduled_date = data.get('scheduled_date')
-    #     if not scheduled_date:
-    #         return  # No date => skip
-
-    #     # 2) Parse scheduled_date (assuming it's a string like "2025-04-10")
-    #     # If it's already a datetime or date object, skip the parsing part
-    #     try:
-    #         scheduled_date_obj = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
-    #     except ValueError:
-    #         # If user gave an invalid date format, skip or handle error
-    #         return
-
-    #     # 3) Decide on a default reminder time (e.g. 8:00 AM), 
-    #     #    or if your request has "reminder_time" you can parse that:
-    #     reminder_hour = 16
-    #     reminder_minute = 00
-    #     # If you want to store or parse them from data, do that here:
-    #     # reminder_hour = data.get('reminder_hour', 8)
-
-    #     # 4) Combine date + time
-    #     reminder_dt = datetime.combine(scheduled_date_obj, time(hour=reminder_hour, minute=reminder_minute))
-
-    #     # 5) Create the notification row
-    #     ScheduledNotification.objects.create(
-    #         owner=user,
-    #         workout=workout,
-    #         scheduled_datetime=reminder_dt,
-    #         title="Today's workout",
-    #         body=f"Don't forget to complete your {workout.name} workout to get points",
-    #     )
-
-
-    # def _create_scheduled_notification_if_needed(self, workout, user, data):
-    #     """
-    #     Simplified logic with debug logs:
-    #     - If scheduled_date > today => schedule at 20:00
-    #     - If scheduled_date == today => parse scheduled_time
-    #         if <17:00 => 20:00
-    #         else => user_scheduled_time + 2h
-    #     - If scheduled_date < today => skip
-    #     """
-
-    #     scheduled_date_str = data.get('scheduled_date')
-    #     if not scheduled_date_str:
-    #         logger.debug("No scheduled_date provided -> skipping notification.")
-    #         return
-
-    #     # Parse the scheduled_date
-    #     try:
-    #         scheduled_date_obj = datetime.strptime(scheduled_date_str, "%Y-%m-%d").date()
-    #         logger.debug(f"Parsed scheduled_date_obj={scheduled_date_obj}")
-    #     except ValueError:
-    #         logger.warning(f"Invalid date format for scheduled_date: {scheduled_date_str} -> skipping.")
-    #         return
-
-    #     today_date = now().date()
-    #     logger.debug(f"Today is {today_date}, scheduled_date is {scheduled_date_obj}")
-
-    #     if scheduled_date_obj < today_date:
-    #         logger.debug("scheduled_date < today -> skipping.")
-    #         return
-
-    #     # If future date -> always 20:00
-    #     if scheduled_date_obj > today_date:
-    #         reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
-    #         logger.debug(f"scheduled_date > today -> reminder at {reminder_dt}")
-    #     else:
-    #         # scheduled_date == today
-    #         # parse user_scheduled_time
-    #         scheduled_time_str = data.get('scheduled_time')
-    #         if not scheduled_time_str:
-    #             logger.debug("No scheduled_time for same-day -> skipping.")
-    #             return
-
-    #         try:
-    #             user_time = datetime.strptime(scheduled_time_str, "%H:%M").time()
-    #             logger.debug(f"parsed user_time={user_time}")
-    #         except ValueError:
-    #             logger.warning(f"Invalid time format for scheduled_time: {scheduled_time_str} -> skipping.")
-    #             return
-
-    #         # Convert to datetime
-    #         base_dt = datetime.combine(scheduled_date_obj, user_time)
-    #         logger.debug(f"base_dt for user_time is {base_dt}")
-
-    #         threshold_17 = datetime.combine(scheduled_date_obj, time(hour=17, minute=0))
-    #         if base_dt < threshold_17:
-    #             # <17:00 => set to 20:00
-    #             reminder_dt = datetime.combine(scheduled_date_obj, time(hour=20, minute=0))
-    #             logger.debug(f"user_time <17:00, so reminder_dt={reminder_dt}")
-    #         else:
-    #             # otherwise => user_time + 2h
-    #             reminder_dt = base_dt + timedelta(hours=2)
-    #             logger.debug(f"user_time >=17:00 => reminder_dt={reminder_dt}")
-
-    #     # Finally, create the row if we have a reminder_dt
-    #     if reminder_dt:
-    #         ScheduledNotification.objects.create(
-    #             owner=user,
-    #             workout=workout,
-    #             scheduled_datetime=reminder_dt,
-    #             title="Workout Reminder",
-    #             body=f"Don't forget to complete your {workout.name} workout to get points",
-    #         )
-    #         logger.info(f"Created reminder -> {reminder_dt} for user={user.id}, workout={workout.id}")
 
 
     def _create_scheduled_notification_if_needed(self, workout, user, data):
@@ -750,6 +734,179 @@ class GetUpcomingWorkouts(APIView):
 
 
 class GetSingleWorkoutView(APIView):
+    """
+    Get a single workout and return all related workout details along with 
+    the last 3 movement histories for each movement within the workout.
+    Also returns 'conditioning_history' for each conditioning_overview in the workout.
+    """
+
+    def get(self, request, workout_id):
+        user_id = request.query_params.get('user_id')
+
+        try:
+            # -- 1) Fetch the workout and sections
+            try:
+                workout = Workout.objects.prefetch_related(
+                    Prefetch(
+                        'workout_sections__section_movement_details',
+                        queryset=SectionMovement.objects.prefetch_related('workout_sets')
+                    ),
+                    Prefetch(
+                        # We also prefetch the 'conditioning_elements' for each section
+                        'workout_sections__conditioning_elements',
+                        queryset=ConditioningWorkout.objects.select_related('conditioning_overview')
+                    )
+                ).select_related('owner').get(id=workout_id, owner=user_id)
+            except Workout.DoesNotExist:
+                return Response({'error': 'Workout not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # -- 2) Serialize workout data
+            serializer = PopulatedWorkoutSerializer(workout)
+            workout_data = serializer.data
+
+            # =======================================================
+            # MOVEMENT HISTORY (Unchanged)
+            # =======================================================
+            # A) Extract movement IDs
+            movement_ids = [
+                movement['movements']['id']
+                for section in workout_data['workout_sections']
+                for movement in section['section_movement_details']
+                if movement.get('movements')
+            ]
+
+            # B) If no movements, just return
+            if not movement_ids:
+                return Response({
+                    "workout": workout_data,
+                    "movement_history": {},
+                    "conditioning_history": {}  # We'll also return an empty conditioning history
+                }, status=status.HTTP_200_OK)
+
+            # C) Build movement_history by fetching last 3 completed workouts for each movement
+            movement_history = {}
+
+            for movement_id in movement_ids:
+                last_3_workouts = (
+                    Workout.objects.filter(
+                        workout_sections__section_movement_details__movements__id=movement_id,
+                        owner=user_id,
+                        status="Completed"
+                    )
+                    .distinct()
+                    .order_by('-completed_date')[:3]
+                )
+
+                for w in last_3_workouts:
+                    workout_sets = Set.objects.filter(
+                        section_movement__movements__id=movement_id,
+                        section_movement__section__workout=w
+                    ).select_related(
+                        'section_movement__movements',
+                        'section_movement__section__workout'
+                    ).order_by('set_number')
+
+                    sets_data = [
+                        {
+                            "set_number": ws.set_number,
+                            "reps": ws.reps,
+                            "weight": ws.weight
+                        }
+                        for ws in workout_sets
+                    ]
+
+                    if movement_id not in movement_history:
+                        movement_history[movement_id] = []
+
+                    movement_history[movement_id].append({
+                        "workout_id": w.id,
+                        "completed_date": w.completed_date,
+                        "movement_difficulty": workout_sets[0].section_movement.movement_difficulty if workout_sets else None,
+                        "sets": sets_data
+                    })
+
+            # Sort each movement's history by date desc
+            for mid in movement_history:
+                movement_history[mid].sort(key=lambda x: x['completed_date'], reverse=True)
+
+            # =======================================================
+            # ### NEW for Conditioning: BUILD conditioning_history
+            # =======================================================
+            # A) Extract all conditioning_overview IDs
+            cond_overview_ids = []
+            for section in workout_data['workout_sections']:
+                for cond_item in section.get('conditioning_elements', []):
+                    overview = cond_item.get('conditioning_overview')
+                    if overview and overview.get('id'):
+                        cond_overview_ids.append(overview['id'])
+
+            # B) If no conditioning overviews, skip
+            if not cond_overview_ids:
+                return Response({
+                    "workout": workout_data,
+                    "movement_history": movement_history,
+                    "conditioning_history": {}
+                }, status=status.HTTP_200_OK)
+
+            # C) Build conditioning_history for each overview ID
+            conditioning_history = {}
+
+            for cond_id in cond_overview_ids:
+                last_3_cond_workouts = (
+                    Workout.objects.filter(
+                        workout_sections__conditioning_elements__conditioning_overview__id=cond_id,
+                        owner=user_id,
+                        status="Completed"
+                    )
+                    .distinct()
+                    .order_by('-completed_date')[:3]
+                )
+
+                for w in last_3_cond_workouts:
+                    # You could store more details, e.g. comments, rpe, etc.
+                    # from the "ConditioningWorkout" row(s) if relevant.
+                    cond_entries = ConditioningWorkout.objects.filter(
+                        section__workout=w,
+                        conditioning_overview__id=cond_id
+                    ).select_related('conditioning_overview')
+
+                    # Example: build a summary
+                    entries_data = []
+                    for ce in cond_entries:
+                        entries_data.append({
+                            "comments": ce.comments,
+                            "rpe": ce.rpe,
+                            # "any other fields if you want"
+                        })
+
+                    if cond_id not in conditioning_history:
+                        conditioning_history[cond_id] = []
+
+                    conditioning_history[cond_id].append({
+                        "workout_id": w.id,
+                        "completed_date": w.completed_date,
+                        "entries": entries_data
+                    })
+
+            # Sort each cond_overview's history by date desc
+            for cid in conditioning_history:
+                conditioning_history[cid].sort(key=lambda x: x['completed_date'], reverse=True)
+
+            # -- 3) Return data
+            return Response({
+                "workout": workout_data,
+                "movement_history": movement_history,
+                "conditioning_history": conditioning_history
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Unexpected error in GetSingleWorkoutView: {str(e)}")
+            return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class GetSingleHyroxWorkout(APIView):
     """
     Get a single workout and return all related workout details along with 
     the last 3 movement histories for each movement within the workout.
@@ -1273,6 +1430,154 @@ class UpdateWorkoutDateView(APIView):
 
 
 class CompleteWorkoutAPIView(APIView):
+    def put(self, request, workout_id):
+        user_id = request.query_params.get('user_id')
+
+        try:
+            logger.info(f"Starting completion process for workout_id: {workout_id}, user_id: {user_id}")
+
+            # 1️⃣ --- Get User Object ---
+            user = User.objects.get(id=user_id)
+
+            # 2️⃣ --- Update Workout Status ---
+            workout = Workout.objects.get(id=workout_id, owner=user)
+            workout.status = 'Completed'
+            workout.completed_date = now().date()
+            workout.save()
+
+            # 3️⃣ --- Award Points for Workout Completion (50 points) ---
+            leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
+            if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
+                # Real-time scoreboard update
+                # leaderboard.total_score += 50
+                # leaderboard.weekly_score += 50
+                # leaderboard.monthly_score += 50
+                # leaderboard.save()
+
+                ScoreLog.objects.create(
+                    user=user,
+                    score_type='Workout Completion',
+                    score_value=50,
+                    workout_id=workout.id
+                )
+
+            # 4️⃣ --- Process Sections and Movements (same as before) ---
+            sections_data = request.data.get('sections', [])
+            section_ids = [section['section_id'] for section in sections_data]
+            
+            sections = Section.objects.filter(id__in=section_ids, workout=workout).select_related('workout')
+            movements = SectionMovement.objects.filter(section__in=sections).select_related('section')
+            existing_sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
+
+            # Create mappings for fast lookup
+            existing_sets_map = {
+                (set_instance.section_movement_id, set_instance.set_number): set_instance
+                for set_instance in existing_sets
+            }
+
+            new_sets = []
+            sets_to_update = []
+            conditioning_updates = []  # For bulk updating ConditioningWorkout entries
+
+            # We will track how many "strength" movements exist and how many are "fully logged"
+            strength_keywords = ["strong", "build", "pump"]  # case-insensitive
+            strength_movements_count = 0
+            strength_fully_logged_count = 0
+
+            for section_data in sections_data:
+                # Update conditioning workouts
+                if 'conditioning_workouts' in section_data:
+                    for conditioning_data in section_data['conditioning_workouts']:
+                        conditioning_id = conditioning_data.get('conditioning_id')
+                        conditioning_instance = ConditioningWorkout.objects.filter(id=conditioning_id).first()
+                        if conditioning_instance:
+                            conditioning_instance.comments = conditioning_data.get('comments', conditioning_instance.comments)
+                            conditioning_instance.rpe = conditioning_data.get('rpe', conditioning_instance.rpe)
+                            conditioning_updates.append(conditioning_instance)
+
+                # Update standard movements (sets)
+                for movement_data in section_data.get('movements', []):
+                    movement_id = movement_data.get('movement_id')
+                    movement = next((m for m in movements if m.id == movement_id), None)
+                    
+                    if not movement:
+                        continue
+
+                    # Determine if this movement belongs to a "strength" section
+                    section_obj = movement.section  # from .select_related('section')
+                    section_name_lower = section_obj.section_name.lower() if section_obj.section_name else ""
+                    is_strength_section = any(kw in section_name_lower for kw in strength_keywords)
+
+                    # We'll track if this movement is "fully logged" if it has at least one set with reps>0, weight>0
+                    movement_has_valid_set = False
+
+                    # Process sets
+                    for set_data in movement_data.get('sets', []):
+                        reps = set_data.get('reps') or 0
+                        weight = set_data.get('weight') or 0
+                        set_number = set_data.get('set_number')
+
+                        existing_set = existing_sets_map.get((movement_id, set_number))
+                        if existing_set:
+                            # Update existing set
+                            existing_set.reps = reps
+                            existing_set.weight = weight
+                            sets_to_update.append(existing_set)
+                        else:
+                            # Create new set
+                            new_sets.append(
+                                Set(
+                                    section_movement=movement,
+                                    set_number=set_number,
+                                    reps=reps,
+                                    weight=weight
+                                )
+                            )
+
+                        # If any set has reps>0 and weight>0, we consider this movement "fully logged"
+                        if reps > 0 and weight > 0:
+                            movement_has_valid_set = True
+
+                    # If this is a "strength" section's movement
+                    if is_strength_section:
+                        # Count total strength movements
+                        strength_movements_count += 1
+                        if movement_has_valid_set:
+                            strength_fully_logged_count += 1
+
+            # Save sets and conditioning updates
+            if new_sets:
+                Set.objects.bulk_create(new_sets)
+            if sets_to_update:
+                Set.objects.bulk_update(sets_to_update, ['reps', 'weight'])
+            if conditioning_updates:
+                ConditioningWorkout.objects.bulk_update(conditioning_updates, ['comments', 'rpe'])
+
+            # 5️⃣ --- NEW: Award Single +20 If ALL "Strength" Movements Are Fully Logged ---
+            if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
+                # Avoid double awarding if they've completed this before
+                if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
+                    leaderboard.total_score += 20
+                    leaderboard.weekly_score += 20
+                    leaderboard.monthly_score += 20
+                    leaderboard.save()
+
+                    ScoreLog.objects.create(
+                        user=user,
+                        score_type='Full Strength Logging',
+                        score_value=20,
+                        workout_id=workout.id
+                    )
+                    logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
+
+            logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
+            return Response({'message': 'Workout completed successfully!'}, status=200)
+        
+        except Exception as e:
+            logger.exception(f"Unexpected error in CompleteWorkoutAPIView for workout_id {workout_id}: {e}")
+            return Response({'error': str(e)}, status=500)
+
+class CompleteHyroxAPIView(APIView):
     def put(self, request, workout_id):
         user_id = request.query_params.get('user_id')
 

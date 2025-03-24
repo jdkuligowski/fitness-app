@@ -42,6 +42,8 @@ export default function WorkoutSummary({ route, navigation }) {
                 let endpoint = '';
                 if (activityType === 'Gym') {
                     endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-workout/${workoutId}/`;
+                } else if (activityType === 'Hyrox') {
+                    endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-hyrox-workout/${workoutId}/`;
                 } else if (activityType === 'Running') {
                     endpoint = `${ENV.API_URL}/api/saved_workouts/get-single-running-workout/${workoutId}/`;
                 } else if (activityType === 'Mobility') {
@@ -63,6 +65,12 @@ export default function WorkoutSummary({ route, navigation }) {
                     setMovementHistory(movement_history);
                     setConditioningHistory(conditioning_history);
                     console.log('Gym workouts: ', JSON.stringify(response.data, null, 2))
+                } else if (activityType === 'Hyrox') {
+                    const { workout, movement_history, conditioning_history } = response.data;
+                    setUserWorkouts(workout);
+                    setMovementHistory(movement_history);
+                    setConditioningHistory(conditioning_history);
+                    console.log('Hyrox workouts: ', JSON.stringify(response.data, null, 2))
                 } else if (activityType === 'Running') {
                     const { workout, similar_workouts, recent_running_workouts } = response.data;
                     setUserWorkouts(workout);
@@ -104,6 +112,12 @@ export default function WorkoutSummary({ route, navigation }) {
             // Navigate to the appropriate workout screen
             if (activityType === 'Gym') {
                 navigation.navigate('CompleteWorkout', {
+                    workout: userWorkouts,
+                    movementHistory: movementHistory,
+                    conditioningHistory: conditioningHistory
+                });
+            } else if (activityType === 'Hyrox') {
+                navigation.navigate('CompleteHyroxWorkout', {
                     workout: userWorkouts,
                     movementHistory: movementHistory,
                     conditioningHistory: conditioningHistory
@@ -190,7 +204,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                     ? '#FFEEEF'
                                     : userWorkouts.activity_type === 'Hiit'
                                         ? '#F6F6DC'
-                                        : 'black',
+                                        : userWorkouts.activity_type === 'Hyrox'
+                                            ? '#E7F4E5'
+                                            : 'black',
                 }]}>
 
                     <View style={styles.workoutOverview}>
@@ -205,7 +221,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                             ? '#FFDDDE'
                                             : userWorkouts.activity_type === 'Hiit'
                                                 ? '#FFFFEF'
-                                                : 'black',
+                                                : userWorkouts.activity_type === 'Hyrox'
+                                                    ? '#F5FFF4'
+                                                    : 'black',
                         }]}>
                             <View style={styles.overviewHeader}>
                                 <Text style={styles.workoutTitle}>{userWorkouts.name}</Text>
@@ -291,6 +309,61 @@ export default function WorkoutSummary({ route, navigation }) {
                                     <View style={styles.subDividerLine}></View>
                                 </View>
                             ))
+                        ) : userWorkouts.activity_type === "Hyrox" ? (
+                            userWorkouts?.workout_sections?.map((section, index) => (
+                                <View key={index} style={styles.sectionContainer}>
+                                    {section.section_name === "Conditioning" ?
+                                        <Text style={styles.sectionTitle}>{`${section.section_name}: ${section.conditioning_elements[0].conditioning_overview.name}`}</Text> :
+                                        <Text style={styles.sectionTitle}>{section.section_name}</Text>
+                                    }
+                                    {section.section_name === "Warm up A" ?
+                                        <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
+                                        section.section_name === "Warm up B" ?
+                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 8-12 reps in each</Text> :
+                                            section.section_name === "Strong 1" || section.section_name === "Strong 2" ?
+                                                <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 5-8 reps</Text> :
+                                                section.section_name === "Build 1" || section.section_name === "Build 2" ?
+                                                    <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 8-12 reps with no rest between movements</Text> :
+                                                    section.section_name === "Pump 1" || section.section_name === "Pump 2" ?
+                                                        <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 12-15 reps with no rest between movements</Text> :
+                                                        section.section_name === "Conditioning" ?
+                                                            <Text style={styles.sectionSubTitle}>{section.conditioning_elements[0].conditioning_overview.notes}</Text> :
+                                                            ''}
+
+                                    {section.section_movement_details.map((movementDetail, i) => {
+                                        // Destructure the movement for clarity
+                                        const currentMovement = movementDetail.movements;
+
+                                        return (
+                                            <View key={i} style={styles.movementRow}>
+                                                <View style={styles.rowText}>
+                                                    <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                    <Text style={styles.movementGymDetail}>{currentMovement.exercise}</Text>
+                                                </View>
+
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        // If there's a valid video URL, store it in state
+                                                        if (currentMovement.portrait_video_url || currentMovement.landscape_video_url) {
+                                                            // Example: setSelectedMovement just the object or the URL
+                                                            setSelectedMovement(currentMovement);
+                                                        } else {
+                                                            Alert.alert(
+                                                                "No video found",
+                                                                "This movement doesn't have an associated video."
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        );
+                                    })}
+                                    <View style={styles.subDividerLine}></View>
+                                </View>
+                            ))
+
                         ) : userWorkouts.activity_type === "Running" ? (
                             // Running Layout
                             <>

@@ -70,7 +70,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             const formattedDate = selectedDate.toISOString().split("T")[0];
             console.log('Workout to save:', JSON.stringify(currentWorkout, null, 2));
 
-            
+
             let payload = {
                 user_id: userId,
                 // name: `${selectedWorkout}`,
@@ -86,7 +86,55 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     return;
                 }
                 payload.name = `${selectedWorkout}`,
-                payload.description = workoutPlan.description || "Custom generated workout";
+                    payload.description = workoutPlan.description || "Custom generated workout";
+                payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
+                payload.sections = workoutPlan.map((section, index) => {
+                    console.log(`🚀 Debug: Section [${index}]`, section); // ✅ Log section object
+                    // section.movements = section.movements ? [section.movements] : []; // 🔥 Ensure it's an array
+
+                    if (!Array.isArray(section.movements)) {
+                        console.error(`❌ Error: movements is not an array in section [${index}]`, JSON.stringify(section, null, 2));
+                        // section.movements = []; // 🔥 Set to empty array if it's not valid
+                    }
+
+                    console.log(`✅ Section [${index}] Movements:`, section.movements); // ✅ Log actual movements array
+
+                    if (section.partLabel === "Conditioning") {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            conditioning_workout: {
+                                conditioning_overview_id: section.workoutId,
+                                notes: section.notes,
+                                comments: null,
+                                rpe: null,
+                                movements: section.movements.map((movement, movementIndex) => ({
+                                    movement_order: movementIndex + 1,
+                                    movement_name: movement.exercise,
+                                    detail: movement.detail || null,
+                                })),
+                            },
+                        };
+                    } else {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            movements: section.movements.map((movement, movementIndex) => ({
+                                movement_name: movement.name || movement,
+                                movement_order: movementIndex + 1,
+                            })),
+                        };
+                    }
+                });
+            } else if (workoutType === "Hyrox") {
+                if (!Array.isArray(workoutPlan)) {
+                    console.error("❌ Error: workoutPlan is not an array", workoutPlan);
+                    return;
+                }
+                payload.name = `${selectedWorkout}`,
+                    payload.description = workoutPlan.description || "Custom generated workout";
                 payload.complexity = frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3;
                 payload.sections = workoutPlan.map((section, index) => {
                     console.log(`🚀 Debug: Section [${index}]`, section); // ✅ Log section object

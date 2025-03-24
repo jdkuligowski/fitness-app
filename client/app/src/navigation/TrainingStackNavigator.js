@@ -5,6 +5,7 @@ import CompleteWorkout from '../screens/homeScreens/trainingScreens/CompleteWork
 import CompleteRunningWorkout from '../screens/homeScreens/trainingScreens/CompleteRunningWorkout'
 import CompleteMobilityWorkout from '../screens/homeScreens/trainingScreens/CompleteMobilityWorkout'
 import CompleteHiitWorkout from '../screens/homeScreens/trainingScreens/CompleteHiitWorkout'
+import CompleteHyroxWorkout from '../screens/homeScreens/trainingScreens/CompleteHyroxWorkout'
 
 const TrainingStack = createStackNavigator();
 
@@ -17,6 +18,7 @@ export default function TrainingStackNavigator() {
       <TrainingStack.Screen name="CompleteRunningWorkout" component={CompleteRunningWorkout} options={{ headerShown: false }} />
       <TrainingStack.Screen name="CompleteMobilityWorkout" component={CompleteMobilityWorkout} options={{ headerShown: false }} />
       <TrainingStack.Screen name="CompleteHiitWorkout" component={CompleteHiitWorkout} options={{ headerShown: false }} />
+      <TrainingStack.Screen name="CompleteHyroxWorkout" component={CompleteHyroxWorkout} options={{ headerShown: false }} />
     </TrainingStack.Navigator>
   );
 }

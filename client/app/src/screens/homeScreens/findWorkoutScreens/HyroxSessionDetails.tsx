@@ -13,29 +13,27 @@ import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
 import ENV from '../../../../../env'
 import { useLoader } from '@/app/src/context/LoaderContext';
 import { Colours } from '@/app/src/components/styles';
-import strengthRules30 from '../../../components/workoutRules/strengthRules30'
-import strengthRules40 from '../../../components/workoutRules/strengthRules40'
-import strengthRules50 from '../../../components/workoutRules/strengthRules50'
-import strengthRules60 from '../../../components/workoutRules/strengthRules60'
-import strengthRules75 from '../../../components/workoutRules/strengthRules60'
+import min30Workouts from '../../../components/hyroxRules/30minWorkouts'
+import min40Workouts from '../../../components/hyroxRules/40minWorkouts'
+import min50Workouts from '../../../components/hyroxRules/50minWorkouts'
+import min60Workouts from '../../../components/hyroxRules/60minWorkouts'
 import commonRules from '../../../components/workoutRules/commonRules'
 import ruleSet from '../../../components/workoutRules/warmupBRules'
 import { Video } from 'expo-av';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-const strengthRulesMap = {
-    30: strengthRules30,
-    40: strengthRules40,
-    50: strengthRules50,
-    60: strengthRules60,
-    75: strengthRules60,
+const hyroxRulesMap = {
+    30: min30Workouts,
+    40: min40Workouts,
+    50: min50Workouts,
+    60: min60Workouts,
 };
 
-export default function WorkoutScreen({ route }) {
+export default function HyroxDetails({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity } = route.params;
+    const { selectedTime, division, selectedFinish, complexity } = route.params;
     const { workoutData, fetchWorkoutData, isLoading, conditioningData, fetchConditioningData } = useWorkout();
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -88,9 +86,9 @@ export default function WorkoutScreen({ route }) {
 
     useEffect(() => {
         if (flatListRef.current && workoutPlans.length > 0) {
-          flatListRef.current.scrollToIndex({ index: 0, animated: true });
+            flatListRef.current.scrollToIndex({ index: 0, animated: true });
         }
-      }, [workoutPlans]);
+    }, [workoutPlans]);
 
     useEffect(() => {
         const loadFilteredMovements = async () => {
@@ -115,7 +113,7 @@ export default function WorkoutScreen({ route }) {
                 const response = await fetch(url);
                 const data = await response.json();
 
-                setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
+                setFilteredWorkoutData(workoutData);  // "data" will be an array of Movement objects 
                 console.log('Filtered movements: ', data)
             } catch (error) {
                 console.error("Error fetching filtered movements:", error);
@@ -260,222 +258,339 @@ export default function WorkoutScreen({ route }) {
     };
 
 
-    // Generate a single workout plan
-    const generateWorkoutPlan = () => {
-        const allowedTimes = [30, 40, 50, 60, 75];
+
+    // 5) Our "Generate Hyrox Plan" logic
+    const generateHyroxPlan = () => {
+        // clamp the selectedTime to your valid times [30, 40, 50, 60]
+        const allowedTimes = [30, 40, 50, 60];
         const closestTime = allowedTimes.reduce((prev, curr) =>
             Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
         );
-        console.log(`Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
+        console.log(`Hyrox: Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
 
-        const rules = strengthRulesMap[closestTime];
+        // get the "rules" for that time
+        const rules = hyroxRulesMap[closestTime];
         if (!rules) {
-            console.error(`No rules found for ${closestTime} minutes.`);
+            console.error(`No hyrox rules found for ${closestTime} minutes.`);
             return [];
         }
 
-        const workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
-        const workoutKeys = Object.keys(rules).filter((key) => key.startsWith(workoutKeyBase));
-        if (workoutKeys.length === 0) {
-            console.error(`No workout keys found for type: ${selectedWorkout}`);
+        // pick a random "option_" key
+        const optionKeys = Object.keys(rules);
+        if (optionKeys.length === 0) {
+            console.error(`No option keys found in hyroxRulesMap for time ${closestTime}`);
             return [];
         }
+        const chosenOption = optionKeys[Math.floor(Math.random() * optionKeys.length)];
+        const selectedRules = rules[chosenOption];
 
-        const selectedKey = workoutKeys[Math.floor(Math.random() * workoutKeys.length)];
-        const selectedRules = rules[selectedKey];
-        if (!selectedRules) {
-            console.error(`No rules found for selected workout key: ${selectedKey}`);
+        if (!selectedRules || !selectedRules.sections) {
+            console.error(`No sections found for chosenOption ${chosenOption}`);
             return [];
         }
-
-        // Key Swap for "advanced_movements" based on user’s complexity
-        // E.g. if user is "Intermediate", we want to replace "advanced_movements" with "inter_movements"
-        const complexityKey = (complexity === "Intermediate")
-            ? "inter_movements"
-            : "advanced_movements"; // or you can handle "Beginner" or "Advanced" differently
-
-        // traverse each section’s filters, swap advanced->inter
-        selectedRules.sections.forEach((section) => {
-            section.filters.forEach((filterSet) => {
-                filterSet.forEach((f) => {
-                    if (f.key === "advanced_movements") {
-                        f.key = complexityKey;
-                    }
-                });
-            });
-        });
 
         const usedExercises = new Set();
         const plan = [];
 
-        // Add Warm-Up A Section (1 movement)
-        const warmUpA = filterWarmUpA();
-        plan.push({
-            partLabel: commonRules.warmUpA.section,
-            movements: warmUpA,
-            sectionType: "single",
-            filters: commonRules.warmUpA.filters, // Attach filters for Warm-Up A
-        });
+        // For each section, if "Conditioning", handle differently
+        selectedRules.sections.forEach((sectionRule) => {
+            const { section, filters, duration } = sectionRule;
 
-        // // Add Warm-Up B Section (up to 3 movements)
-        // const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
-        // plan.push({
-        //     partLabel: commonRules.warmUpB.section,
-        //     movements: warmUpB,
-        //     sectionType: "superset",
-        //     filters: "Warm-Up Filter Logic", // Example for Warm-Up B
-        // });
-
-        // 1) Convert "full_body_1" to "Full Body 1" 
-        // (the same key you used for synergy but now we treat it as warm-up logic)
-        const warmUpBase = toWarmUpKey(selectedKey);
-        if (!warmUpBase) {
-            console.warn("Could not parse warm-up key from", selectedKey, "– skipping Warm Up B");
-        } else {
-            // 2) Randomly pick Option 1 or Option 2
-            const randomOption = Math.random() < 0.5 ? "Option 1" : "Option 2";
-            const warmUpKey = `${warmUpBase} (${randomOption})`;
-            // e.g. "Full Body 1 (Option 1)"
-
-            // 3) Grab from your new ruleSet
-            const warmUpObj = ruleSet[warmUpKey];
-            if (!warmUpObj) {
-                console.warn("No Warm Up B ruleSet entry for", warmUpKey, "– skipping Warm Up B");
-                plan.push({
-                    partLabel: commonRules.warmUpB.section, // "Warm up B"
-                    movements: [],
-                    sectionType: "single",
-                });
+            if (section === "Conditioning") {
+                // We do a separate function to pick a random conditioning workout with "duration"
+                const condSection = generateConditioningSection(duration);
+                plan.push(condSection);
             } else {
-                // warmUpObj => { movement1: "...", movement2: "...", movement3: "...", movement4: "..." }
-                const listedMovements = Object.values(warmUpObj).filter(Boolean);
-                // e.g. ["Couch w. Rotation","Banded Dislocate","HK Rotation","Counterbalance Squat"]
-
-                // 4) For each warm-up movement, find the actual DB entry in filteredWorkoutData
-                //    so you can reference its ID or other fields. If you only need the name, you can skip this step.
-                const finalWarmUpMovements = listedMovements.map((name) => {
-                    // Attempt to find in filteredWorkoutData by matching .exercise
-                    const matched = filteredWorkoutData.find((ex) =>
-                        (ex.exercise || "").trim().toLowerCase() === name.trim().toLowerCase()
-                    );
-                    if (!matched) {
-                        console.warn(`Movement "${name}" not found in filteredWorkoutData. Using name only.`);
-                        return name;
-                    }
-                    // If found, you can store the entire object or just ex.exercise
-                    return matched.exercise; // or matched
-                });
-
-                // 5) Add to usedExercises if you want to block duplicates
-                finalWarmUpMovements.forEach((mov) => usedExercises.add(mov));
-
-                // 6) Push it onto the plan
-                plan.push({
-                    partLabel: commonRules.warmUpB.section,
-                    movements: finalWarmUpMovements,
-                    sectionType: finalWarmUpMovements.length > 1 ? "superset" : "single",
-                });
-            }
-        }
-
-
-        // Add Main Workout Sections
-        selectedRules.sections.forEach((sectionRule, sectionIndex) => {
-            const movements = [];
-            const sectionFilters = []; // Track filters applied in this section
-
-            sectionRule.filters.forEach((filterSet, index) => {
-                console.log(`Applying filters for section: ${sectionRule.section}, FilterSet ${index}:`, filterSet);
-
-                const movementCandidates = filterWorkoutData(filterSet, usedExercises, selectedWorkout);
-                console.log(`Movement Candidates for FilterSet ${index}:`, movementCandidates);
-
-                if (movementCandidates.length > 0) {
-                    const selectedMovement =
-                        movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
-                    console.log(`Selected Movement for FilterSet ${index}:`, selectedMovement);
-
-                    movements.push(selectedMovement);
-                    usedExercises.add(selectedMovement);
-                    sectionFilters.push(filterSet); // Store applied filters
+                // It's e.g. "Strong 1", "Build 1", "Pump 1"
+                // We'll filter the DB for each filterSet, pick 1 movement
+                const finalMovements = [];
+                if (filters && Array.isArray(filters)) {
+                    filters.forEach((filterSet) => {
+                        // We pass filterSet to your "filterWorkoutData"
+                        // plus "usedExercises" so we don’t repeat
+                        const movementCandidates = filterWorkoutData(filterSet, usedExercises, "Hyrox");
+                        if (movementCandidates.length > 0) {
+                            const chosenMovement = movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
+                            finalMovements.push(chosenMovement);
+                            usedExercises.add(chosenMovement);
+                        }
+                    });
                 }
-            });
 
-            // // Ensure "Back Squat" appears in the first section
-            // if (sectionIndex === 0 && !movements.includes("Back Squat")) {
-            //     console.log("Ensuring Back Squat is in the first section.");
-            //     movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
-            //     usedExercises.add("Back Squat");
-            // }
-
-            plan.push({
-                partLabel: sectionRule.section,
-                movements,
-                sectionType: movements.length > 1 ? "superset" : "single",
-                filters: sectionFilters, // Attach filters to this section
-            });
+                plan.push({
+                    partLabel: section,
+                    movements: finalMovements,
+                    sectionType: finalMovements.length > 1 ? "superset" : "single",
+                });
+            }
         });
 
-        // Add or Replace Conditioning Section
-        if (selectedFinish === "Conditioning") {
-            const conditioningSection = generateConditioningSection(usedExercises);
+        // If the user picked "selectedFinish === 'Conditioning' or 'Both'", 
+        // you can do extra logic to append or replace a final conditioning, 
+        // depending on your design. 
 
-            if (closestTime === 75) {
-                // Append conditioning as an additional section
-                plan.push(conditioningSection);
-            } else {
-                // Replace the last section with conditioning
-                plan[plan.length - 1] = conditioningSection;
-            }
-        }
-
-        return plan.slice(0, 9);
+        return plan;
     };
 
-    const generateConditioningSection = (usedExercises) => {
-        // 1) Filter data so only those with duration === 8
-        const eightMinuteConditioning = conditioningData.filter(
-          (item) => item.duration === 8
-        );
-      
-        // 2) Fallback: If no eight-minute items, use entire conditioningData
-        const sourceData = eightMinuteConditioning.length > 0
-          ? eightMinuteConditioning
-          : conditioningData;
-      
-        // 3) Pick a random from the (filtered or fallback) list
-        const randomConditioningWorkout = 
-          sourceData[Math.floor(Math.random() * sourceData.length)];
-      
-        // 4) Select an aerobic type
+    // 6) generateConditioningSection
+    const generateConditioningSection = (targetDuration) => {
+        // Filter from conditioningData by item.duration === targetDuration
+        const matching = conditioningData.filter((item) => item.duration === targetDuration);
+        const fallback = matching.length > 0 ? matching : conditioningData;
+        const chosen = fallback[Math.floor(Math.random() * fallback.length)];
+
+        // if chosen is null, fallback
+        if (!chosen) {
+            return {
+                partLabel: "Conditioning",
+                movements: [],
+                sectionType: "single",
+            };
+        }
+
         const aerobicOptions = ["Bike", "Row", "Ski"];
         const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
-      
-        // 5) Map movements
-        const movements = randomConditioningWorkout.conditioning_details.map((movement) => {
-          let exercise = movement.exercise;
-          if (exercise.toLowerCase() === "aerobic") {
-            exercise = selectedAerobicType; 
-          }
-          return {
-            movementOrder: movement.movement_order,
-            exercise,
-            detail: movement.detail || "No detail provided",
-          };
+
+        const movements = chosen.conditioning_details.map((movement) => {
+            let exercise = movement.exercise;
+            if (exercise.toLowerCase() === "aerobic") {
+                exercise = selectedAerobicType;
+            }
+            return {
+                movementOrder: movement.movement_order,
+                exercise,
+                detail: movement.detail || "No detail provided",
+            };
         });
-      
-        // 6) Return the structured section
+
         return {
-          partLabel: "Conditioning",
-          workoutId: randomConditioningWorkout.id,
-          workoutName: randomConditioningWorkout.name,
-          notes: randomConditioningWorkout.notes,
-          movements,
-          sectionType: movements.length > 1 ? "superset" : "single",
-          rest: randomConditioningWorkout.rest,
+            partLabel: "Conditioning",
+            workoutId: chosen.id,
+            workoutName: chosen.name,
+            notes: chosen.notes,
+            movements,
+            sectionType: movements.length > 1 ? "superset" : "single",
+            rest: chosen.rest,
         };
-      };
-      
+    };
+
+
+    // // Generate a single workout plan
+    // const generateWorkoutPlan = () => {
+    //     const allowedTimes = [30, 40, 50, 60, 75];
+    //     const closestTime = allowedTimes.reduce((prev, curr) =>
+    //         Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
+    //     );
+    //     console.log(`Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
+
+    //     const rules = strengthRulesMap[closestTime];
+    //     if (!rules) {
+    //         console.error(`No rules found for ${closestTime} minutes.`);
+    //         return [];
+    //     }
+
+    //     const workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
+    //     const workoutKeys = Object.keys(rules).filter((key) => key.startsWith(workoutKeyBase));
+    //     if (workoutKeys.length === 0) {
+    //         console.error(`No workout keys found for type: ${selectedWorkout}`);
+    //         return [];
+    //     }
+
+    //     const selectedKey = workoutKeys[Math.floor(Math.random() * workoutKeys.length)];
+    //     const selectedRules = rules[selectedKey];
+    //     if (!selectedRules) {
+    //         console.error(`No rules found for selected workout key: ${selectedKey}`);
+    //         return [];
+    //     }
+
+    //     // Key Swap for "advanced_movements" based on user’s complexity
+    //     // E.g. if user is "Intermediate", we want to replace "advanced_movements" with "inter_movements"
+    //     const complexityKey = (complexity === "Intermediate")
+    //         ? "inter_movements"
+    //         : "advanced_movements"; // or you can handle "Beginner" or "Advanced" differently
+
+    //     // traverse each section’s filters, swap advanced->inter
+    //     selectedRules.sections.forEach((section) => {
+    //         section.filters.forEach((filterSet) => {
+    //             filterSet.forEach((f) => {
+    //                 if (f.key === "advanced_movements") {
+    //                     f.key = complexityKey;
+    //                 }
+    //             });
+    //         });
+    //     });
+
+    //     const usedExercises = new Set();
+    //     const plan = [];
+
+    //     // Add Warm-Up A Section (1 movement)
+    //     const warmUpA = filterWarmUpA();
+    //     plan.push({
+    //         partLabel: commonRules.warmUpA.section,
+    //         movements: warmUpA,
+    //         sectionType: "single",
+    //         filters: commonRules.warmUpA.filters, // Attach filters for Warm-Up A
+    //     });
+
+    //     // // Add Warm-Up B Section (up to 3 movements)
+    //     // const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
+    //     // plan.push({
+    //     //     partLabel: commonRules.warmUpB.section,
+    //     //     movements: warmUpB,
+    //     //     sectionType: "superset",
+    //     //     filters: "Warm-Up Filter Logic", // Example for Warm-Up B
+    //     // });
+
+    //     // 1) Convert "full_body_1" to "Full Body 1" 
+    //     // (the same key you used for synergy but now we treat it as warm-up logic)
+    //     const warmUpBase = toWarmUpKey(selectedKey);
+    //     if (!warmUpBase) {
+    //         console.warn("Could not parse warm-up key from", selectedKey, "– skipping Warm Up B");
+    //     } else {
+    //         // 2) Randomly pick Option 1 or Option 2
+    //         const randomOption = Math.random() < 0.5 ? "Option 1" : "Option 2";
+    //         const warmUpKey = `${warmUpBase} (${randomOption})`;
+    //         // e.g. "Full Body 1 (Option 1)"
+
+    //         // 3) Grab from your new ruleSet
+    //         const warmUpObj = ruleSet[warmUpKey];
+    //         if (!warmUpObj) {
+    //             console.warn("No Warm Up B ruleSet entry for", warmUpKey, "– skipping Warm Up B");
+    //             plan.push({
+    //                 partLabel: commonRules.warmUpB.section, // "Warm up B"
+    //                 movements: [],
+    //                 sectionType: "single",
+    //             });
+    //         } else {
+    //             // warmUpObj => { movement1: "...", movement2: "...", movement3: "...", movement4: "..." }
+    //             const listedMovements = Object.values(warmUpObj).filter(Boolean);
+    //             // e.g. ["Couch w. Rotation","Banded Dislocate","HK Rotation","Counterbalance Squat"]
+
+    //             // 4) For each warm-up movement, find the actual DB entry in filteredWorkoutData
+    //             //    so you can reference its ID or other fields. If you only need the name, you can skip this step.
+    //             const finalWarmUpMovements = listedMovements.map((name) => {
+    //                 // Attempt to find in filteredWorkoutData by matching .exercise
+    //                 const matched = filteredWorkoutData.find((ex) =>
+    //                     (ex.exercise || "").trim().toLowerCase() === name.trim().toLowerCase()
+    //                 );
+    //                 if (!matched) {
+    //                     console.warn(`Movement "${name}" not found in filteredWorkoutData. Using name only.`);
+    //                     return name;
+    //                 }
+    //                 // If found, you can store the entire object or just ex.exercise
+    //                 return matched.exercise; // or matched
+    //             });
+
+    //             // 5) Add to usedExercises if you want to block duplicates
+    //             finalWarmUpMovements.forEach((mov) => usedExercises.add(mov));
+
+    //             // 6) Push it onto the plan
+    //             plan.push({
+    //                 partLabel: commonRules.warmUpB.section,
+    //                 movements: finalWarmUpMovements,
+    //                 sectionType: finalWarmUpMovements.length > 1 ? "superset" : "single",
+    //             });
+    //         }
+    //     }
+
+
+    //     // Add Main Workout Sections
+    //     selectedRules.sections.forEach((sectionRule, sectionIndex) => {
+    //         const movements = [];
+    //         const sectionFilters = []; // Track filters applied in this section
+
+    //         sectionRule.filters.forEach((filterSet, index) => {
+    //             console.log(`Applying filters for section: ${sectionRule.section}, FilterSet ${index}:`, filterSet);
+
+    //             const movementCandidates = filterWorkoutData(filterSet, usedExercises, selectedWorkout);
+    //             console.log(`Movement Candidates for FilterSet ${index}:`, movementCandidates);
+
+    //             if (movementCandidates.length > 0) {
+    //                 const selectedMovement =
+    //                     movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
+    //                 console.log(`Selected Movement for FilterSet ${index}:`, selectedMovement);
+
+    //                 movements.push(selectedMovement);
+    //                 usedExercises.add(selectedMovement);
+    //                 sectionFilters.push(filterSet); // Store applied filters
+    //             }
+    //         });
+
+    //         // // Ensure "Back Squat" appears in the first section
+    //         // if (sectionIndex === 0 && !movements.includes("Back Squat")) {
+    //         //     console.log("Ensuring Back Squat is in the first section.");
+    //         //     movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
+    //         //     usedExercises.add("Back Squat");
+    //         // }
+
+    //         plan.push({
+    //             partLabel: sectionRule.section,
+    //             movements,
+    //             sectionType: movements.length > 1 ? "superset" : "single",
+    //             filters: sectionFilters, // Attach filters to this section
+    //         });
+    //     });
+
+    //     // Add or Replace Conditioning Section
+    //     if (selectedFinish === "Conditioning") {
+    //         const conditioningSection = generateConditioningSection(usedExercises);
+
+    //         if (closestTime === 75) {
+    //             // Append conditioning as an additional section
+    //             plan.push(conditioningSection);
+    //         } else {
+    //             // Replace the last section with conditioning
+    //             plan[plan.length - 1] = conditioningSection;
+    //         }
+    //     }
+
+    //     return plan.slice(0, 9);
+    // };
+
+    // const generateConditioningSection = (usedExercises) => {
+    //     // 1) Filter data so only those with duration === 8
+    //     const eightMinuteConditioning = conditioningData.filter(
+    //       (item) => item.duration === 8
+    //     );
+
+    //     // 2) Fallback: If no eight-minute items, use entire conditioningData
+    //     const sourceData = eightMinuteConditioning.length > 0
+    //       ? eightMinuteConditioning
+    //       : conditioningData;
+
+    //     // 3) Pick a random from the (filtered or fallback) list
+    //     const randomConditioningWorkout = 
+    //       sourceData[Math.floor(Math.random() * sourceData.length)];
+
+    //     // 4) Select an aerobic type
+    //     const aerobicOptions = ["Bike", "Row", "Ski"];
+    //     const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
+
+    //     // 5) Map movements
+    //     const movements = randomConditioningWorkout.conditioning_details.map((movement) => {
+    //       let exercise = movement.exercise;
+    //       if (exercise.toLowerCase() === "aerobic") {
+    //         exercise = selectedAerobicType; 
+    //       }
+    //       return {
+    //         movementOrder: movement.movement_order,
+    //         exercise,
+    //         detail: movement.detail || "No detail provided",
+    //       };
+    //     });
+
+    //     // 6) Return the structured section
+    //     return {
+    //       partLabel: "Conditioning",
+    //       workoutId: randomConditioningWorkout.id,
+    //       workoutName: randomConditioningWorkout.name,
+    //       notes: randomConditioningWorkout.notes,
+    //       movements,
+    //       sectionType: movements.length > 1 ? "superset" : "single",
+    //       rest: randomConditioningWorkout.rest,
+    //     };
+    //   };
+
 
 
     const toWarmUpKey = (str) => {
@@ -491,24 +606,35 @@ export default function WorkoutScreen({ route }) {
         // e.g. "Full Body 1"
     }
 
-
-    // Generate multiple workout plans
     const generateWorkoutPlans = () => {
         const plans = [];
-        for (let i = 0; i < 5; i++) {
-            plans.push(generateWorkoutPlan());
+        for (let i = 0; i < 10; i++) {
+            plans.push(generateHyroxPlan());
         }
         setWorkoutPlans(plans);
-        // console.log("Generated workout plans:", JSON.stringify(filteredWorkoutData, null, 2));
-        console.log("Filtered data length:", filteredWorkoutData.length);
-        // console.log("Original data:", JSON.stringify(plans, null, 2));
-        // Are #304 and #305 present in the array?
-        const has304 = filteredWorkoutData.some(item => item.id === 304);
-        const has305 = filteredWorkoutData.some(item => item.id === 305);
 
-        console.log("Has ID #304?", has304);
-        console.log("Has ID #305?", has305);
+        if (flatListRef.current) {
+            flatListRef.current.scrollToIndex({ index: 0, animated: true });
+        }
     };
+
+    // // Generate multiple workout plans
+    // const generateWorkoutPlans = () => {
+    //     const plans = [];
+    //     for (let i = 0; i < 5; i++) {
+    //         plans.push(generateWorkoutPlan());
+    //     }
+    //     setWorkoutPlans(plans);
+    //     // console.log("Generated workout plans:", JSON.stringify(filteredWorkoutData, null, 2));
+    //     console.log("Filtered data length:", filteredWorkoutData.length);
+    //     // console.log("Original data:", JSON.stringify(plans, null, 2));
+    //     // Are #304 and #305 present in the array?
+    //     const has304 = filteredWorkoutData.some(item => item.id === 304);
+    //     const has305 = filteredWorkoutData.some(item => item.id === 305);
+
+    //     console.log("Has ID #304?", has304);
+    //     console.log("Has ID #305?", has305);
+    // };
 
     // Fetch data and generate workout plans
     useEffect(() => {
@@ -548,99 +674,99 @@ export default function WorkoutScreen({ route }) {
     };
 
 
-    const saveAndStartWorkout = async (workoutPlan) => {
-        setIsBouncerLoading(true);
-        try {
-            const userId = await AsyncStorage.getItem("userId");
-            if (!userId) throw new Error("User ID not found in AsyncStorage.");
+    // const saveAndStartWorkout = async (workoutPlan) => {
+    //     setIsBouncerLoading(true);
+    //     try {
+    //         const userId = await AsyncStorage.getItem("userId");
+    //         if (!userId) throw new Error("User ID not found in AsyncStorage.");
 
-            const formattedDate = new Date().toISOString().split("T")[0];
-            const payload = {
-                user_id: userId,
-                name: `${selectedWorkout}`,
-                description: "Custom generated workout",
-                duration: selectedTime,
-                complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-                status: "Started",
-                scheduled_date: formattedDate,
-                activity_type: 'Gym',
-                sections: workoutPlan.map((section, index) => {
-                    if (section.partLabel === "Conditioning") {
-                        return {
-                            section_name: section.partLabel,
-                            section_order: index + 1,
-                            section_type: section.sectionType,
-                            conditioning_workout: {
-                                conditioning_overview_id: section.workoutId,
-                                notes: section.notes,
-                                comments: null,
-                                rpe: null,
-                                movements: section.movements.map((movement, movementIndex) => ({
-                                    movement_order: movementIndex + 1,
-                                    movement_name: movement.exercise,
-                                })),
-                            },
-                        };
-                    } else {
-                        return {
-                            section_name: section.partLabel,
-                            section_order: index + 1,
-                            section_type: section.sectionType,
-                            movements: section.movements.map((movement, movementIndex) => ({
-                                movement_name: movement,
-                                movement_order: movementIndex + 1,
-                            })),
-                        };
-                    }
-                }),
-            };
+    //         const formattedDate = new Date().toISOString().split("T")[0];
+    //         const payload = {
+    //             user_id: userId,
+    //             name: `${selectedWorkout}`,
+    //             description: "Custom generated workout",
+    //             duration: selectedTime,
+    //             complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
+    //             status: "Started",
+    //             scheduled_date: formattedDate,
+    //             activity_type: 'Gym',
+    //             sections: workoutPlan.map((section, index) => {
+    //                 if (section.partLabel === "Conditioning") {
+    //                     return {
+    //                         section_name: section.partLabel,
+    //                         section_order: index + 1,
+    //                         section_type: section.sectionType,
+    //                         conditioning_workout: {
+    //                             conditioning_overview_id: section.workoutId,
+    //                             notes: section.notes,
+    //                             comments: null,
+    //                             rpe: null,
+    //                             movements: section.movements.map((movement, movementIndex) => ({
+    //                                 movement_order: movementIndex + 1,
+    //                                 movement_name: movement.exercise,
+    //                             })),
+    //                         },
+    //                     };
+    //                 } else {
+    //                     return {
+    //                         section_name: section.partLabel,
+    //                         section_order: index + 1,
+    //                         section_type: section.sectionType,
+    //                         movements: section.movements.map((movement, movementIndex) => ({
+    //                             movement_name: movement,
+    //                             movement_order: movementIndex + 1,
+    //                         })),
+    //                     };
+    //                 }
+    //             }),
+    //         };
 
-            console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
+    //         console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
 
-            // 1️⃣ Save the workout
-            const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
-            console.log("Response from save:", JSON.stringify(response.data, null, 2));
+    //         // 1️⃣ Save the workout
+    //         const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
+    //         console.log("Response from save:", JSON.stringify(response.data, null, 2));
 
-            // Extract the ID of the saved workout
-            const savedWorkoutId = response.data?.workout.id;
+    //         // Extract the ID of the saved workout
+    //         const savedWorkoutId = response.data?.workout.id;
 
-            if (!savedWorkoutId) {
-                console.error("Workout ID is undefined, check API response:", response.data);
-                Alert.alert("Error", "Failed to save workout. Please try again.");
-                setIsBouncerLoading(false);
-                return;
-            }
+    //         if (!savedWorkoutId) {
+    //             console.error("Workout ID is undefined, check API response:", response.data);
+    //             Alert.alert("Error", "Failed to save workout. Please try again.");
+    //             setIsBouncerLoading(false);
+    //             return;
+    //         }
 
-            console.log("New Workout ID ->", savedWorkoutId);
+    //         console.log("New Workout ID ->", savedWorkoutId);
 
-            // 2️⃣ Fetch workout details and movement history
-            const workoutDetailsResponse = await axios.get(
-                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
-                { params: { user_id: userId } }
-            );
+    //         // 2️⃣ Fetch workout details and movement history
+    //         const workoutDetailsResponse = await axios.get(
+    //             `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
+    //             { params: { user_id: userId } }
+    //         );
 
-            const { workout, movement_history, conditioning_history } = workoutDetailsResponse.data;
-            console.log("Workout details ->", workout);
-            console.log("Movement history ->", movement_history);
-            console.log("Movement history ->", conditioning_history);
+    //         const { workout, movement_history, conditioning_history } = workoutDetailsResponse.data;
+    //         console.log("Workout details ->", workout);
+    //         console.log("Movement history ->", movement_history);
+    //         console.log("Movement history ->", conditioning_history);
 
-            setIsBouncerLoading(false);
+    //         setIsBouncerLoading(false);
 
-            // 3️⃣ Navigate directly to CompleteWorkout with all the data
-            navigation.navigate("Training", {
-                screen: "CompleteWorkout",
-                params: {
-                    workout: workout,
-                    movementHistory: movement_history,
-                    conditioningHistory: conditioning_history,
-                },
-            });
-        } catch (error) {
-            console.error("Error saving and starting workout:", error?.response?.data || error.message);
-            Alert.alert("Error", "There was an error starting your workout. Please try again.");
-            setIsBouncerLoading(false);
-        }
-    };
+    //         // 3️⃣ Navigate directly to CompleteWorkout with all the data
+    //         navigation.navigate("Training", {
+    //             screen: "CompleteWorkout",
+    //             params: {
+    //                 workout: workout,
+    //                 movementHistory: movement_history,
+    //                 conditioningHistory: conditioning_history,
+    //             },
+    //         });
+    //     } catch (error) {
+    //         console.error("Error saving and starting workout:", error?.response?.data || error.message);
+    //         Alert.alert("Error", "There was an error starting your workout. Please try again.");
+    //         setIsBouncerLoading(false);
+    //     }
+    // };
 
 
     const findMovementByExercise = (exerciseName) => {
@@ -690,7 +816,8 @@ export default function WorkoutScreen({ route }) {
                                         <View style={styles.overviewBox}>
                                             <View style={styles.overviewHeader}>
                                                 <View>
-                                                    <Text style={styles.workoutTitle}>{selectedWorkout} session</Text>
+                                                    <Text style={styles.workoutTitle}> session</Text>
+                                                    {/* <Text style={styles.workoutTitle}>{selectedWorkout} session</Text> */}
                                                     <View style={styles.workoutOverviewTime}>
                                                         <Ionicons name="time-outline" size={24} color="black" />
                                                         <Text style={styles.timeText}>{selectedTime} mins</Text>
@@ -822,12 +949,12 @@ export default function WorkoutScreen({ route }) {
                             currentWorkout={currentWorkout} // Pass the workout object
                             onClose={closeModal} // Pass the close function
                             selectedTime={selectedTime} // Pass the selected time
-                            selectedWorkout={selectedWorkout} // Pass the selected workout name
+                            selectedWorkout={'Hyrox'} // Pass the selected workout name
                             workoutPlan={currentWorkout} // Pass the current workout plan
                             closeModal={closeModal} // Close function for modal
-                            frequency={frequency}
+                            frequency={"Sometimes"}
                             modalRoute={'Discovery'}
-                            workoutType="Gym"
+                            workoutType="Hyrox"
                         />
                     </Modal>
                 )}
@@ -949,7 +1076,7 @@ const styles = StyleSheet.create({
     overviewBox: {
         width: '100%',
         padding: 10,
-        backgroundColor: '#EFE8FF',
+        backgroundColor: '#F5FFF4',
         borderRadius: 20,
         justifyContent: 'space-between',
         height: 175,
@@ -996,8 +1123,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#F3F1FF',
-
+        backgroundColor: '#E7F4E5',
     },
     workoutInfoTile: {
         paddingLeft: 10,

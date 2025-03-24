@@ -8,6 +8,7 @@ const ACTIVITY_TYPE_COLORS = {
     "Mobility": "#F0C5C7",
     "Hiit": "#FCFCB6",
     "Gym": "#DBCDFD",
+    "Hyrox": "#E7F4E5",
     // Add as many as you want
   };
 

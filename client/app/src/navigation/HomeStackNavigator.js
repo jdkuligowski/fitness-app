@@ -13,6 +13,8 @@ import MobilitySessionDetails from '../screens/homeScreens/findWorkoutScreens/Mo
 import HiitSession from '../screens/homeScreens/findWorkoutScreens/HiitSession'
 import HiitSessionDetails from '../screens/homeScreens/findWorkoutScreens/HiitSessionDetails'
 import SuggestedGymDetails from '../screens/homeScreens/findWorkoutScreens/SuggestedGymDetails'
+import HyroxSession from '../screens/homeScreens/findWorkoutScreens/HyroxSession'
+import HyroxSessionDetails from '../screens/homeScreens/findWorkoutScreens/HyroxSessionDetails'
 
 const Stack = createStackNavigator();
 
@@ -30,6 +32,8 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Hiit" component={HiitSession} options={{ headerShown: false }} />
       <Stack.Screen name="HiitSessionDetails" component={HiitSessionDetails} options={{ headerShown: false }} />
       <Stack.Screen name="SuggestedGymDetails" component={SuggestedGymDetails} options={{ headerShown: false }} />
+      <Stack.Screen name="Hyrox" component={HyroxSession} options={{ headerShown: false }} />
+      <Stack.Screen name="HyroxSessionDetails" component={HyroxSessionDetails} options={{ headerShown: false }} />
       <Stack.Screen 
                 name="SaveWorkoutModal" 
                 component={SaveWorkoutModal} 

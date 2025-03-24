@@ -383,38 +383,59 @@ export default function TrainingOverview() {
                                                                     ? '#FFDDDE'
                                                                     : item.activity_type === 'Hiit'
                                                                         ? '#FFFFEF'
-                                                                        : 'black'
+                                                                        : item.activity_type === 'Hyrox'
+                                                                            ? '#E7F4E5'
+                                                                            : 'black'
                                                 },
                                             ]}
                                         >
                                             <View style={styles.overviewHeader}>
                                                 <View>
                                                     <Text style={styles.workoutTitle}>{item.name}</Text>
-                                                    <View style={styles.workoutOverviewTime}>
-                                                        <Ionicons name="time-outline" size={24} color="black" />
-                                                        <Text style={styles.timeText}>{item.duration} mins</Text>
-                                                    </View>
                                                 </View>
                                                 <TouchableOpacity
                                                     style={styles.profileButton}
                                                     onPress={() => showModalForWorkout(item)}
                                                 >
-                                                    <Ionicons name="heart" color={'#B8373B'} size={20} />
+                                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                                 </TouchableOpacity>
+                                            </View>
+                                            <View style={styles.workoutOverviewTime}>
+                                                <Ionicons name="time-outline" size={24} color="black" />
+                                                <Text style={styles.timeText}>{item.duration} mins</Text>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
                                                 {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                                                 <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
                                                 {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
                                             </View>
-                                            <View style={styles.trainerDetails}>
-                                                <Image
-                                                    style={styles.trainerImage}
-                                                    source={require('../../../../../assets/images/gus_image.jpeg')} />
-                                                <View style={styles.trainerDetailsBox}>
-                                                    <Text style={styles.trainerName}>Gus Barton</Text>
-                                                    <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+
+                                            <View style={styles.bottomSection}>
+                                                <View style={styles.trainerDetails}>
+                                                    <Image
+                                                        style={styles.trainerImage}
+                                                        source={require('../../../../../assets/images/gus_image.jpeg')} />
+                                                    <View style={styles.trainerDetailsBox}>
+                                                        <Text style={styles.trainerName}>Gus Barton</Text>
+                                                        <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+                                                    </View>
                                                 </View>
+                                                {item.status === "Scheduled" ?
+                                                    <View style={[styles.status, { backgroundColor: 'white' },]}>
+                                                        <Ionicons name="play-skip-forward-outline" color={'black'} size={12} />
+                                                        <Text style={styles.statusDetail}>Not started</Text>
+                                                    </View>
+                                                    : item.status === "Completed" ?
+                                                        <View style={[styles.status, { backgroundColor: '#B2C93C' },]}>
+                                                            <Ionicons name="checkmark-outline" color={'white'} size={14} />
+                                                            <Text style={[styles.statusDetail, { color: 'white' },]}>Completed</Text>
+                                                        </View>
+                                                        :
+                                                        <View style={[styles.status, { backgroundColor: '#EFDC73' },]}>
+                                                            <Ionicons name="refresh-outline" color={'black'} size={14} />
+                                                            <Text style={styles.statusDetail}>In progress</Text>
+                                                        </View>
+                                                }
                                             </View>
                                         </View>
                                     </TouchableOpacity>
@@ -473,39 +494,59 @@ export default function TrainingOverview() {
                                                                             ? '#FFDDDE'
                                                                             : item.activity_type === 'Hiit'
                                                                                 ? '#FFFFEF'
-                                                                                : 'black'
+                                                                                : item.activity_type === 'Hyrox'
+                                                                                    ? '#E7F4E5'
+                                                                                    : 'black'
                                                         },
                                                     ]}
                                                 >
                                                     <View style={styles.overviewHeader}>
                                                         <View>
                                                             <Text style={styles.workoutTitle}>{item.name}</Text>
-                                                            <View style={styles.workoutOverviewTime}>
-                                                                <Ionicons name="time-outline" size={24} color="black" />
-                                                                <Text style={styles.timeText}>{item.duration} mins</Text>
-                                                            </View>
                                                         </View>
                                                         <TouchableOpacity
                                                             style={styles.profileButton}
                                                             onPress={() => showModalForWorkout(item)}
                                                         >
-                                                            <Ionicons name="heart" color={'#B8373B'} size={20} />
+                                                            <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                                         </TouchableOpacity>
+                                                    </View>
+                                                    <View style={styles.workoutOverviewTime}>
+                                                        <Ionicons name="time-outline" size={24} color="black" />
+                                                        <Text style={styles.timeText}>{item.duration} mins</Text>
                                                     </View>
                                                     <View style={styles.workoutSummaryArray}>
                                                         {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                                                         <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
                                                         {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
                                                     </View>
-                                                    <View style={styles.trainerDetails}>
-                                                        <Image
-                                                            style={styles.trainerImage}
-                                                            source={require('../../../../../assets/images/gus_image.jpeg')}
-                                                        />
-                                                        <View style={styles.trainerDetailsBox}>
-                                                            <Text style={styles.trainerName}>Gus Barton</Text>
-                                                            <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+
+                                                    <View style={styles.bottomSection}>
+                                                        <View style={styles.trainerDetails}>
+                                                            <Image
+                                                                style={styles.trainerImage}
+                                                                source={require('../../../../../assets/images/gus_image.jpeg')} />
+                                                            <View style={styles.trainerDetailsBox}>
+                                                                <Text style={styles.trainerName}>Gus Barton</Text>
+                                                                <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+                                                            </View>
                                                         </View>
+                                                        {item.status === "Scheduled" ?
+                                                            <View style={[styles.status, { backgroundColor: 'white' },]}>
+                                                                <Ionicons name="play-skip-forward-outline" color={'black'} size={12} />
+                                                                <Text style={styles.statusDetail}>Not started</Text>
+                                                            </View>
+                                                            : item.status === "Completed" ?
+                                                                <View style={[styles.status, { backgroundColor: '#B2C93C' },]}>
+                                                                    <Ionicons name="checkmark-outline" color={'white'} size={14} />
+                                                                    <Text style={[styles.statusDetail, { color: 'white' },]}>Completed</Text>
+                                                                </View>
+                                                                :
+                                                                <View style={[styles.status, { backgroundColor: '#EFDC73' },]}>
+                                                                    <Ionicons name="refresh-outline" color={'black'} size={14} />
+                                                                    <Text style={styles.statusDetail}>In progress</Text>
+                                                                </View>
+                                                        }
                                                     </View>
                                                 </View>
                                             </TouchableOpacity>
@@ -554,24 +595,26 @@ export default function TrainingOverview() {
                                                                     ? '#FFDDDE'
                                                                     : item.activity_type === 'Hiit'
                                                                         ? '#FFFFEF'
-                                                                        : 'black'
+                                                                        : item.activity_type === 'Hyrox'
+                                                                            ? '#E7F4E5'
+                                                                            : 'black'
                                                 },
                                             ]}
                                         >
                                             <View style={styles.overviewHeader}>
                                                 <View>
                                                     <Text style={styles.workoutTitle}>{item.name}</Text>
-                                                    <View style={styles.workoutOverviewTime}>
-                                                        <Ionicons name="time-outline" size={24} color="black" />
-                                                        <Text style={styles.timeText}>{item.duration} mins</Text>
-                                                    </View>
                                                 </View>
                                                 <TouchableOpacity
                                                     style={styles.profileButton}
                                                     onPress={() => showModalForWorkout(item)}
                                                 >
-                                                    <Ionicons name="heart" color={'#B8373B'} size={20} />
+                                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                                 </TouchableOpacity>
+                                            </View>
+                                            <View style={styles.workoutOverviewTime}>
+                                                <Ionicons name="time-outline" size={24} color="black" />
+                                                <Text style={styles.timeText}>{item.duration} mins</Text>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
                                                 {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
@@ -602,7 +645,7 @@ export default function TrainingOverview() {
                     visible={isFilterModalVisible}
                     onRequestClose={() => setIsFilterModalVisible(false)}
                 >
-                    
+
                     <SavedWorkoutFilters
                         filters={filters}
                         setFilters={setFilters}
@@ -776,7 +819,7 @@ const styles = StyleSheet.create({
     workoutTitle: {
         fontWeight: 600,
         fontSize: 18,
-        marginBottom: 5
+        // marginBottom: 5
     },
     workoutSummaryArray: {
         flexDirection: 'row',
@@ -800,16 +843,16 @@ const styles = StyleSheet.create({
         flex: 1, // Makes the text take remaining space
     },
     profileButton: {
-        backgroundColor: 'white',
-        width: 40,
-        height: 40,
+        // backgroundColor: 'white',
+        width: 50,
+        // height: 40,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
+        // borderRightWidth: 1,
+        // borderBottomWidth: 1,
+        // borderTopWidth: 1,
+        // borderLeftWidth: 1,
     },
     overviewBox: {
         width: '100%',
@@ -826,6 +869,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    bottomSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    status: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        // borderWidth: 1,
+        borderRadius: 15,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    statusDetail: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: 5,
     },
     workoutOverviewTime: {
         flexDirection: 'row',

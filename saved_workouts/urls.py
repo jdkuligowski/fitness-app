@@ -1,9 +1,9 @@
 from django.urls import path
-from .views import SaveWorkoutView, GetAllWorkoutsView, GetSingleWorkoutView, UpdateWorkoutStatusView, DeleteWorkoutView, UpdateWorkoutDateView, CompleteWorkoutAPIView, GetUpcomingWorkouts, GetSingleRunningWorkoutView, GetSingleMobilityWorkoutView, GetSingleHiitWorkoutView
-
+from .views import SaveWorkoutView, GetAllWorkoutsView, GetSingleWorkoutView, UpdateWorkoutStatusView, DeleteWorkoutView, UpdateWorkoutDateView, CompleteWorkoutAPIView, GetUpcomingWorkouts, GetSingleRunningWorkoutView, GetSingleMobilityWorkoutView, GetSingleHiitWorkoutView, CompleteHyroxAPIView, GetSingleHyroxWorkout
 urlpatterns = [
     path('save-workout/', SaveWorkoutView.as_view(), name='save-workout'),
     path('complete-workout/<int:workout_id>/', CompleteWorkoutAPIView.as_view(), name='complete-workout'),
+    path('complete-hyrox-workout/<int:workout_id>/', CompleteHyroxAPIView.as_view(), name='complete-hyrox'),
     path('get-all-workouts/', GetAllWorkoutsView.as_view(), name='get-all-workouts'),
     path('upcoming-workouts/', GetUpcomingWorkouts.as_view(), name='get-upcoming-workouts'),
     path('get-single-workout/<int:workout_id>/', GetSingleWorkoutView.as_view(), name='get-single-workout'),
@@ -13,5 +13,5 @@ urlpatterns = [
     path('get-single-running-workout/<int:workout_id>/', GetSingleRunningWorkoutView.as_view(), name='get_single_running_workout'),
     path('get-single-mobility-workout/<int:workout_id>/', GetSingleMobilityWorkoutView.as_view(), name='get_single_mobility_workout'),
     path('get-single-hiit-workout/<int:workout_id>/', GetSingleHiitWorkoutView.as_view(), name='get_single_hiit_workout'),
-
+    path('get-single-hyrox-workout/<int:workout_id>/', GetSingleHyroxWorkout.as_view(), name='get_single_hyrox_workout'),
 ]

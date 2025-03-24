@@ -170,7 +170,7 @@ export default function HomeScreen() {
       setRefreshing(false);
     }
   };
-  
+
 
 
   return (
@@ -248,32 +248,47 @@ export default function HomeScreen() {
                 <Text>View all</Text>
               </TouchableOpacity> */}
             </View>
-            <View style={styles.activityArray}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.activityArray}
+            >
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Gym')}>
                   <Ionicons name="barbell-outline" size={26} color="#897AD3" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Strength</Text>
               </View>
+
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Running', { userData })}>
                   <Ionicons name="heart-outline" size={26} color="#D2E4EA" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Running</Text>
               </View>
+
               <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Mobility')}>
-                  <Ionicons name="body-outline" size={26} color="#E87EA1" />
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hyrox')}>
+                  <Ionicons name="alarm-outline" size={26} color="#AACBA5" />
                 </TouchableOpacity>
-                <Text style={styles.activityText}>Mobility</Text>
+                <Text style={styles.activityText}>Hyrox</Text>
               </View>
+
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hiit')}>
                   <Ionicons name="flash-outline" size={26} color="#ECE847" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hiit</Text>
               </View>
-            </View>
+
+              <View style={styles.activity}>
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Mobility')}>
+                  <Ionicons name="body-outline" size={26} color="#E87EA1" />
+                </TouchableOpacity>
+                <Text style={styles.activityText}>Mobility</Text>
+              </View>
+            </ScrollView>
+
           </View>
 
           {/* Second block: Popular workouts */}
@@ -310,6 +325,8 @@ export default function HomeScreen() {
                                 ? '#FFEEEF'
                                 : workout.activity_type === 'Hiit'
                                   ? '#FFFFEF'
+                                : workout.activity_type === 'Hyrox'
+                                  ? '#E7F4E5'
                                   : 'black',
                       },
                     ]}
@@ -605,7 +622,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
   },
   activity: {
-    width: 80,
+    width: 75,
     marginRight: 10,
 
   },
