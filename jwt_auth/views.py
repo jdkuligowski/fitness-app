@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
-
+from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -265,48 +265,6 @@ class UpdateUserView(APIView):
 
 
 
-# class FullUserView(APIView):
-#     def get(self, request, user_id):
-#         user = User.objects.select_related('leaderboard').get(id=user_id)
-
-#         # Batch workout queries
-#         today = now().date()
-#         start_of_month = today.replace(day=1)
-#         workouts = Workout.objects.filter(owner=user, status='Completed')
-#         workout_stats = workouts.aggregate(
-#             workouts_this_month=Count('id', filter=Q(completed_date__gte=start_of_month)),
-#             workouts_all_time=Count('id'),
-#             most_recent_completed=Max('completed_date')
-#         )
-#         recent_workouts = workouts.order_by('-completed_date')[:2].values('id', 'name', 'completed_date', 'duration')
-
-#         # Leaderboard rank (Window Function)
-#         rank_data = Leaderboard.objects.annotate(
-#             rank=Window(
-#                 expression=DenseRank(),
-#                 order_by=F('total_score').desc()
-#             )
-#         ).filter(user=user).values('rank')
-#         rank = rank_data[0]['rank'] if rank_data else 1
-
-#         leaderboard = user.leaderboard
-#         leaderboard_scores = {
-#             'total_score': leaderboard.total_score,
-#             'weekly_score': leaderboard.weekly_score,
-#             'monthly_score': leaderboard.monthly_score
-#         }
-
-#         serialized_user = PopulatedUserSerializer(user).data
-#         stats = {
-#             'workouts_this_month': workout_stats['workouts_this_month'],
-#             'workouts_all_time': workout_stats['workouts_all_time'],
-#             'recent_workouts': list(recent_workouts),
-#             'leaderboard': leaderboard_scores,
-#             'leaderboard_rank': rank
-#         }
-
-#         return Response({'user': serialized_user, 'stats': stats}, status=status.HTTP_200_OK)
-
 class FullUserView(APIView):
     def get(self, request, user_id):
         user = User.objects.select_related('leaderboard').get(id=user_id)
@@ -479,3 +437,28 @@ class GoogleRegisterView(APIView):
             import traceback
             print("❌ Google Auth Error:", traceback.format_exc())
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        
+        
+
+
+
+class UpdateHyroxView(APIView):
+    def put(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        # Example: only updating hyrox_division
+        # If you want to update more fields, add them here
+        user.hyrox_division = request.data.get('hyrox_division', user.hyrox_division)
+
+        # If you want to check permission logic, add it here
+        # e.g.:
+        # if request.user != user and not request.user.is_superuser:
+        #    return Response({"detail": "Not authorized"}, status=403)
+
+        user.save()
+        return Response({"message": "Hyrox division updated successfully"}, status=200)

@@ -843,16 +843,10 @@ const styles = StyleSheet.create({
         flex: 1, // Makes the text take remaining space
     },
     profileButton: {
-        // backgroundColor: 'white',
         width: 50,
-        // height: 40,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        // borderRightWidth: 1,
-        // borderBottomWidth: 1,
-        // borderTopWidth: 1,
-        // borderLeftWidth: 1,
     },
     overviewBox: {
         width: '100%',

@@ -88,9 +88,9 @@ export default function WorkoutScreen({ route }) {
 
     useEffect(() => {
         if (flatListRef.current && workoutPlans.length > 0) {
-          flatListRef.current.scrollToIndex({ index: 0, animated: true });
+            flatListRef.current.scrollToIndex({ index: 0, animated: true });
         }
-      }, [workoutPlans]);
+    }, [workoutPlans]);
 
     useEffect(() => {
         const loadFilteredMovements = async () => {
@@ -435,47 +435,47 @@ export default function WorkoutScreen({ route }) {
     const generateConditioningSection = (usedExercises) => {
         // 1) Filter data so only those with duration === 8
         const eightMinuteConditioning = conditioningData.filter(
-          (item) => item.duration === 8
+            (item) => item.duration === 8
         );
-      
+
         // 2) Fallback: If no eight-minute items, use entire conditioningData
         const sourceData = eightMinuteConditioning.length > 0
-          ? eightMinuteConditioning
-          : conditioningData;
-      
+            ? eightMinuteConditioning
+            : conditioningData;
+
         // 3) Pick a random from the (filtered or fallback) list
-        const randomConditioningWorkout = 
-          sourceData[Math.floor(Math.random() * sourceData.length)];
-      
+        const randomConditioningWorkout =
+            sourceData[Math.floor(Math.random() * sourceData.length)];
+
         // 4) Select an aerobic type
         const aerobicOptions = ["Bike", "Row", "Ski"];
         const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
-      
+
         // 5) Map movements
         const movements = randomConditioningWorkout.conditioning_details.map((movement) => {
-          let exercise = movement.exercise;
-          if (exercise.toLowerCase() === "aerobic") {
-            exercise = selectedAerobicType; 
-          }
-          return {
-            movementOrder: movement.movement_order,
-            exercise,
-            detail: movement.detail || "No detail provided",
-          };
+            let exercise = movement.exercise;
+            if (exercise.toLowerCase() === "aerobic") {
+                exercise = selectedAerobicType;
+            }
+            return {
+                movementOrder: movement.movement_order,
+                exercise,
+                detail: movement.detail || "No detail provided",
+            };
         });
-      
+
         // 6) Return the structured section
         return {
-          partLabel: "Conditioning",
-          workoutId: randomConditioningWorkout.id,
-          workoutName: randomConditioningWorkout.name,
-          notes: randomConditioningWorkout.notes,
-          movements,
-          sectionType: movements.length > 1 ? "superset" : "single",
-          rest: randomConditioningWorkout.rest,
+            partLabel: "Conditioning",
+            workoutId: randomConditioningWorkout.id,
+            workoutName: randomConditioningWorkout.name,
+            notes: randomConditioningWorkout.notes,
+            movements,
+            sectionType: movements.length > 1 ? "superset" : "single",
+            rest: randomConditioningWorkout.rest,
         };
-      };
-      
+    };
+
 
 
     const toWarmUpKey = (str) => {
@@ -503,11 +503,11 @@ export default function WorkoutScreen({ route }) {
         console.log("Filtered data length:", filteredWorkoutData.length);
         // console.log("Original data:", JSON.stringify(plans, null, 2));
         // Are #304 and #305 present in the array?
-        const has304 = filteredWorkoutData.some(item => item.id === 304);
-        const has305 = filteredWorkoutData.some(item => item.id === 305);
+        // const has304 = filteredWorkoutData.some(item => item.id === 304);
+        // const has305 = filteredWorkoutData.some(item => item.id === 305);
 
-        console.log("Has ID #304?", has304);
-        console.log("Has ID #305?", has305);
+        // console.log("Has ID #304?", has304);
+        // console.log("Has ID #305?", has305);
     };
 
     // Fetch data and generate workout plans
@@ -700,7 +700,7 @@ export default function WorkoutScreen({ route }) {
                                                     style={styles.profileButton}
                                                     onPress={() => showModalForWorkout(item)} // Set modal for current workout
                                                 >
-                                                    <Ionicons name="heart-outline" color={'black'} size={20} />
+                                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
@@ -904,16 +904,10 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     profileButton: {
-        backgroundColor: 'white',
-        width: 40,
-        height: 40,
+        width: 50,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
     },
     workoutTitle: {
         fontWeight: 600,

@@ -53,15 +53,15 @@ export default function SuggestedWorkoutSummary({ route }) {
     // Helper function to find movement video
     const findMovementVideo = (exerciseName) => {
         console.log('exercise: ', exerciseName);
-      
+
         const matchedMovement = workoutData.find(
-          (movement) => 
-            (movement.exercise || "").trim().toLowerCase() === (exerciseName || "").trim().toLowerCase()
+            (movement) =>
+                (movement.exercise || "").trim().toLowerCase() === (exerciseName || "").trim().toLowerCase()
         );
-      
+
         return matchedMovement?.portrait_video_url || null;
-      };
-      
+    };
+
     // Group movements by section_name
     const groupedSections = workout.details.reduce((acc, movement) => {
         if (!acc[movement.section_name]) {
@@ -79,7 +79,7 @@ export default function SuggestedWorkoutSummary({ route }) {
         }
         setCurrentWorkout(formattedWorkout);
     };
-    
+
 
 
     const closeModal = () => {
@@ -159,47 +159,47 @@ export default function SuggestedWorkoutSummary({ route }) {
 
     const formatWorkoutForModal = async (workout) => {
         if (!workout?.details) {
-          console.error("❌ Error: workout.details is undefined.");
-          return null;
+            console.error("❌ Error: workout.details is undefined.");
+            return null;
         }
-      
+
         // 1) Group by section_name
         const groupedSections = workout.details.reduce((acc, movement) => {
-          if (!acc[movement.section_name]) {
-            acc[movement.section_name] = [];
-          }
-          acc[movement.section_name].push(movement);
-          return acc;
+            if (!acc[movement.section_name]) {
+                acc[movement.section_name] = [];
+            }
+            acc[movement.section_name].push(movement);
+            return acc;
         }, {});
-      
+
         // 2) Build the array that matches the shape `saveWorkout` expects:
         const formattedSections = Object.entries(groupedSections).map(
-          ([sectionName, movements]) => {
-            return {
-              partLabel: sectionName,                       // <— `saveWorkout` uses this
-              sectionType: movements.length > 1 ? "superset" : "single",
-              movements: movements.map((m) => ({
-                // `saveWorkout` looks for `movement.name`
-                name: m.exercise,
-              })),
-            };
-          }
+            ([sectionName, movements]) => {
+                return {
+                    partLabel: sectionName,                       // <— `saveWorkout` uses this
+                    sectionType: movements.length > 1 ? "superset" : "single",
+                    movements: movements.map((m) => ({
+                        // `saveWorkout` looks for `movement.name`
+                        name: m.exercise,
+                    })),
+                };
+            }
         );
-      
+
         // 3) Attach a `.description` property to the array itself
         //    because `saveWorkout` does: `payload.description = workoutPlan.description`.
         formattedSections.description = workout.description || "Suggested strength workout";
-      
+
         // 4) (Optional) If you want the final name to appear in `saveWorkout`,
         //    you can attach `.name` to the array too (if your code references it).
         //    But note that `saveWorkout` might override that with selectedWorkout anyway.
         formattedSections.name = workout.workout_name || "Untitled Workout";
-      
+
         console.log("✅ Formatted for saveWorkout:", JSON.stringify(formattedSections, null, 2));
         return formattedSections; // An array of sections + appended description/name.
-      };
-      
-    
+    };
+
+
 
 
 
@@ -220,7 +220,7 @@ export default function SuggestedWorkoutSummary({ route }) {
                             style={styles.profileButton}
                             onPress={() => showModalForWorkout(item)}
                         >
-                            <Ionicons name="heart-outline" color={"black"} size={20} />
+                            <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.workoutSummaryArray}>
@@ -388,16 +388,10 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     profileButton: {
-        backgroundColor: 'white',
-        width: 40,
-        height: 40,
+        width: 50,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
     },
     workoutTitle: {
         fontWeight: 600,

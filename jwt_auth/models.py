@@ -17,7 +17,7 @@ class User(AbstractUser):
     five_k_mins = models.IntegerField(null=True, blank=True)
     five_k_secs = models.IntegerField(null=True, blank=True)
     first_login = models.DateTimeField(null=True, blank=True)  # Add the first_login field
-
+    hyrox_division = models.CharField(max_length=15, null=True, blank=True)
 
 
     def save(self, *args, **kwargs):

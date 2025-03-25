@@ -316,9 +316,9 @@ export default function WorkoutSummary({ route, navigation }) {
                                         <Text style={styles.sectionTitle}>{`${section.section_name}: ${section.conditioning_elements[0].conditioning_overview.name}`}</Text> :
                                         <Text style={styles.sectionTitle}>{section.section_name}</Text>
                                     }
-                                    {section.section_name === "Warm up A" ?
+                                    {section.section_name === "Warm Up A" ?
                                         <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
-                                        section.section_name === "Warm up B" ?
+                                        section.section_name === "Warm Up B" ?
                                             <Text style={styles.sectionSubTitle}>Complete 2 sets with 8-12 reps in each</Text> :
                                             section.section_name === "Strong 1" || section.section_name === "Strong 2" ?
                                                 <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 5-8 reps</Text> :

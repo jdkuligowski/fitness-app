@@ -3,7 +3,7 @@
     "name": "Burst",
     "slug": "burst-slug",
     "owner": "jdkuligowski",
-    "version": "1.0.386",
+    "version": "1.0.387",
     "orientation": "portrait",
     "icon": "./assets/images/burst_basic_icon.png",
     "scheme": "myapp",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fitnessapp.burst",
-      "buildNumber": "48",
+      "buildNumber": "49",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

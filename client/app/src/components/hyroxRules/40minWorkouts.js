@@ -89,7 +89,7 @@ const min40Workouts = {
             },
             {
                 section: "Conditioning",
-                duration: 40,
+                duration: 30,
             },
         ],
     },
@@ -106,24 +106,7 @@ const min40Workouts = {
             },
             {
                 section: "Conditioning",
-                duration: 40,
-            },
-        ],
-    },
-    option_f: {
-        sections: [
-            {
-                section: "Strong 1", movements: 1,
-                filters: [
-                    [
-                        { key: "advanced_movements", value: "Strong 1", operator: "contains" },
-                        { key: "movement", value: "Lunge", operator: "contains" },
-                    ],
-                ],
-            },
-            {
-                section: "Conditioning",
-                duration: 40,
+                duration: 30,
             },
         ],
     },

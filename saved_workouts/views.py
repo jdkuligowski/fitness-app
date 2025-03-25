@@ -264,7 +264,7 @@ class SaveWorkoutView(APIView):
         self._create_scheduled_notification_if_needed(workout, user, data)
 
         serialized_workout = PopulatedWorkoutSerializer(workout).data
-        return Response({'message': 'Gym workout saved successfully', 'workout': serialized_workout}, status=201)
+        return Response({'message': 'Hyrox workout saved successfully', 'workout': serialized_workout}, status=201)
 
 
 
@@ -581,6 +581,32 @@ class SaveWorkoutView(APIView):
                     movement_ids.append(0)
         return movement_ids
 
+    def _gather_hyrox_movement_ids(self, sections):
+        movement_ids = []
+
+        for section_data in sections:
+            # If this section has a Conditioning workout, handle those movements:
+            if section_data['section_name'].lower() == "conditioning" and 'conditioning_workout' in section_data:
+                cond_movements = section_data['conditioning_workout']['movements']
+                for mdata in cond_movements:
+                    try:
+                        mv = Movement.objects.get(exercise=mdata['movement_name'])
+                        movement_ids.append(mv.id)
+                    except Movement.DoesNotExist:
+                        # If you want, log or just ignore the missing movement
+                        pass
+
+            else:
+                # Normal (non-conditioning) sections
+                for mdata in section_data.get('movements', []):
+                    try:
+                        mv = Movement.objects.get(exercise=mdata['movement_name'])
+                        movement_ids.append(mv.id)
+                    except Movement.DoesNotExist:
+                        pass
+
+        return movement_ids
+
 
     def _build_template_code(self, data):
         workout_type = data['activity_type']
@@ -604,6 +630,11 @@ class SaveWorkoutView(APIView):
             hiit_type = data.get('workout_type','Unknown')
             movement_ids = self._gather_hiit_movement_ids(data['sections'])
             code = f"H-{hiit_type}-" + "-".join(str(mid) for mid in movement_ids)
+            return code
+        
+        elif workout_type == 'Hyrox':
+            movement_ids = self._gather_hyrox_movement_ids(data['sections'])
+            code = "Hy-" + "-".join(str(mid) for mid in movement_ids)
             return code
 
         else:

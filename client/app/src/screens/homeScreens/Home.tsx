@@ -268,7 +268,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hyrox')}>
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hyrox', { userData })}>
                   <Ionicons name="alarm-outline" size={26} color="#AACBA5" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hyrox</Text>

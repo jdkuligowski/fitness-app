@@ -31,6 +31,37 @@ import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = SCREEN_WIDTH - 45;
 
+const WEIGHT_MAPPING = {
+    "Women's": {
+        "Sled Push": "102kg",
+        "Sled Pull": "78kg",
+        "Farmers Carry": "2×16kg",
+        "Walking Lunge": "10kg",
+        "Wall Balls": "4kg",
+    },
+    "Women's Pro": {
+        "Sled Push": "152kg",
+        "Sled Pull": "102kg",
+        "Farmers Carry": "2×24kg",
+        "Walking Lunge": "20kg",
+        "Wall Balls": "6kg",
+    },
+    "Men's": {
+        "Sled Push": "152kg",
+        "Sled Pull": "102kg",
+        "Farmers Carry": "2×24kg",
+        "Walking Lunge": "20kg",
+        "Wall Balls": "6kg",
+    },
+    "Men's Pro": {
+        "Sled Push": "202kg",
+        "Sled Pull": "152kg",
+        "Farmers Carry": "2×32kg",
+        "Walking Lunge": "30kg",
+        "Wall Balls": "9kg",
+    },
+};
+
 
 export default function CompleteHyroxWorkout({ route, navigation }) {
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
@@ -50,6 +81,38 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
     const [selectedMovement, setSelectedMovement] = useState(null);
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0); // Current index for FlatList
+    const [userData, setUserData] = useState('')
+    const [division, setDivision] = useState('')
+
+    // fetch user data function
+    const getUser = async () => {
+        try {
+            const userId = await AsyncStorage.getItem("userId"); // Retrieve the user ID from local storage
+            console.log("user_id ->", userId);
+
+            if (!userId) {
+                console.error('User ID not found in AsyncStorage.');
+                // setIsLoading(false);
+                return;
+            }
+
+            const { data } = await axios.get(`${ENV.API_URL}/api/auth/profile/${userId}/`);
+            console.log('User data ->', data); // Debug log
+            setUserData(data);
+            setDivision(data.hyrox_division)
+            console.log('Hyrox: ', data.hyrox_division)
+        } catch (error) {
+            console.error('Error fetching user data:', error?.response?.data || error.message);
+        }
+        // finally {
+        //   setIsLoading(false); // Set loading to false after request is complete
+        // }
+    };
+
+    // 🟢 Load user data on component mount
+    useEffect(() => {
+        getUser();
+    }, []);
 
     useEffect(() => {
         const initialLogs = {};
@@ -391,7 +454,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                     >
                                                         {item.section_movement_details.map((movementDetail, index) => {
                                                             const movement = movementDetail.movements || {};
-                                                            console.log('Movement: ', movement)
+                                                            // console.log('Movement: ', movement)
                                                             // Decide if we have a valid portrait video + thumbnail
                                                             const hasPortraitVideo =
                                                                 movement.portrait_video_url && movement.landscape_thumbnail;
@@ -436,18 +499,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                         })}
                                                     </ScrollView>
 
-                                                    {/* Dot Indicators */}
-                                                    <View style={styles.carouselContainer}>
-                                                        {item.section_movement_details.map((_, i) => (
-                                                            <View
-                                                                key={i}
-                                                                style={[
-                                                                    styles.carouselDot,
-                                                                    i === currentIndex && styles.activeDot,
-                                                                ]}
-                                                            />
-                                                        ))}
-                                                    </View>
+
 
                                                     {/* Modal for Full-Screen Video */}
                                                     <Modal
@@ -481,6 +533,18 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                             </TouchableOpacity>
                                                         </View>
                                                     </Modal>
+                                                    {/* Dot Indicators */}
+                                                    <View style={styles.carouselContainer}>
+                                                        {item.section_movement_details.map((_, i) => (
+                                                            <View
+                                                                key={i}
+                                                                style={[
+                                                                    styles.carouselDot,
+                                                                    i === currentIndex && styles.activeDot,
+                                                                ]}
+                                                            />
+                                                        ))}
+                                                    </View>
 
                                                     {/* --- The rest of your "Summary" section info (details, rest, etc.) --- */}
                                                     <View style={styles.conditioningDetails}>
@@ -500,16 +564,28 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                                     (detail) => detail.movement_order === movementDetail.movement_order
                                                                 );
 
+                                                            // 1) Base text for the movement
+                                                            let movementText = movement.exercise || "No exercise provided";
+
+                                                            // 2) If there's a user division and a weight mapping for this exercise, append it
+                                                            if (
+                                                                division &&
+                                                                WEIGHT_MAPPING[division] &&
+                                                                WEIGHT_MAPPING[division][movementText]
+                                                            ) {
+                                                                const mappedWeight = WEIGHT_MAPPING[division][movementText];
+                                                                console.log('Mapped text: ', mappedWeight)
+                                                                movementText += ` @ ${mappedWeight}`;
+                                                            }
+
                                                             return (
                                                                 <View key={index} style={styles.movementDetails}>
-                                                                    {conditioningDetail.detail ? (
+                                                                    {conditioningDetail?.detail && (
                                                                         <Text style={styles.movementDetail}>
-                                                                            {`${conditioningDetail.detail} ` || "No detail provided"}
+                                                                            {conditioningDetail.detail + " "}
                                                                         </Text>
-                                                                    ) : ''}
-                                                                    <Text style={styles.movementDetail}>
-                                                                        {movement.exercise || "No exercise provided"}
-                                                                    </Text>
+                                                                    )}
+                                                                    <Text style={styles.movementDetail}>{movementText}</Text>
                                                                 </View>
                                                             );
                                                         })}
@@ -1142,6 +1218,22 @@ const styles = StyleSheet.create({
         transform: [{ translateX: -24 }, { translateY: -24 }],
         zIndex: 9999,
     },
+    carouselContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 10,
+    },
+    carouselDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 5,
+        backgroundColor: "#DFD7F3",
+        marginHorizontal: 5,
+    },
+    activeDot: {
+        backgroundColor: "black",
+    },
     movementName: {
         marginLeft: 20,
     },
@@ -1381,7 +1473,9 @@ const styles = StyleSheet.create({
     },
     conditioningDetails: {
         marginHorizontal: 20,
-        marginVertical: 10,
+        marginTop: 10,
+        paddingBottom: 30,
+        minHeight: 210,
     },
     conditioningDescription: {
         marginVertical: 10,

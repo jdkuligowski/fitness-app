@@ -30,6 +30,13 @@ const hyroxRulesMap = {
     60: min60Workouts,
 };
 
+const lowerBodyWarmUpKeys = [
+    "Lower Body 1 (Option 1)",
+    "Lower Body 1 (Option 2)",
+    "Lower Body 2 (Option 1)",
+    "Lower Body 2 (Option 2)",
+];
+
 export default function HyroxDetails({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
@@ -268,6 +275,18 @@ export default function HyroxDetails({ route }) {
         );
         console.log(`Hyrox: Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
 
+        if (selectedFinish === "Conditioning") {
+            // Just create a plan array with one conditioning section 
+            // using the user’s (closest) time:
+            const condSection = generateConditioningSection(closestTime);
+            // condSection will have partLabel: "Conditioning", etc.
+
+            // If condSection is empty / no match, you could allow fallback or do something else:
+            // But your current generateConditioningSection already uses fallback if none match.
+
+            return [condSection]; // just an array of one
+        }
+
         // get the "rules" for that time
         const rules = hyroxRulesMap[closestTime];
         if (!rules) {
@@ -292,13 +311,66 @@ export default function HyroxDetails({ route }) {
         const usedExercises = new Set();
         const plan = [];
 
+        // 1) Warm Up A
+        const warmUpA = filterWarmUpA(); // exactly like your Gym logic
+        plan.push({
+            partLabel: "Warm Up A",
+            movements: warmUpA,
+            sectionType: "single"
+        });
+
+        // 2) Warm Up B – **only** from “Lower Body” sets
+        // pick random from the 4 “Lower Body X (Option Y)” keys
+        const randomIndex = Math.floor(Math.random() * lowerBodyWarmUpKeys.length);
+        const warmUpKey = lowerBodyWarmUpKeys[randomIndex];
+        const warmUpObj = ruleSet[warmUpKey]; // e.g. ruleSet["Lower Body 1 (Option 2)"]
+
+        if (!warmUpObj) {
+            console.warn("No Lower Body warm-up found for key:", warmUpKey);
+            plan.push({
+                partLabel: "Warm Up B",
+                movements: [],
+                sectionType: "single",
+            });
+        } else {
+            // Convert the object to an array of movements
+            // e.g. {movement1: "Wall Deep Squat Rotation", movement2: "..."} => ["Wall Deep Squat Rotation","..."]
+            const listedMovements = Object.values(warmUpObj).filter(Boolean);
+
+            // If you want to see if they're in your filtered data, etc.:
+            const finalMovements = listedMovements.map((movementName) => {
+                const matched = filteredWorkoutData.find((ex) =>
+                    (ex.exercise || "").trim().toLowerCase() === movementName.trim().toLowerCase()
+                );
+                if (!matched) {
+                    console.warn(`Movement "${movementName}" not found in DB. Using name only.`);
+                    return movementName;
+                }
+                return matched.exercise;
+            });
+
+            plan.push({
+                partLabel: "Warm Up B",
+                movements: finalMovements,
+                sectionType: finalMovements.length > 1 ? "superset" : "single",
+            });
+        }
+
+
         // For each section, if "Conditioning", handle differently
         selectedRules.sections.forEach((sectionRule) => {
             const { section, filters, duration } = sectionRule;
 
             if (section === "Conditioning") {
                 // We do a separate function to pick a random conditioning workout with "duration"
-                const condSection = generateConditioningSection(duration);
+                const durationToUse = (selectedFinish === "Both")
+                    ? duration       // from the rule
+                    : closestTime;   // from user’s request
+
+                // Also pass a boolean "isBoth" or "isConditioningOnly"
+                const condSection = generateConditioningSection(durationToUse, {
+                    isBoth: (selectedFinish === "Both")
+                });
                 plan.push(condSection);
             } else {
                 // It's e.g. "Strong 1", "Build 1", "Pump 1"
@@ -333,13 +405,49 @@ export default function HyroxDetails({ route }) {
     };
 
     // 6) generateConditioningSection
-    const generateConditioningSection = (targetDuration) => {
-        // Filter from conditioningData by item.duration === targetDuration
-        const matching = conditioningData.filter((item) => item.duration === targetDuration);
-        const fallback = matching.length > 0 ? matching : conditioningData;
-        const chosen = fallback[Math.floor(Math.random() * fallback.length)];
+    // Modified generateConditioningSection
+    // 6) generateConditioningSection
+    function generateConditioningSection(targetDuration, { isBoth = false } = {}) {
+        // If "Both," we want EXACT “targetDuration” from the rule. 
+        // So skip the ">= 20" logic if isBoth is true.
+        // If user is "Conditioning only," then we do the ">= 20 and <= targetDuration" logic.
 
-        // if chosen is null, fallback
+        let valid;
+
+        if (isBoth) {
+            // Scenario: The rule says "duration: 40" or "duration: 20"
+            // so pick from conditioningData where item.duration === targetDuration
+            valid = conditioningData.filter(item => item.duration === targetDuration);
+
+            // If we fail to find any exact match, you can fallback or return empty
+            if (valid.length === 0) {
+                console.warn(`No conditioning workouts exactly matching rule of ${targetDuration} mins.`);
+                return {
+                    partLabel: "Conditioning",
+                    movements: [],
+                    sectionType: "single",
+                };
+            }
+
+        } else {
+            // Scenario: "Conditioning only" from the user
+            // So we do our "≥ 20 and ≤ user’s requested time" logic:
+            valid = conditioningData.filter(item =>
+                item.duration >= 20 && item.duration <= targetDuration
+            );
+
+            if (valid.length === 0) {
+                console.warn(`No conditioning workouts in [20..${targetDuration}] range found.`);
+                return {
+                    partLabel: "Conditioning",
+                    movements: [],
+                    sectionType: "single",
+                };
+            }
+        }
+
+        // 3) Randomly pick one from valid
+        const chosen = valid[Math.floor(Math.random() * valid.length)];
         if (!chosen) {
             return {
                 partLabel: "Conditioning",
@@ -348,9 +456,11 @@ export default function HyroxDetails({ route }) {
             };
         }
 
+        // 4) Possibly pick an aerobic movement
         const aerobicOptions = ["Bike", "Row", "Ski"];
         const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
 
+        // 5) Build movements array
         const movements = chosen.conditioning_details.map((movement) => {
             let exercise = movement.exercise;
             if (exercise.toLowerCase() === "aerobic") {
@@ -372,7 +482,8 @@ export default function HyroxDetails({ route }) {
             sectionType: movements.length > 1 ? "superset" : "single",
             rest: chosen.rest,
         };
-    };
+    }
+
 
 
     // // Generate a single workout plan
@@ -606,16 +717,39 @@ export default function HyroxDetails({ route }) {
         // e.g. "Full Body 1"
     }
 
-    const generateWorkoutPlans = () => {
-        const plans = [];
-        for (let i = 0; i < 10; i++) {
-            plans.push(generateHyroxPlan());
-        }
-        setWorkoutPlans(plans);
+    // const generateWorkoutPlans = () => {
+    //     const plans = [];
+    //     for (let i = 0; i < 10; i++) {
+    //         plans.push(generateHyroxPlan());
+    //     }
+    //     setWorkoutPlans(plans);
 
-        if (flatListRef.current) {
-            flatListRef.current.scrollToIndex({ index: 0, animated: true });
+    //     if (flatListRef.current) {
+    //         flatListRef.current.scrollToIndex({ index: 0, animated: true });
+    //     }
+    // };
+
+    const generateWorkoutPlans = () => {
+        const rawPlans = [];
+        for (let i = 0; i < 10; i++) {
+            rawPlans.push(generateHyroxPlan());
         }
+
+        // We can deduplicate so that if the entire plan is identical, we only keep one.
+        // For instance, a simple “key” is JSON.stringify(...) – but watch out for different orders if you care.
+
+        const uniquePlans = [];
+        const planSignatures = new Set();
+
+        for (const plan of rawPlans) {
+            const planSignature = JSON.stringify(plan);
+            if (!planSignatures.has(planSignature)) {
+                planSignatures.add(planSignature);
+                uniquePlans.push(plan);
+            }
+        }
+
+        setWorkoutPlans(uniquePlans);
     };
 
     // // Generate multiple workout plans
@@ -674,99 +808,99 @@ export default function HyroxDetails({ route }) {
     };
 
 
-    // const saveAndStartWorkout = async (workoutPlan) => {
-    //     setIsBouncerLoading(true);
-    //     try {
-    //         const userId = await AsyncStorage.getItem("userId");
-    //         if (!userId) throw new Error("User ID not found in AsyncStorage.");
+    const saveAndStartWorkout = async (workoutPlan) => {
+        setIsBouncerLoading(true);
+        try {
+            const userId = await AsyncStorage.getItem("userId");
+            if (!userId) throw new Error("User ID not found in AsyncStorage.");
 
-    //         const formattedDate = new Date().toISOString().split("T")[0];
-    //         const payload = {
-    //             user_id: userId,
-    //             name: `${selectedWorkout}`,
-    //             description: "Custom generated workout",
-    //             duration: selectedTime,
-    //             complexity: frequency === "Rarely" ? 1 : frequency === "Sometimes" ? 2 : 3,
-    //             status: "Started",
-    //             scheduled_date: formattedDate,
-    //             activity_type: 'Gym',
-    //             sections: workoutPlan.map((section, index) => {
-    //                 if (section.partLabel === "Conditioning") {
-    //                     return {
-    //                         section_name: section.partLabel,
-    //                         section_order: index + 1,
-    //                         section_type: section.sectionType,
-    //                         conditioning_workout: {
-    //                             conditioning_overview_id: section.workoutId,
-    //                             notes: section.notes,
-    //                             comments: null,
-    //                             rpe: null,
-    //                             movements: section.movements.map((movement, movementIndex) => ({
-    //                                 movement_order: movementIndex + 1,
-    //                                 movement_name: movement.exercise,
-    //                             })),
-    //                         },
-    //                     };
-    //                 } else {
-    //                     return {
-    //                         section_name: section.partLabel,
-    //                         section_order: index + 1,
-    //                         section_type: section.sectionType,
-    //                         movements: section.movements.map((movement, movementIndex) => ({
-    //                             movement_name: movement,
-    //                             movement_order: movementIndex + 1,
-    //                         })),
-    //                     };
-    //                 }
-    //             }),
-    //         };
+            const formattedDate = new Date().toISOString().split("T")[0];
+            const payload = {
+                user_id: userId,
+                name: `Hyrox workout`,
+                description: "Custom generated workout",
+                duration: selectedTime,
+                complexity: 3,
+                status: "Started",
+                scheduled_date: formattedDate,
+                activity_type: 'Hyrox',
+                sections: workoutPlan.map((section, index) => {
+                    if (section.partLabel === "Conditioning") {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            conditioning_workout: {
+                                conditioning_overview_id: section.workoutId,
+                                notes: section.notes,
+                                comments: null,
+                                rpe: null,
+                                movements: section.movements.map((movement, movementIndex) => ({
+                                    movement_order: movementIndex + 1,
+                                    movement_name: movement.exercise,
+                                })),
+                            },
+                        };
+                    } else {
+                        return {
+                            section_name: section.partLabel,
+                            section_order: index + 1,
+                            section_type: section.sectionType,
+                            movements: section.movements.map((movement, movementIndex) => ({
+                                movement_name: movement,
+                                movement_order: movementIndex + 1,
+                            })),
+                        };
+                    }
+                }),
+            };
 
-    //         console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
+            console.log("Payload for save and start:", JSON.stringify(payload, null, 2));
 
-    //         // 1️⃣ Save the workout
-    //         const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
-    //         console.log("Response from save:", JSON.stringify(response.data, null, 2));
+            // 1️⃣ Save the workout
+            const response = await axios.post(`${ENV.API_URL}/api/saved_workouts/save-workout/`, payload);
+            console.log("Response from save:", JSON.stringify(response.data, null, 2));
 
-    //         // Extract the ID of the saved workout
-    //         const savedWorkoutId = response.data?.workout.id;
+            // Extract the ID of the saved workout
+            const savedWorkoutId = response.data?.workout.id;
 
-    //         if (!savedWorkoutId) {
-    //             console.error("Workout ID is undefined, check API response:", response.data);
-    //             Alert.alert("Error", "Failed to save workout. Please try again.");
-    //             setIsBouncerLoading(false);
-    //             return;
-    //         }
+            if (!savedWorkoutId) {
+                console.error("Workout ID is undefined, check API response:", response.data);
+                Alert.alert("Error", "Failed to save workout. Please try again.");
+                setIsBouncerLoading(false);
+                return;
+            }
 
-    //         console.log("New Workout ID ->", savedWorkoutId);
+            console.log("New Workout ID ->", savedWorkoutId);
 
-    //         // 2️⃣ Fetch workout details and movement history
-    //         const workoutDetailsResponse = await axios.get(
-    //             `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
-    //             { params: { user_id: userId } }
-    //         );
+            // 2️⃣ Fetch workout details and movement history
+            const workoutDetailsResponse = await axios.get(
+                `${ENV.API_URL}/api/saved_workouts/get-single-workout/${savedWorkoutId}/`,
+                { params: { user_id: userId } }
+            );
 
-    //         const { workout, movement_history, conditioning_history } = workoutDetailsResponse.data;
-    //         console.log("Workout details ->", workout);
-    //         console.log("Movement history ->", movement_history);
-    //         console.log("Movement history ->", conditioning_history);
+            const { workout, movement_history, conditioning_history } = workoutDetailsResponse.data;
+            console.log("Workout details ->", workout);
+            console.log("Movement history ->", movement_history);
+            console.log("Movement history ->", conditioning_history);
 
-    //         setIsBouncerLoading(false);
+            setIsBouncerLoading(false);
 
-    //         // 3️⃣ Navigate directly to CompleteWorkout with all the data
-    //         navigation.navigate("Training", {
-    //             screen: "CompleteWorkout",
-    //             params: {
-    //                 workout: workout,
-    //                 movementHistory: movement_history,
-    //                 conditioningHistory: conditioning_history,
-    //             },
-    //         });
-    //     } catch (error) {
-    //         console.error("Error saving and starting workout:", error?.response?.data || error.message);
-    //         Alert.alert("Error", "There was an error starting your workout. Please try again.");
-    //         setIsBouncerLoading(false);
-    //     }
-    // };
+            // 3️⃣ Navigate directly to CompleteWorkout with all the data
+            navigation.navigate("Training", {
+                screen: "CompleteWorkout",
+                params: {
+                    workout: workout,
+                    movementHistory: movement_history,
+                    conditioningHistory: conditioning_history,
+                },
+            });
+        } catch (error) {
+            console.error("Error saving and starting workout:", error?.response?.data || error.message);
+            Alert.alert("Error", "There was an error starting your workout. Please try again.");
+            setIsBouncerLoading(false);
+        }
+    };
 
 
     const findMovementByExercise = (exerciseName) => {
@@ -788,7 +922,7 @@ export default function HyroxDetails({ route }) {
                         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
-                        <Text style={styles.headingText}>Strength workouts</Text>
+                        <Text style={styles.headingText}>Hyrox workouts</Text>
                     </View>
                 </View>
                 <FlatList
@@ -816,7 +950,7 @@ export default function HyroxDetails({ route }) {
                                         <View style={styles.overviewBox}>
                                             <View style={styles.overviewHeader}>
                                                 <View>
-                                                    <Text style={styles.workoutTitle}> session</Text>
+                                                    <Text style={styles.workoutTitle}>Hyrox session</Text>
                                                     {/* <Text style={styles.workoutTitle}>{selectedWorkout} session</Text> */}
                                                     <View style={styles.workoutOverviewTime}>
                                                         <Ionicons name="time-outline" size={24} color="black" />
@@ -827,7 +961,7 @@ export default function HyroxDetails({ route }) {
                                                     style={styles.profileButton}
                                                     onPress={() => showModalForWorkout(item)} // Set modal for current workout
                                                 >
-                                                    <Ionicons name="heart-outline" color={'black'} size={20} />
+                                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={styles.workoutSummaryArray}>
@@ -949,7 +1083,7 @@ export default function HyroxDetails({ route }) {
                             currentWorkout={currentWorkout} // Pass the workout object
                             onClose={closeModal} // Pass the close function
                             selectedTime={selectedTime} // Pass the selected time
-                            selectedWorkout={'Hyrox'} // Pass the selected workout name
+                            selectedWorkout={'Hyrox workout'} // Pass the selected workout name
                             workoutPlan={currentWorkout} // Pass the current workout plan
                             closeModal={closeModal} // Close function for modal
                             frequency={"Sometimes"}
@@ -1031,16 +1165,10 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     profileButton: {
-        backgroundColor: 'white',
-        width: 40,
-        height: 40,
+        width: 50,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
     },
     workoutTitle: {
         fontWeight: 600,
@@ -1137,7 +1265,7 @@ const styles = StyleSheet.create({
     dividerLine: {
         borderBottomColor: 'rgba(0, 0, 0, 0.12)',
         borderBottomWidth: 1,
-        margin: 20,
+        marginHorizontal: 20,
         marginTop: 10,
         // marginLeft: 30,
         // marginRight: 30,
@@ -1169,8 +1297,9 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     workoutList: {
-        padding: 20,
-        height: 350,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        height: 390,
     },
     sectionContainer: {
         // marginBottom: 5,
@@ -1204,7 +1333,8 @@ const styles = StyleSheet.create({
     movementLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '85%',
+        width: '90%',
+        paddingRight: 10,
     },
     movementTextBlock: {
         flexDirection: 'row',

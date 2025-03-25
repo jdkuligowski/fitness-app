@@ -375,7 +375,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                                     style={styles.profileButton}
                                     onPress={() => showModalForWorkout(item)}
                                 >
-                                    <Ionicons name="heart-outline" color={"black"} size={20} />
+                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                 </TouchableOpacity>
                             </View>
 
@@ -709,16 +709,10 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     profileButton: {
-        backgroundColor: 'white',
-        width: 40,
-        height: 40,
+        width: 50,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderTopWidth: 1,
-        borderLeftWidth: 1,
     },
     workoutTitle: {
         fontWeight: 600,

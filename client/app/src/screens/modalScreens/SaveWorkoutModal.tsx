@@ -152,13 +152,20 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                             section_name: section.partLabel,
                             section_order: index + 1,
                             section_type: section.sectionType,
+
+                            // The server needs this key
                             conditioning_workout: {
+                                // Use the "workoutId" as "conditioning_overview_id"
                                 conditioning_overview_id: section.workoutId,
-                                notes: section.notes,
-                                comments: null,
-                                rpe: null,
-                                movements: section.movements.map((movement, movementIndex) => ({
-                                    movement_order: movementIndex + 1,
+
+                                // If you want to pass notes, rpe, comments, etc.:
+                                notes: section.notes || null,
+                                comments: section.comments || null,
+                                rpe: section.rpe || null,
+
+                                // The server also expects an array of movements
+                                movements: section.movements.map((movement, mIndex) => ({
+                                    movement_order: mIndex + 1,
                                     movement_name: movement.exercise,
                                     detail: movement.detail || null,
                                 })),
@@ -294,14 +301,16 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                         ? `/api/saved_workouts/get-single-hiit-workout/${workoutId}/`
                         : currentWorkout.activity_type === "Mobility"
                             ? `/api/saved_workouts/get-single-mobility-workout/${workoutId}/`
-                            : `/api/saved_workouts/get-single-workout/${workoutId}/`;
+                            : currentWorkout.activity_type === "Hyrox"
+                                ? `/api/saved_workouts/get-single-hyrox-workout/${workoutId}/`
+                                : `/api/saved_workouts/get-single-workout/${workoutId}/`;
 
 
             // Fetch full workout details
             const response = await axios.get(`${ENV.API_URL}${endpoint}`, { params: { user_id: userId } });
 
             const workoutPlan = response.data;
-            console.log("workout response ->", workoutPlan);
+            console.log("workout response ->", JSON.stringify(workoutPlan, null, 2));
 
             if (!workoutPlan) {
                 console.warn("Workout plan is missing or undefined.");
@@ -343,6 +352,66 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                                         movement_name: movement.movement_name,
                                         detail: movement.detail || null,
                                     })),
+                                },
+                            };
+                        } else {
+                            return {
+                                section_name: section.section_name,
+                                section_order: index + 1,
+                                section_type: section.section_type,
+                                movements: (section.section_movement_details || []).map((movement, movementIndex) => ({
+                                    movement_name: movement.movements?.exercise,
+                                    movement_order: movementIndex + 1,
+                                    movement_difficulty: movement.movement_difficulty || 0,
+                                })),
+                            };
+                        }
+                    }),
+                };
+            } else if (activityType === "Hyrox") {
+                payload = {
+                    user_id: userId,
+                    name: workoutPlan.workout.name || "Unnamed Workout",
+                    workout_number: workoutPlan.workout.workout_number,
+                    description: workoutPlan.workout.description || "No description",
+                    duration: workoutPlan.workout.duration || 0,
+                    complexity: workoutPlan.workout.complexity || 0,
+                    status: status,
+                    activity_type: workoutPlan.workout.activity_type,
+                    scheduled_date: status === "Scheduled" ? formattedDate : null,
+                    sections: workoutPlan.workout.workout_sections.map((section, index) => {
+                        if (section.section_name === "Conditioning") {
+                            // If there's at least one conditioning element, let's grab it:
+                            const [firstElement] = section.conditioning_elements || [];
+                            if (!firstElement) {
+                                console.warn("No conditioning_elements found; skipping or fallback");
+                                return {
+                                    section_name: section.section_name,
+                                    section_order: index + 1,
+                                    section_type: section.section_type,
+                                    conditioning_workout: {
+                                        conditioning_overview_id: null,
+                                        movements: [],
+                                    },
+                                };
+                            }
+                            const overviewId = firstElement.conditioning_overview?.id || null;
+
+                            const movements = (section.section_movement_details || []).map((movement, movementIndex) => ({
+                                movement_order: movementIndex + 1,
+                                movement_name: movement.movements?.exercise || "Unknown Movement",
+                                detail: null, // or something if you want a detail
+                            }));
+                            return {
+                                section_name: section.section_name,
+                                section_order: index + 1,
+                                section_type: section.section_type,
+                                conditioning_workout: {
+                                    conditioning_overview_id: overviewId,
+                                    notes: firstElement.conditioning_overview?.notes || "",
+                                    rpe: firstElement.rpe || 0,
+                                    comments: firstElement.comments || null,
+                                    movements: movements,
                                 },
                             };
                         } else {
@@ -503,8 +572,23 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
             console.log("Workout duplicated successfully:", saveResponse.data);
             Alert.alert("Workout Added", "Your workout has been added to the calendar!");
         } catch (error) {
-            console.error("Error saving workout:", error?.response?.data || error.message);
-            Alert.alert("Error", "There was an error duplicating your workout. Please try again.");
+            if (error.response) {
+                // Print the entire response data to the console
+                console.error("Error saving workout:", JSON.stringify(error));
+
+                // If the server returned a JSON object with 'detail' or 'error', you can show that in an alert:
+                const serverMessage = error.response.data.error
+                    ? error.response.data.error
+                    : error.response.data.detail
+                        ? error.response.data.detail
+                        : JSON.stringify(error.response.data);
+
+                Alert.alert("Error Saving Workout", serverMessage);
+            } else {
+                // If no response, it might be a network error or something else
+                console.error("Error saving workout (no server response):", error.message);
+                Alert.alert("Error", "Could not reach the server. Please try again.");
+            }
         } finally {
             fetchWorkouts();
             setIsBouncerLoading(false); // Remove loading spinner
