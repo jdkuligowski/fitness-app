@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     Dimensions,
     FlatList,
-    Image,
+    Alert,
     Modal,
     KeyboardAvoidingView,
     Platform,
@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
+import TimerVideoHiitModal from '../../modalScreens/TimerVideoHiitModal';
 
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -30,21 +31,23 @@ const ITEM_WIDTH = SCREEN_WIDTH - 85;
 
 export default function HiitWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive workout data as a parameter
+    console.log('Hiit workout: ', workout.workout_type)
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false); // Video modal visibility
     const [currentBlockIndex, setCurrentBlockIndex] = useState(0); // Track current HIIT block
-    const hiitBlocks = workout.hiit_sessions?.[0]?.hiit_details || []; // HIIT blocks
+    const [selectedMovement, setSelectedMovement] = useState(null);
 
     const [logData, setLogData] = useState({
         session_comments: workout.hiit_sessions[0]?.comments || "", // Default to an empty string
         session_rpe: workout.hiit_sessions[0]?.rpe || 0, // Default to 0
     });
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
+    const [isHiitTimerVisible, setIsHiitTimerVisible] = useState(false);
 
-    // useEffect(() => {
-    //     console.log('Hiit workout loaded: ', JSON.stringify(workout, null, 2))
-    // })
+    const hiitBlocks = workout.hiit_sessions?.[0]?.hiit_details || []; // HIIT blocks
+    const hiitMovements = hiitBlocks.flatMap((block) => block.hiit_movements || []);
+
 
     const updateHiitWorkout = async () => {
         try {
@@ -112,6 +115,15 @@ export default function HiitWorkout({ route, navigation }) {
                                 <Text style={styles.timeText}>{workout?.duration} mins</Text>
                             </View>
                         </View>
+
+                        {workout?.hiit_sessions?.[0]?.workout_type === "EMOM" ? (
+                            <TouchableOpacity
+                                style={styles.startTimerButton}
+                                onPress={() => setIsHiitTimerVisible(true)}
+                            >
+                                <Ionicons name="alarm-outline" size={34} color="black" />
+                            </TouchableOpacity>
+                        ) : null}
                     </View>
                 </View>
 
@@ -149,102 +161,57 @@ export default function HiitWorkout({ route, navigation }) {
                 {/* Tab Content */}
                 <ScrollView style={styles.tabContent}>
                     {activeTab === "Summary" && (
-                        <View style={styles.summaryContent}>
-                            {/* Horizontal Video FlatList */}
-                            <FlatList
-                                data={hiitBlocks.flatMap(block => block.hiit_movements)}
-                                horizontal
-                                pagingEnabled            // because item width = SCREEN_WIDTH
-                                keyExtractor={(item, index) => index.toString()}
-                                showsHorizontalScrollIndicator={false}
-                                renderItem={({ item, index }) => (
-                                    <View style={{ width: ITEM_WIDTH }}>  {/* Full-screen width */}
-                                        <TouchableOpacity
-                                            style={styles.thumbnailContainer}
-                                            onPress={() => {
-                                                if (item.movements?.portrait_video_url) {
-                                                    setSelectedVideo(item.movements.portrait_video_url);
-                                                    setIsModalVisible(true);
-                                                } else {
-                                                    alert("No video available for this movement.");
-                                                }
-                                            }}
-                                        >
-                                            <Image
-                                                source={{ uri: item.movements?.landscape_thumbnail }}
-                                                style={styles.thumbnailImage}
-                                                resizeMode="cover"
-                                            />
-                                            <View style={styles.playIconOverlay}>
-                                                <Ionicons name="play-circle" size={48} color="white" />
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                                onMomentumScrollEnd={(e) => {
-                                    // offsetX = how far the user has scrolled
-                                    const offsetX = e.nativeEvent.contentOffset.x;
-                                    // each item’s width is SCREEN_WIDTH
-                                    const currentIndex = Math.round(offsetX / ITEM_WIDTH);
-                                    setCurrentBlockIndex(currentIndex); // or setCurrentIndex
-                                }}
-                            />
+                        <View style={styles.screenContainer}>
+                            {workout?.hiit_sessions?.map((session, index) => (
+                                <View key={index} style={styles.sectionContainer}>
+                                    {/* Optional: show session type, e.g. AMRAP / EMOM / etc. */}
+                                    {/* <Text style={styles.sectionTitle}>{session.workout_type} Workout</Text> */}
 
-                            {/* Carousel Dots */}
-                            <View style={styles.carouselContainer}>
-                                {hiitBlocks.flatMap(block => block.hiit_movements).map((_, index) => (
-                                    <View
-                                        key={index}
-                                        style={[
-                                            styles.carouselDot,
-                                            index === currentBlockIndex && styles.activeDot,
-                                        ]}
-                                    />
-                                ))}
-                            </View>
+                                    {/* The general structure/summary of the session */}
+                                    <Text style={styles.summaryDetail}>{session.structure}</Text>
 
-                            {/* Modal for Full-Screen Video */}
-                            <Modal
-                                animationType="slide"
-                                transparent={false}
-                                visible={isModalVisible}
-                                onRequestClose={() => setIsModalVisible(false)}
-                            >
-                                <View style={styles.modalContainer}>
-                                    {selectedVideo ? (
-                                        <Video
-                                            source={{ uri: selectedVideo }}
-                                            style={styles.fullScreenVideo}
-                                            resizeMode="contain"
-                                            useNativeControls
-                                            shouldPlay
-                                            onError={(error) => console.error("Video Error:", error)}
-                                        />
-                                    ) : (
-                                        <Text style={styles.noVideoText}>Video not available</Text>
-                                    )}
-                                    <TouchableOpacity
-                                        style={styles.closeButton}
-                                        onPress={() => setIsModalVisible(false)}
-                                    >
-                                        <Ionicons name="close" size={30} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </Modal>
-                            {/* HIIT Block Sections */}
-                            <Text style={styles.sectionTitle}>{workout.hiit_sessions[0].workout_type} workout</Text>
-                            <Text style={styles.summaryMessage}>{workout.hiit_sessions[0].structure}</Text>
-                            {hiitBlocks.map((block, index) => (
-                                <View key={index} style={styles.blockContainer}>
-                                    {/* Movements inside the block */}
-                                    {workout.hiit_sessions[0].workout_type === 'AMRAP' ?
-                                        <Text style={styles.blockHeader}>{block.block_name}</Text>
-                                        :
-                                        <Text></Text>
-                                    }
-                                    {block.hiit_movements.map((movement, i) => (
-                                        <View key={i} style={styles.movementRow}>
-                                            <Text style={styles.movementName}>{movement.exercise_name}</Text>
+                                    {/* Blocks (e.g. rounds or sections) within the session */}
+                                    {session.hiit_details?.map((block, i) => (
+                                        <View key={i} style={styles.blockContainer}>
+                                            {/* Name of the block or round */}
+                                            <Text style={styles.sectionTitle}>{block.block_name}</Text>
+
+                                            {/* Movements within this block */}
+                                            {block.hiit_movements?.map((movement, j) => (
+                                                <View key={j} style={styles.movementRow}>
+                                                    <View style={styles.movementLeft}>
+                                                        <Text>
+                                                            <Text style={styles.movementLabel}>{`${j + 1}: `}</Text>
+                                                            <Text style={styles.movementDetail}>{movement.exercise_name}</Text>
+                                                            {/* Show “(Rest)” if rest_period is defined */}
+                                                            {movement.rest_period && (
+                                                                <Text style={styles.restPeriod}></Text>
+                                                            )}
+                                                        </Text>
+                                                    </View>
+
+                                                    {/* Button to watch movement video (if available) */}
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            if (movement.movements?.portrait_video_url) {
+                                                                setSelectedMovement({
+                                                                    ...movement,
+                                                                    portrait_video_url: movement.movements.portrait_video_url,
+                                                                });
+                                                            } else {
+                                                                Alert.alert(
+                                                                    "Video coming soon."
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Ionicons name="play-circle" size={24} color="black" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ))}
+
+                                            {/* Divider after each block */}
+                                            <View style={styles.subDividerLine}></View>
                                         </View>
                                     ))}
                                 </View>
@@ -326,6 +293,43 @@ export default function HiitWorkout({ route, navigation }) {
                     visible={rpeModalVisible}
                     onClose={() => setRpeModalVisible(false)}
                 />
+                {selectedMovement && (
+                    <Modal
+                        animationType="slide"
+                        transparent={false}
+                        visible={!!selectedMovement}
+                        onRequestClose={() => setSelectedMovement(null)}
+                    >
+                        <View style={styles.videoModalContainer}>
+                            {selectedMovement?.portrait_video_url ? (
+                                <Video
+                                    source={{ uri: selectedMovement.portrait_video_url }}
+                                    style={styles.fullScreenVideo}
+                                    resizeMode="contain"
+                                    useNativeControls
+                                    shouldPlay
+                                    onError={(error) => console.error("Video Error:", error)}
+                                />
+                            ) : (
+                                <Text style={styles.noVideoText}>Video coming soon</Text>
+                            )}
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setSelectedMovement(null)}
+                            >
+                                <Ionicons name="close" size={30} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </Modal>
+                )
+                }
+                <TimerVideoHiitModal
+                    isVisible={isHiitTimerVisible}
+                    onClose={() => setIsHiitTimerVisible(false)}
+                    workoutName={workout?.name || "HIIT Workout"}
+                    hiitMovements={hiitMovements}
+                    workoutType={"EMOM"}
+                />
             </View>
         </SafeAreaView>
     );
@@ -349,6 +353,7 @@ const styles = StyleSheet.create({
     topSection: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingRight: 10,
     },
     backButton: {
         justifyContent: 'center',
@@ -377,9 +382,9 @@ const styles = StyleSheet.create({
         marginLeft: 5,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginTop: 10,
+        fontSize: 16,
+        fontWeight: '600',
+        marginVertical: 5,
     },
     movementText: {
         fontSize: 16,
@@ -494,7 +499,38 @@ const styles = StyleSheet.create({
         fontWeight: 600,
     },
     movementRow: {
-        marginBottom: 5,
+        marginVertical: 5,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    rowText: {
+        flexDirection: 'row',
+        paddingLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '80%',
+    },
+    movementLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '85%',
+    },
+    movementTextBlock: {
+        flexDirection: 'row',
+
+    },
+    movementLabel: {
+        fontSize: 16,
+        color: '#6456B1',
+        fontWeight: "500",
+        lineHeight: 24,
+        width: '10%',
+    },
+    movementDetail: {
+        fontSize: 16,
+        // width: '85%',
+        color: 'black', // Example color for movement details
     },
     movementName: {
         // marginLeft: 20,
@@ -868,5 +904,25 @@ const styles = StyleSheet.create({
     },
     commentHistoryBlock: {
         width: '70%',
-    }
+    },
+    videoModalContainer: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    thumbnail: {
+        width: 100,
+        height: 100,
+        marginBottom: 10,
+        borderRadius: 8,
+        backgroundColor: "#DDD",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    noVideoText: {
+        fontSize: 14,
+        color: "gray",
+    },
+
 });

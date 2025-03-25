@@ -585,7 +585,7 @@ export default function HiitScreen({ route }) {
                                                     <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
                                                 </View>
                                                 {movement.exercise === "Rest" ? "" :
-                                                    <TouchableOpacity onPress={() => setSelectedMovement(movement)}>
+                                                    <TouchableOpacity style={styles.movementRight} onPress={() => setSelectedMovement(movement)}>
                                                         <Ionicons name="play-circle" size={24} color="black" />
                                                     </TouchableOpacity>
                                                 }
@@ -876,7 +876,11 @@ const styles = StyleSheet.create({
     movementLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '85%',
+        width: '90%',
+        paddingRight: 10, 
+    },
+    movementRight: {
+        width: '10%',
     },
     movementTextBlock: {
         flexDirection: 'row',
