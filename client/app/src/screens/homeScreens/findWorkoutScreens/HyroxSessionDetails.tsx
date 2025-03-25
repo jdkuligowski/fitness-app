@@ -97,40 +97,54 @@ export default function HyroxDetails({ route }) {
         }
     }, [workoutPlans]);
 
+
     useEffect(() => {
-        const loadFilteredMovements = async () => {
+        // 1) Fetch workout data and conditioning data
+        //    and then load the filtered movements (all in one shot).
+        (async () => {
+            setIsBouncerLoading(true);
             try {
-                setIsBouncerLoading(true);
+                // A) fetchWorkoutData()
+                await fetchWorkoutData(); // after this, your workoutData is in context or state
 
+                // B) fetchConditioningData()
+                await fetchConditioningData(); // now you have conditioningData
+
+                // C) loadFilteredMovements()
                 const stored = await AsyncStorage.getItem("activeEquipmentFilter");
-                if (!stored) {
-                    console.warn("No stored filter found; fallback to all movements?");
-                    // Optionally fetch all movements or do nothing
-                    return;
-                }
-                const parsed = JSON.parse(stored);
-                const filterId = parsed.filterId; // e.g. 12
-                if (!filterId) {
-                    console.warn("No filterId in active filter data; fallback?");
-                    return;
-                }
+                if (stored) {
+                    const { filterId } = JSON.parse(stored);
+                    if (filterId) {
+                        const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
+                        console.log("Fetching filtered movements from:", url);
+                        const response = await fetch(url);
+                        const data = await response.json();
 
-                const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
-                console.log("Fetching filtered movements from:", url);
-                const response = await fetch(url);
-                const data = await response.json();
-
-                setFilteredWorkoutData(workoutData);  // "data" will be an array of Movement objects 
-                console.log('Filtered movements: ', data)
+                        // If you actually want to set the real filtered data:
+                        setFilteredWorkoutData(data);
+                    } else {
+                        console.warn("No filterId in active filter data; fallback to all?");
+                        setFilteredWorkoutData(workoutData);
+                    }
+                } else {
+                    // No filter, fallback to all
+                    setFilteredWorkoutData(workoutData);
+                }
             } catch (error) {
-                console.error("Error fetching filtered movements:", error);
-            } finally {
-                setIsBouncerLoading(false);
+                console.error("Error fetching data:", error);
             }
-        };
-
-        loadFilteredMovements();
+        })();
     }, []);
+
+    useEffect(() => {
+        // 2) Once we have both “filteredWorkoutData” and “conditioningData” loaded,
+        //    generate the workout plans
+        if (filteredWorkoutData.length > 0 && conditioningData.length > 0) {
+            generateWorkoutPlans();
+            setIsBouncerLoading(false);
+        }
+    }, [filteredWorkoutData, conditioningData]);
+
 
 
     // Filter workout data for a section
@@ -404,9 +418,6 @@ export default function HyroxDetails({ route }) {
         return plan;
     };
 
-    // 6) generateConditioningSection
-    // Modified generateConditioningSection
-    // 6) generateConditioningSection
     function generateConditioningSection(targetDuration, { isBoth = false } = {}) {
         // If "Both," we want EXACT “targetDuration” from the rule. 
         // So skip the ">= 20" logic if isBoth is true.
@@ -486,222 +497,6 @@ export default function HyroxDetails({ route }) {
 
 
 
-    // // Generate a single workout plan
-    // const generateWorkoutPlan = () => {
-    //     const allowedTimes = [30, 40, 50, 60, 75];
-    //     const closestTime = allowedTimes.reduce((prev, curr) =>
-    //         Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
-    //     );
-    //     console.log(`Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
-
-    //     const rules = strengthRulesMap[closestTime];
-    //     if (!rules) {
-    //         console.error(`No rules found for ${closestTime} minutes.`);
-    //         return [];
-    //     }
-
-    //     const workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
-    //     const workoutKeys = Object.keys(rules).filter((key) => key.startsWith(workoutKeyBase));
-    //     if (workoutKeys.length === 0) {
-    //         console.error(`No workout keys found for type: ${selectedWorkout}`);
-    //         return [];
-    //     }
-
-    //     const selectedKey = workoutKeys[Math.floor(Math.random() * workoutKeys.length)];
-    //     const selectedRules = rules[selectedKey];
-    //     if (!selectedRules) {
-    //         console.error(`No rules found for selected workout key: ${selectedKey}`);
-    //         return [];
-    //     }
-
-    //     // Key Swap for "advanced_movements" based on user’s complexity
-    //     // E.g. if user is "Intermediate", we want to replace "advanced_movements" with "inter_movements"
-    //     const complexityKey = (complexity === "Intermediate")
-    //         ? "inter_movements"
-    //         : "advanced_movements"; // or you can handle "Beginner" or "Advanced" differently
-
-    //     // traverse each section’s filters, swap advanced->inter
-    //     selectedRules.sections.forEach((section) => {
-    //         section.filters.forEach((filterSet) => {
-    //             filterSet.forEach((f) => {
-    //                 if (f.key === "advanced_movements") {
-    //                     f.key = complexityKey;
-    //                 }
-    //             });
-    //         });
-    //     });
-
-    //     const usedExercises = new Set();
-    //     const plan = [];
-
-    //     // Add Warm-Up A Section (1 movement)
-    //     const warmUpA = filterWarmUpA();
-    //     plan.push({
-    //         partLabel: commonRules.warmUpA.section,
-    //         movements: warmUpA,
-    //         sectionType: "single",
-    //         filters: commonRules.warmUpA.filters, // Attach filters for Warm-Up A
-    //     });
-
-    //     // // Add Warm-Up B Section (up to 3 movements)
-    //     // const warmUpB = filterWarmUpMovements(usedExercises, selectedWorkout);
-    //     // plan.push({
-    //     //     partLabel: commonRules.warmUpB.section,
-    //     //     movements: warmUpB,
-    //     //     sectionType: "superset",
-    //     //     filters: "Warm-Up Filter Logic", // Example for Warm-Up B
-    //     // });
-
-    //     // 1) Convert "full_body_1" to "Full Body 1" 
-    //     // (the same key you used for synergy but now we treat it as warm-up logic)
-    //     const warmUpBase = toWarmUpKey(selectedKey);
-    //     if (!warmUpBase) {
-    //         console.warn("Could not parse warm-up key from", selectedKey, "– skipping Warm Up B");
-    //     } else {
-    //         // 2) Randomly pick Option 1 or Option 2
-    //         const randomOption = Math.random() < 0.5 ? "Option 1" : "Option 2";
-    //         const warmUpKey = `${warmUpBase} (${randomOption})`;
-    //         // e.g. "Full Body 1 (Option 1)"
-
-    //         // 3) Grab from your new ruleSet
-    //         const warmUpObj = ruleSet[warmUpKey];
-    //         if (!warmUpObj) {
-    //             console.warn("No Warm Up B ruleSet entry for", warmUpKey, "– skipping Warm Up B");
-    //             plan.push({
-    //                 partLabel: commonRules.warmUpB.section, // "Warm up B"
-    //                 movements: [],
-    //                 sectionType: "single",
-    //             });
-    //         } else {
-    //             // warmUpObj => { movement1: "...", movement2: "...", movement3: "...", movement4: "..." }
-    //             const listedMovements = Object.values(warmUpObj).filter(Boolean);
-    //             // e.g. ["Couch w. Rotation","Banded Dislocate","HK Rotation","Counterbalance Squat"]
-
-    //             // 4) For each warm-up movement, find the actual DB entry in filteredWorkoutData
-    //             //    so you can reference its ID or other fields. If you only need the name, you can skip this step.
-    //             const finalWarmUpMovements = listedMovements.map((name) => {
-    //                 // Attempt to find in filteredWorkoutData by matching .exercise
-    //                 const matched = filteredWorkoutData.find((ex) =>
-    //                     (ex.exercise || "").trim().toLowerCase() === name.trim().toLowerCase()
-    //                 );
-    //                 if (!matched) {
-    //                     console.warn(`Movement "${name}" not found in filteredWorkoutData. Using name only.`);
-    //                     return name;
-    //                 }
-    //                 // If found, you can store the entire object or just ex.exercise
-    //                 return matched.exercise; // or matched
-    //             });
-
-    //             // 5) Add to usedExercises if you want to block duplicates
-    //             finalWarmUpMovements.forEach((mov) => usedExercises.add(mov));
-
-    //             // 6) Push it onto the plan
-    //             plan.push({
-    //                 partLabel: commonRules.warmUpB.section,
-    //                 movements: finalWarmUpMovements,
-    //                 sectionType: finalWarmUpMovements.length > 1 ? "superset" : "single",
-    //             });
-    //         }
-    //     }
-
-
-    //     // Add Main Workout Sections
-    //     selectedRules.sections.forEach((sectionRule, sectionIndex) => {
-    //         const movements = [];
-    //         const sectionFilters = []; // Track filters applied in this section
-
-    //         sectionRule.filters.forEach((filterSet, index) => {
-    //             console.log(`Applying filters for section: ${sectionRule.section}, FilterSet ${index}:`, filterSet);
-
-    //             const movementCandidates = filterWorkoutData(filterSet, usedExercises, selectedWorkout);
-    //             console.log(`Movement Candidates for FilterSet ${index}:`, movementCandidates);
-
-    //             if (movementCandidates.length > 0) {
-    //                 const selectedMovement =
-    //                     movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
-    //                 console.log(`Selected Movement for FilterSet ${index}:`, selectedMovement);
-
-    //                 movements.push(selectedMovement);
-    //                 usedExercises.add(selectedMovement);
-    //                 sectionFilters.push(filterSet); // Store applied filters
-    //             }
-    //         });
-
-    //         // // Ensure "Back Squat" appears in the first section
-    //         // if (sectionIndex === 0 && !movements.includes("Back Squat")) {
-    //         //     console.log("Ensuring Back Squat is in the first section.");
-    //         //     movements.unshift("Back Squat"); // Add Back Squat to the beginning of the movements array
-    //         //     usedExercises.add("Back Squat");
-    //         // }
-
-    //         plan.push({
-    //             partLabel: sectionRule.section,
-    //             movements,
-    //             sectionType: movements.length > 1 ? "superset" : "single",
-    //             filters: sectionFilters, // Attach filters to this section
-    //         });
-    //     });
-
-    //     // Add or Replace Conditioning Section
-    //     if (selectedFinish === "Conditioning") {
-    //         const conditioningSection = generateConditioningSection(usedExercises);
-
-    //         if (closestTime === 75) {
-    //             // Append conditioning as an additional section
-    //             plan.push(conditioningSection);
-    //         } else {
-    //             // Replace the last section with conditioning
-    //             plan[plan.length - 1] = conditioningSection;
-    //         }
-    //     }
-
-    //     return plan.slice(0, 9);
-    // };
-
-    // const generateConditioningSection = (usedExercises) => {
-    //     // 1) Filter data so only those with duration === 8
-    //     const eightMinuteConditioning = conditioningData.filter(
-    //       (item) => item.duration === 8
-    //     );
-
-    //     // 2) Fallback: If no eight-minute items, use entire conditioningData
-    //     const sourceData = eightMinuteConditioning.length > 0
-    //       ? eightMinuteConditioning
-    //       : conditioningData;
-
-    //     // 3) Pick a random from the (filtered or fallback) list
-    //     const randomConditioningWorkout = 
-    //       sourceData[Math.floor(Math.random() * sourceData.length)];
-
-    //     // 4) Select an aerobic type
-    //     const aerobicOptions = ["Bike", "Row", "Ski"];
-    //     const selectedAerobicType = aerobicOptions[Math.floor(Math.random() * aerobicOptions.length)];
-
-    //     // 5) Map movements
-    //     const movements = randomConditioningWorkout.conditioning_details.map((movement) => {
-    //       let exercise = movement.exercise;
-    //       if (exercise.toLowerCase() === "aerobic") {
-    //         exercise = selectedAerobicType; 
-    //       }
-    //       return {
-    //         movementOrder: movement.movement_order,
-    //         exercise,
-    //         detail: movement.detail || "No detail provided",
-    //       };
-    //     });
-
-    //     // 6) Return the structured section
-    //     return {
-    //       partLabel: "Conditioning",
-    //       workoutId: randomConditioningWorkout.id,
-    //       workoutName: randomConditioningWorkout.name,
-    //       notes: randomConditioningWorkout.notes,
-    //       movements,
-    //       sectionType: movements.length > 1 ? "superset" : "single",
-    //       rest: randomConditioningWorkout.rest,
-    //     };
-    //   };
-
 
 
     const toWarmUpKey = (str) => {
@@ -717,26 +512,11 @@ export default function HyroxDetails({ route }) {
         // e.g. "Full Body 1"
     }
 
-    // const generateWorkoutPlans = () => {
-    //     const plans = [];
-    //     for (let i = 0; i < 10; i++) {
-    //         plans.push(generateHyroxPlan());
-    //     }
-    //     setWorkoutPlans(plans);
-
-    //     if (flatListRef.current) {
-    //         flatListRef.current.scrollToIndex({ index: 0, animated: true });
-    //     }
-    // };
-
     const generateWorkoutPlans = () => {
         const rawPlans = [];
         for (let i = 0; i < 10; i++) {
             rawPlans.push(generateHyroxPlan());
         }
-
-        // We can deduplicate so that if the entire plan is identical, we only keep one.
-        // For instance, a simple “key” is JSON.stringify(...) – but watch out for different orders if you care.
 
         const uniquePlans = [];
         const planSignatures = new Set();
@@ -752,37 +532,6 @@ export default function HyroxDetails({ route }) {
         setWorkoutPlans(uniquePlans);
     };
 
-    // // Generate multiple workout plans
-    // const generateWorkoutPlans = () => {
-    //     const plans = [];
-    //     for (let i = 0; i < 5; i++) {
-    //         plans.push(generateWorkoutPlan());
-    //     }
-    //     setWorkoutPlans(plans);
-    //     // console.log("Generated workout plans:", JSON.stringify(filteredWorkoutData, null, 2));
-    //     console.log("Filtered data length:", filteredWorkoutData.length);
-    //     // console.log("Original data:", JSON.stringify(plans, null, 2));
-    //     // Are #304 and #305 present in the array?
-    //     const has304 = filteredWorkoutData.some(item => item.id === 304);
-    //     const has305 = filteredWorkoutData.some(item => item.id === 305);
-
-    //     console.log("Has ID #304?", has304);
-    //     console.log("Has ID #305?", has305);
-    // };
-
-    // Fetch data and generate workout plans
-    useEffect(() => {
-        fetchWorkoutData();
-        fetchConditioningData();
-    }, []);
-
-
-
-    useEffect(() => {
-        if (filteredWorkoutData.length > 0 && conditioningData.length > 0) {
-            generateWorkoutPlans();
-        }
-    }, [filteredWorkoutData, conditioningData]);
 
 
 
@@ -1266,9 +1015,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(0, 0, 0, 0.12)',
         borderBottomWidth: 1,
         marginHorizontal: 20,
-        marginTop: 10,
-        // marginLeft: 30,
-        // marginRight: 30,
+        marginVertical: 10,
     },
     subDividerLine: {
         marginTop: 5,

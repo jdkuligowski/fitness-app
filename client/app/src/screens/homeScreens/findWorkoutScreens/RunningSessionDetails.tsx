@@ -62,26 +62,34 @@ export default function SuggestedRunningWorkouts({ route }) {
      * - If "Easy", returns warmupCooldownPaceInSeconds.
      * - Otherwise, parses any integer (positive or negative) and adjusts from userPacePerKmInSeconds.
      */
-    const calculateTargetPace = (targetPaceStr) => {
-        // Check if targetPaceStr is valid and a string
-        if (typeof targetPaceStr !== "string" || !targetPaceStr) {
-            console.warn("Invalid or missing target_pace:", targetPaceStr);
-            return userPacePerKmInSeconds; // Fallback to default pace
+    const calculateTargetPace = (rawTargetPace) => {
+        if (rawTargetPace == null) {
+            console.warn("Missing target_pace:", rawTargetPace);
+            return userPacePerKmInSeconds;
         }
 
-        const paceLower = targetPaceStr.trim().toLowerCase();
-        if (paceLower === "easy") {
+        // Always convert to string
+        const targetPaceStr = String(rawTargetPace).trim().toLowerCase();
+
+        if (!targetPaceStr) {
+            console.warn("Invalid target_pace:", rawTargetPace);
+            return userPacePerKmInSeconds;
+        }
+
+        if (targetPaceStr === "easy") {
             return warmupCooldownPaceInSeconds; // Easy pace
         }
 
+        // If it's numeric (ex: '327'), parse it
         const adjustment = parseInt(targetPaceStr, 10);
         if (isNaN(adjustment)) {
-            console.warn(`Could not parse target pace: "${targetPaceStr}"`);
-            return userPacePerKmInSeconds; // Fallback to default pace
+            console.warn(`Could not parse target pace: "${rawTargetPace}"`);
+            return userPacePerKmInSeconds;
         }
 
         return userPacePerKmInSeconds - adjustment;
     };
+
 
 
     /**
@@ -459,7 +467,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                                 style={styles.profileButton}
                                 onPress={() => showModalForWorkout(item)}
                             >
-                                <Ionicons name="heart-outline" color={"black"} size={20} />
+                                <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                             </TouchableOpacity>
                         </View>
 
@@ -483,9 +491,8 @@ export default function SuggestedRunningWorkouts({ route }) {
 
                 <View style={styles.dividerLine} />
                 <Text style={styles.workoutActivity}>{item.session_name}</Text>
-                {/* // <Text style={styles.summaryDetail}>{item.session_ name}</Text> */}
                 {item.notes === "NULL" ?
-                    <Text style={styles.emptyBox}></Text>
+                    null
                     : (
                         <Text style={styles.summaryDetail}>{item.notes}</Text>
                     )}
@@ -810,10 +817,8 @@ const styles = StyleSheet.create({
     dividerLine: {
         borderBottomColor: 'rgba(0, 0, 0, 0.12)',
         borderBottomWidth: 1,
-        margin: 20,
-        marginTop: 10,
-        // marginLeft: 30,
-        // marginRight: 30,
+        marginHorizontal: 20,
+        marginVertical: 10,
     },
     subDividerLine: {
         marginTop: 5,
@@ -826,6 +831,8 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         fontWeight: 700,
         fontSize: 16,
+        paddingBottom: 0,
+        marginBottom: 0,
         // paddingBottom: 5,
     },
     loadingContainer: {
@@ -843,12 +850,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     workoutList: {
-        paddingRight: 20,
-        paddingLeft: 20,
+        padding: 20,
+        paddingTop: 0,
         height: 350,
     },
     sectionContainer: {
-        marginBottom: 10,
+        // marginBottom: 10,
         paddingTop: 10,
         // paddingBottom: 10,
         // borderWidth: 1,
@@ -1058,5 +1065,6 @@ const styles = StyleSheet.create({
     emptyBox: {
         margin: 0,
         padding: 0,
+        height: 0,
     },
 });

@@ -492,10 +492,8 @@ const styles = StyleSheet.create({
     dividerLine: {
         borderBottomColor: 'rgba(0, 0, 0, 0.12)',
         borderBottomWidth: 1,
-        margin: 20,
-        marginTop: 10,
-        // marginLeft: 30,
-        // marginRight: 30,
+        marginHorizontal: 20,
+        marginVertical: 10,
     },
     subDividerLine: {
         marginTop: 5,
@@ -525,6 +523,7 @@ const styles = StyleSheet.create({
     },
     workoutList: {
         padding: 20,
+        paddingTop: 0,
         height: 350,
     },
     sectionContainer: {

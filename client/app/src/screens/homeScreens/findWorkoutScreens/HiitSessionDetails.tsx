@@ -53,6 +53,11 @@ export default function HiitScreen({ route }) {
         return closestValid;
     };
 
+    useEffect(() => {
+        if (flatListRef.current && workoutPlans.length > 0) {
+            flatListRef.current.scrollToIndex({ index: 0, animated: true });
+        }
+    }, [workoutPlans]);
 
     useEffect(() => {
         const loadFilteredMovements = async () => {
