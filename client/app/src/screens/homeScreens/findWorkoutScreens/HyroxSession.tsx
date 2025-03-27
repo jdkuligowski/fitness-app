@@ -20,7 +20,7 @@ export default function HyroxSession({ route }) {
     const [selectedWorkout, setSelectedWorkout] = useState(null);
     const [selectedFinish, setSelectedFinish] = useState(null);
     const [selectedValue, setSelectedValue] = useState(50); // Default selected value
-    const data = Array.from({ length: (60 - 30 + 3) }, (_, i) => i + 30);
+    const data = Array.from({ length: 63 }, (_, i) => i); // Minutes from 0 to 60
     const flatListRef = useRef(null); // Reference to FlatList
     const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
     const [activeFilterSet, setActiveFilterSet] = useState(null);
@@ -48,12 +48,16 @@ export default function HyroxSession({ route }) {
         }
     }, [userData]);
 
+    // Then in your useEffect:
     useEffect(() => {
-        // Automatically scroll to the default value
         if (flatListRef.current) {
-            flatListRef.current.scrollToIndex({ index: selectedValue, animated: true });
+            const idx = data.findIndex((item) => item === selectedValue);
+            // If found, scroll to that index
+            if (idx !== -1) {
+                flatListRef.current.scrollToIndex({ index: idx, animated: true });
+            }
         }
-    }, []);
+    }, [selectedValue]);
 
     const handleSaveDivision = async () => {
         try {

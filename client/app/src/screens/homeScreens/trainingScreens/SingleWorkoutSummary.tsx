@@ -57,8 +57,6 @@ export default function WorkoutSummary({ route, navigation }) {
                     params: { user_id: userId }
                 });
 
-
-
                 if (activityType === 'Gym') {
                     const { workout, movement_history, conditioning_history } = response.data;
                     setUserWorkouts(workout);
@@ -546,7 +544,7 @@ export default function WorkoutSummary({ route, navigation }) {
 
                                         {session.hiit_details.map((block, i) => (
                                             <View key={i} style={styles.sectionContainer}>
-                                                <Text style={styles.sectionTitle}>{block.block_name}</Text>
+                                                <Text style={styles.sectionTitle}>{block.block_name}: {block.rep_scheme}</Text>
                                                 {block.hiit_movements.map((movement, j) => (
                                                     <View key={j} style={styles.movementRow}>
                                                         <View style={styles.movementLeft}>
@@ -554,24 +552,27 @@ export default function WorkoutSummary({ route, navigation }) {
                                                                 <Text style={styles.movementLabel}>{`${j + 1}: `}</Text>
                                                                 <Text style={styles.movementDetail}>{movement.exercise_name}</Text>
                                                                 {movement.rest_period && (
-                                                                    <Text style={styles.restPeriod}> (Rest)</Text>
+                                                                    <Text style={styles.restPeriod}></Text>
                                                                 )}
                                                             </Text>
                                                         </View>
-                                                        <TouchableOpacity
-                                                            onPress={() => {
-                                                                if (movement.movements?.portrait_video_url) {
-                                                                    setSelectedMovement({
-                                                                        ...movement,
-                                                                        portrait_video_url: movement.movements.portrait_video_url,
-                                                                    });
-                                                                } else {
-                                                                    Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Ionicons name="play-circle" size={24} color="black" />
-                                                        </TouchableOpacity>
+                                                        {movement.exercise_name === 'Rest' ?
+                                                            null :
+                                                            <TouchableOpacity
+                                                                onPress={() => {
+                                                                    if (movement.movements?.portrait_video_url) {
+                                                                        setSelectedMovement({
+                                                                            ...movement,
+                                                                            portrait_video_url: movement.movements.portrait_video_url,
+                                                                        });
+                                                                    } else {
+                                                                        Alert.alert("No video available", "This movement doesn't have an associated video.");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Ionicons name="play-circle" size={24} color="black" />
+                                                            </TouchableOpacity>
+                                                        }
                                                     </View>
                                                 ))}
                                                 <View style={styles.subDividerLine}></View>

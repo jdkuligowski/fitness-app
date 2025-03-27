@@ -291,13 +291,9 @@ export default function HyroxDetails({ route }) {
 
         if (selectedFinish === "Conditioning") {
             // Just create a plan array with one conditioning section 
-            // using the user’s (closest) time:
+            // using the user’s (closest) time — BUT we also clamp below
+            // inside generateConditioningSection() for "Conditioning only."
             const condSection = generateConditioningSection(closestTime);
-            // condSection will have partLabel: "Conditioning", etc.
-
-            // If condSection is empty / no match, you could allow fallback or do something else:
-            // But your current generateConditioningSection already uses fallback if none match.
-
             return [condSection]; // just an array of one
         }
 
@@ -370,7 +366,6 @@ export default function HyroxDetails({ route }) {
             });
         }
 
-
         // For each section, if "Conditioning", handle differently
         selectedRules.sections.forEach((sectionRule) => {
             const { section, filters, duration } = sectionRule;
@@ -386,6 +381,7 @@ export default function HyroxDetails({ route }) {
                     isBoth: (selectedFinish === "Both")
                 });
                 plan.push(condSection);
+
             } else {
                 // It's e.g. "Strong 1", "Build 1", "Pump 1"
                 // We'll filter the DB for each filterSet, pick 1 movement
@@ -396,7 +392,9 @@ export default function HyroxDetails({ route }) {
                         // plus "usedExercises" so we don’t repeat
                         const movementCandidates = filterWorkoutData(filterSet, usedExercises, "Hyrox");
                         if (movementCandidates.length > 0) {
-                            const chosenMovement = movementCandidates[Math.floor(Math.random() * movementCandidates.length)];
+                            const chosenMovement = movementCandidates[
+                                Math.floor(Math.random() * movementCandidates.length)
+                            ];
                             finalMovements.push(chosenMovement);
                             usedExercises.add(chosenMovement);
                         }
@@ -411,26 +409,34 @@ export default function HyroxDetails({ route }) {
             }
         });
 
-        // If the user picked "selectedFinish === 'Conditioning' or 'Both'", 
-        // you can do extra logic to append or replace a final conditioning, 
-        // depending on your design. 
+        // If the user picked "selectedFinish === 'Conditioning' or 'Both'",
+        // you can do extra logic to append or replace a final conditioning,
+        // depending on your design.
 
         return plan;
     };
 
-    function generateConditioningSection(targetDuration, { isBoth = false } = {}) {
-        // If "Both," we want EXACT “targetDuration” from the rule. 
-        // So skip the ">= 20" logic if isBoth is true.
-        // If user is "Conditioning only," then we do the ">= 20 and <= targetDuration" logic.
+    // -------------------------- CLAMP FUNCTION --------------------------
+    function clampToAllowedTimes(userSelectedTime) {
+        // userSelectedTime might be 8, 25, 30, 35, 60, etc.
+        if (userSelectedTime < 30) {
+            return 20;  // anything < 30 => 20
+        } else if (userSelectedTime < 40) {
+            return 30;  // 30..39 => 30
+        } else {
+            return 40;  // 40 or more => 40
+        }
+    }
 
+    // ------------------ generateConditioningSection ---------------------
+    function generateConditioningSection(targetDuration, { isBoth = false } = {}) {
         let valid;
 
         if (isBoth) {
-            // Scenario: The rule says "duration: 40" or "duration: 20"
+            // Scenario: The rule says "duration: 20" or "duration: 40", etc.
             // so pick from conditioningData where item.duration === targetDuration
             valid = conditioningData.filter(item => item.duration === targetDuration);
 
-            // If we fail to find any exact match, you can fallback or return empty
             if (valid.length === 0) {
                 console.warn(`No conditioning workouts exactly matching rule of ${targetDuration} mins.`);
                 return {
@@ -442,13 +448,14 @@ export default function HyroxDetails({ route }) {
 
         } else {
             // Scenario: "Conditioning only" from the user
-            // So we do our "≥ 20 and ≤ user’s requested time" logic:
-            valid = conditioningData.filter(item =>
-                item.duration >= 20 && item.duration <= targetDuration
-            );
+            // 1) First clamp the user’s targetDuration to [20, 30, 40]
+            const finalTime = clampToAllowedTimes(targetDuration);
+
+            // 2) Now pick from conditioningData where item.duration === finalTime
+            valid = conditioningData.filter(item => item.duration === finalTime);
 
             if (valid.length === 0) {
-                console.warn(`No conditioning workouts in [20..${targetDuration}] range found.`);
+                console.warn(`No conditioning workouts for forced duration ${finalTime} found.`);
                 return {
                     partLabel: "Conditioning",
                     movements: [],
@@ -494,6 +501,7 @@ export default function HyroxDetails({ route }) {
             rest: chosen.rest,
         };
     }
+
 
 
 

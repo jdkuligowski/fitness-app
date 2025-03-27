@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from conditioning_summary.models import ConditioningOverview
 
 # Path to your CSV file
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Conditioning Overview (1).csv"
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Conditioning Overview (2).csv"
 
 class Command(BaseCommand):
     help = "Update or create ConditioningOverview records from a CSV file."

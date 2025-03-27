@@ -4,7 +4,7 @@ from conditioning_summary.models import ConditioningOverview
 from conditioning_details.models import ConditioningDetail
 
 # Example CSV path – adjust as needed
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Conditioning Details.csv"
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Conditioning Details (1).csv"
 
 class Command(BaseCommand):
     help = "Create or update ConditioningDetail records from a CSV file."

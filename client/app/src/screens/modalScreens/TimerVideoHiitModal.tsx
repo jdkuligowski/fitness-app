@@ -13,32 +13,46 @@ import { Colours } from "../../components/styles";
 import * as Speech from "expo-speech";
 
 const TimerVideoHiitModal = ({
-  hiitMovements = [],
+  hiitMovements = [],      // array of movements (each with a 'duration')
   isVisible,
   onClose,
   workoutName,
-  workoutType // e.g. "EMOM", "AMRAP", etc.
+  workoutType,             // "EMOM", "AMRAP", etc.
+  totalWorkoutDuration = 40 // e.g. 40 minutes
 }) => {
-  useKeepAwake(); // Prevent screen from sleeping
+  useKeepAwake(); // Keep screen awake
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(hiitMovements[0]?.duration ?? 60);
+  // 1) Calculate cycle duration
+  const cycleDuration = hiitMovements.reduce((sum, m) => sum + (m.duration || 60), 0);
+  // e.g. if 10 movements each 1 min => cycleDuration = 10
+  // 2) Calculate how many cycles
+  const totalCycles = cycleDuration > 0
+    ? Math.floor(totalWorkoutDuration / (cycleDuration / 60)) // careful with min->sec
+    : 1;
+
+  /**
+   * Explanation for that math:
+   * - `cycleDuration` is in seconds if each movement has `duration` in seconds.
+   * - But your `totalWorkoutDuration` is presumably in minutes (40).
+   * If each movement's `duration` is actually "60" meaning 60s, that sums to "60 * 10 = 600" seconds for the cycle.
+   * => 600 seconds = 10 minutes. So we do: cycleDuration / 60 = 10 minutes. Then total / that => 40 / 10 = 4 cycles.
+   *
+   * If your durations are stored in minutes, adjust accordingly!
+   */
+
+  // States
+  const [cycleIndex, setCycleIndex] = useState(0);     // which cycle we’re on
+  const [currentIndex, setCurrentIndex] = useState(0); // which movement in the cycle
+  const [timeLeft, setTimeLeft] = useState(
+    hiitMovements[0]?.duration ?? 60
+  );
   const [isRunning, setIsRunning] = useState(false);
 
   const videoRef = useRef(null);
 
-  useEffect(() => {
-    if (isVisible && hiitMovements.length > 0) {
-      const movementName = hiitMovements[currentIndex]?.movements?.exercise ?? "";
-      if (/rest/i.test(movementName)) {
-        Speech.speak("Rest for 60 seconds", { language: "en-GB" });
-      } else {
-        Speech.speak(`Start 60 seconds of ${movementName}`, { language: "en-GB" });
-      }
-    }
-  }, [isVisible, currentIndex, hiitMovements]);
-
+  // ─────────────────────────────────────────────────────────────────────────────
   // Timer logic
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     let interval;
     if (isRunning && timeLeft > 0) {
@@ -46,79 +60,151 @@ const TimerVideoHiitModal = ({
         setTimeLeft((prev) => {
           const newVal = prev - 1;
 
+          // EMOM "10 seconds until..." logic
           if (
             workoutType?.toUpperCase() === "EMOM" &&
-            newVal === 10 &&
-            currentIndex < hiitMovements.length - 1
+            newVal === 10
           ) {
-            const nextMovement =
-              hiitMovements[currentIndex + 1]?.movements?.exercise || "rest";
-            Speech.speak(`10 seconds until ${nextMovement}`, {
-              language: "en-GB",
-            });
+            // We figure out the next movement name
+            const { nextCycleIndex, nextMovementIndex } = getNextIndexes();
+            // If we haven't finished all cycles
+            if (nextCycleIndex < totalCycles) {
+              const nextMovementName =
+                hiitMovements[nextMovementIndex]?.movements?.exercise || "rest";
+              Speech.speak(`10 seconds until ${nextMovementName}`, {
+                language: "en-GB",
+              });
+            }
           }
 
           if (newVal === 0) {
-            handleNext();
+            handleNext(); // go to next movement or cycle
           }
           return newVal;
         });
       }, 1000);
     }
-
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, currentIndex, workoutType, hiitMovements]);
+  }, [isRunning, timeLeft, cycleIndex, currentIndex, workoutType]);
 
-  // On currentIndex change, reset time + set up the video
+  // ─────────────────────────────────────────────────────────────────────────────
+  // On currentIndex/cycleIndex change, reset timeLeft, reset video
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    setTimeLeft(hiitMovements[currentIndex]?.duration ?? 60);
+    // figure out the movement for the currentIndex
+    const movement = hiitMovements[currentIndex];
+    const newDuration = movement?.duration ?? 60;
+    setTimeLeft(newDuration);
 
-    // Stop old video
     videoRef.current?.stopAsync().then(() => {
-      // If we are running, play the new one
       if (isRunning) {
         videoRef.current?.playAsync().catch((err) =>
           console.warn("Video play error:", err)
         );
       }
     });
-  }, [currentIndex, hiitMovements, isRunning]);
+  }, [currentIndex, cycleIndex, isRunning]);
 
-  const handleNext = () => {
-    if (currentIndex < hiitMovements.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      handleClose();
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Figure out the *next* movement and cycle we’d be on if we did "handleNext"
+  const getNextIndexes = () => {
+    let nextCycleIndex = cycleIndex;
+    let nextMovementIndex = currentIndex + 1;
+
+    // If we finished the movements in this cycle
+    if (nextMovementIndex >= hiitMovements.length) {
+      nextMovementIndex = 0;
+      nextCycleIndex += 1;
     }
+    return { nextCycleIndex, nextMovementIndex };
+  };
+
+  // Announce new movement (or rest)
+  const announceMovement = (movementName) => {
+    if (/rest/i.test(movementName)) {
+      Speech.speak("Rest for 60 seconds", { language: "en-GB" });
+    } else {
+      Speech.speak(`Start 60 seconds of ${movementName}`, { language: "en-GB" });
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Movement Navigation
+  // ─────────────────────────────────────────────────────────────────────────────
+  const handleNext = () => {
+    const { nextCycleIndex, nextMovementIndex } = getNextIndexes();
+
+    // If we've done all cycles, end
+    if (nextCycleIndex >= totalCycles) {
+      handleClose();
+      return;
+    }
+
+    // Otherwise, set new indexes
+    setCycleIndex(nextCycleIndex);
+    setCurrentIndex(nextMovementIndex);
+
+    // Announce the next movement
+    const nextMovementName =
+      hiitMovements[nextMovementIndex]?.movements?.exercise || "rest";
+    announceMovement(nextMovementName);
   };
 
   const handlePrevious = () => {
-    if (currentIndex > 0) {
+    // If we’re at the start of a cycle and not on the first cycle,
+    // we jump back to the end of the previous cycle
+    if (currentIndex === 0 && cycleIndex > 0) {
+      // Go to the last movement of the previous cycle
+      setCycleIndex(cycleIndex - 1);
+      setCurrentIndex(hiitMovements.length - 1);
+    } else if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
     }
+    // We do not handle going before the start of the entire workout
   };
 
+  // This controls BOTH the timer and the initial movement announcement (if needed)
   const togglePlayPause = async () => {
     const newIsRunning = !isRunning;
     setIsRunning(newIsRunning);
 
     if (newIsRunning) {
+      // If we’re about to “start” and we’re EXACTLY at the beginning of a brand new exercise,
+      // we announce the movement now (only if we haven’t started it).
+      // That is, if timeLeft is at the movement’s full duration.
+      // e.g. if hiitMovements[currentIndex] is 60 but timeLeft is 60 => we haven't run it yet
+
+      const movement = hiitMovements[currentIndex];
+      // If timeLeft matches movement.duration exactly, we haven't played it yet
+      if (timeLeft === (movement?.duration ?? 60)) {
+        const movementName = movement?.movements?.exercise || "Movement";
+        announceMovement(movementName);
+      }
+      // Play the video
       await videoRef.current?.playAsync().catch((err) =>
         console.warn("Error playing video:", err)
       );
     } else {
+      // Pause the video
       await videoRef.current?.pauseAsync().catch((err) =>
         console.warn("Error pausing video:", err)
       );
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Closing
+  // ─────────────────────────────────────────────────────────────────────────────
   const handleClose = () => {
     resetModal();
     onClose();
   };
 
   const resetModal = () => {
+    setCycleIndex(0);
     setCurrentIndex(0);
     setTimeLeft(hiitMovements[0]?.duration ?? 60);
     setIsRunning(false);
@@ -126,9 +212,16 @@ const TimerVideoHiitModal = ({
     Speech.stop();
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // If no data
+  // ─────────────────────────────────────────────────────────────────────────────
   if (!hiitMovements.length) {
     return (
-      <Modal visible={isVisible} transparent={true} onRequestClose={handleClose}>
+      <Modal
+        visible={isVisible}
+        transparent={true}
+        onRequestClose={handleClose}
+      >
         <View style={styles.noDataContainer}>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Ionicons name="close" size={25} color="white" />
@@ -139,7 +232,12 @@ const TimerVideoHiitModal = ({
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Rendering
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const currentMovement = hiitMovements[currentIndex];
+  const movementName = currentMovement?.movements?.exercise || "Movement";
 
   return (
     <Modal
@@ -151,15 +249,18 @@ const TimerVideoHiitModal = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.headerContainer}>
-          <Text style={styles.workoutTitle}>
-            {workoutName ?? "HIIT Workout"}
-          </Text>
+          <Text style={styles.workoutTitle}>{workoutName || "HIIT Workout"}</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Ionicons name="close" size={25} color="white" />
           </TouchableOpacity>
         </View>
 
-        {/* Video Area - 30% height reserved */}
+        {/* Show current cycle + total cycles if you want */}
+        <Text style={styles.cycleLabel}>
+          Round {cycleIndex + 1} of {totalCycles}
+        </Text>
+
+        {/* Video area (30% height) */}
         <View style={styles.videoArea}>
           {currentMovement?.movements?.landscape_video_url ? (
             <Video
@@ -171,7 +272,6 @@ const TimerVideoHiitModal = ({
               onError={(err) => console.log("Video error:", err)}
             />
           ) : (
-            /* Same 30% area, just show text if no video */
             <View style={styles.videoPlaceholder}>
               <Text style={styles.noVideoText}>No video available</Text>
             </View>
@@ -179,23 +279,23 @@ const TimerVideoHiitModal = ({
         </View>
 
         {/* Movement Name */}
-        <Text style={styles.movementName}>
-          {currentMovement?.movements?.exercise || "Movement"}
-        </Text>
+        <Text style={styles.movementName}>{movementName}</Text>
 
-        {/* Timer + Controls */}
+        {/* Timer & Controls */}
         <View style={styles.timerBlock}>
           <Text style={styles.timerText}>
             {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
           </Text>
 
           <View style={styles.navigation}>
-            {currentIndex > 0 && (
+            {/* PREV */}
+            {(cycleIndex > 0 || currentIndex > 0) && (
               <TouchableOpacity onPress={handlePrevious} style={styles.controlButton}>
                 <Ionicons name="arrow-back-circle" size={50} color="white" />
               </TouchableOpacity>
             )}
 
+            {/* PLAY/PAUSE */}
             <TouchableOpacity onPress={togglePlayPause} style={styles.controlButton}>
               <Ionicons
                 name={isRunning ? "pause-circle" : "play-circle"}
@@ -204,11 +304,14 @@ const TimerVideoHiitModal = ({
               />
             </TouchableOpacity>
 
-            {currentIndex < hiitMovements.length - 1 ? (
+            {/* NEXT / STOP */}
+            {/* If we have more cycles left or more movements in this cycle, show next */}
+            {(cycleIndex < totalCycles - 1 || currentIndex < hiitMovements.length - 1) ? (
               <TouchableOpacity onPress={handleNext} style={styles.controlButton}>
                 <Ionicons name="arrow-forward-circle" size={50} color="white" />
               </TouchableOpacity>
             ) : (
+              // Otherwise, show a "stop" button
               <TouchableOpacity onPress={handleClose} style={styles.controlButton}>
                 <Ionicons name="stop-circle" size={50} color="red" />
               </TouchableOpacity>
@@ -216,25 +319,32 @@ const TimerVideoHiitModal = ({
           </View>
 
           {/* Coming Next Info */}
-          {currentIndex < hiitMovements.length - 1 ? (
-            <View style={styles.comingNextContainer}>
-              <Text style={styles.comingNextLabel}>Next: </Text>
-              <Text style={styles.comingNextText}>
-                {hiitMovements[currentIndex + 1]?.movements?.exercise || "Movement"}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.comingNextText}>
-              Last movement in this workout
-            </Text>
-          )}
+          {(() => {
+            // get the next indexes
+            const { nextCycleIndex, nextMovementIndex } = getNextIndexes();
+            if (nextCycleIndex >= totalCycles) {
+              return (
+                <Text style={styles.comingNextText}>
+                  This is the final movement.
+                </Text>
+              );
+            } else {
+              const nextName =
+                hiitMovements[nextMovementIndex]?.movements?.exercise || "Movement";
+              return (
+                <View style={styles.comingNextContainer}>
+                  <Text style={styles.comingNextLabel}>Next: </Text>
+                  <Text style={styles.comingNextText}>{nextName}</Text>
+                </View>
+              );
+            }
+          })()}
         </View>
       </View>
     </Modal>
   );
 };
 
-/* Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -248,26 +358,30 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 20,
     marginTop: 70,
-    marginBottom: 10,
     justifyContent: "center",
+    marginBottom: 10
+
   },
   workoutTitle: {
     fontSize: 18,
-    fontWeight: "500",
+    fontWeight: "700",
     color: "white",
   },
   closeBtn: {
     position: "absolute",
     right: 20,
   },
-
-  /* Reserve 30% screen height for the video region,
-     whether or not a video is available. */
+  cycleLabel: {
+    color: "#fff",
+    fontSize: 16,
+    marginTop: 10,
+  },
   videoArea: {
     width: "100%",
     height: "30%",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 10,
   },
   video: {
     width: "100%",
@@ -279,7 +393,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   noVideoText: {
     fontSize: 16,
     color: "#fff",
@@ -292,11 +405,11 @@ const styles = StyleSheet.create({
   },
   timerBlock: {
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 20,
     paddingHorizontal: 20,
   },
   timerText: {
-    fontSize: 80,
+    fontSize: 70,
     fontWeight: "bold",
     color: "white",
   },

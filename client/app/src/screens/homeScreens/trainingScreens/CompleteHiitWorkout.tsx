@@ -31,7 +31,7 @@ const ITEM_WIDTH = SCREEN_WIDTH - 85;
 
 export default function HiitWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive workout data as a parameter
-    console.log('Hiit workout: ', workout.workout_type)
+    console.log('Hiit workout: ', JSON.stringify(workout, null, 2))
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false); // Video modal visibility
@@ -174,7 +174,7 @@ export default function HiitWorkout({ route, navigation }) {
                                     {session.hiit_details?.map((block, i) => (
                                         <View key={i} style={styles.blockContainer}>
                                             {/* Name of the block or round */}
-                                            <Text style={styles.sectionTitle}>{block.block_name}</Text>
+                                            <Text style={styles.sectionTitle}>{block.block_name}: {block.rep_scheme}</Text>
 
                                             {/* Movements within this block */}
                                             {block.hiit_movements?.map((movement, j) => (
@@ -191,22 +191,25 @@ export default function HiitWorkout({ route, navigation }) {
                                                     </View>
 
                                                     {/* Button to watch movement video (if available) */}
-                                                    <TouchableOpacity
-                                                        onPress={() => {
-                                                            if (movement.movements?.portrait_video_url) {
-                                                                setSelectedMovement({
-                                                                    ...movement,
-                                                                    portrait_video_url: movement.movements.portrait_video_url,
-                                                                });
-                                                            } else {
-                                                                Alert.alert(
-                                                                    "Video coming soon."
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Ionicons name="play-circle" size={24} color="black" />
-                                                    </TouchableOpacity>
+                                                    {movement.exercise_name === 'Rest' ?
+                                                        null :
+                                                        <TouchableOpacity
+                                                            onPress={() => {
+                                                                if (movement.movements?.portrait_video_url) {
+                                                                    setSelectedMovement({
+                                                                        ...movement,
+                                                                        portrait_video_url: movement.movements.portrait_video_url,
+                                                                    });
+                                                                } else {
+                                                                    Alert.alert(
+                                                                        "Video coming soon."
+                                                                    );
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Ionicons name="play-circle" size={24} color="black" />
+                                                        </TouchableOpacity>
+                                                    }
                                                 </View>
                                             ))}
 
@@ -329,6 +332,7 @@ export default function HiitWorkout({ route, navigation }) {
                     workoutName={workout?.name || "HIIT Workout"}
                     hiitMovements={hiitMovements}
                     workoutType={"EMOM"}
+                    totalWorkoutDuration={workout?.duration}
                 />
             </View>
         </SafeAreaView>
