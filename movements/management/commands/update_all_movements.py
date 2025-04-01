@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from movements.models import Movement
 from django.db import IntegrityError
 
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (17).csv"  
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (19).csv"  
 
 class Command(BaseCommand):
     help = "Update existing movements and insert new movements from CSV while preserving offline database IDs"

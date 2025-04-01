@@ -2,7 +2,7 @@ import csv
 from django.core.management.base import BaseCommand
 from movements.models import Movement  
 
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (5).csv"  # Replace with the correct path
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (18).csv"  # Replace with the correct path
 
 class Command(BaseCommand):
     help = "Update Movement table with video URLs"
