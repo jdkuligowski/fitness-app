@@ -23,6 +23,7 @@ import { useWorkout } from "../../../context/WorkoutContext";
 import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
 import ENV from "../../../../../env";
 import { useLoader } from '@/app/src/context/LoaderContext';
+import VideoModal from "../../modalScreens/VideoModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -259,11 +260,7 @@ export default function SuggestedWorkoutSummary({ route }) {
                                     </View>
                                     <TouchableOpacity
                                         onPress={() => {
-                                            // if (videoUrl) {
-                                            setSelectedMovement({ ...movement, video_url: videoUrl });
-                                            // } else {
-                                            //     Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                            // }
+                                            setSelectedMovement({ ...movement, portrait_video_url: videoUrl });
                                         }}
                                     >
                                         <Ionicons name="play-circle" size={24} color="black" />
@@ -327,25 +324,11 @@ export default function SuggestedWorkoutSummary({ route }) {
                     </Modal>
                 )}
                 {selectedMovement && (
-                    <Modal animationType="slide" transparent={false} visible={!!selectedMovement} onRequestClose={() => setSelectedMovement(null)}>
-                        <View style={styles.modalContainer}>
-                            {selectedMovement?.video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedMovement(null)}>
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
+                    <VideoModal
+                        visible={!!selectedMovement}
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
                 )}
             </View>
         </SafeAreaView>

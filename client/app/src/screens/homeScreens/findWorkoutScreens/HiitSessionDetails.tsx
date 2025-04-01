@@ -20,6 +20,7 @@ import amrapWorkouts from "../../../components/hiitRules/amrapRules";
 import emomWorkouts from "../../../components/hiitRules/emomRules";
 import { tenMinBlocks, fifteenMinBlocks, twentyMinBlocks } from "../../../components/hiitRules/3030Rules";
 import SaveWorkoutModal from "../../modalScreens/SaveWorkoutModal";
+import VideoModal from "../../modalScreens/VideoModal";
 
 export default function HiitScreen({ route }) {
     const navigation = useNavigation();
@@ -630,33 +631,11 @@ export default function HiitScreen({ route }) {
                 )}
 
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
+                    <VideoModal
                         visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.modalContainer}>
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
                 )}
             </ScrollView>
         </SafeAreaView>
@@ -877,7 +856,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width: '90%',
-        paddingRight: 10, 
+        paddingRight: 10,
     },
     movementRight: {
         width: '10%',
@@ -1034,12 +1013,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 25,
-    },
-    modalContainer: {
-        flex: 1,
-        backgroundColor: "black",
-        justifyContent: "center",
-        alignItems: "center",
     },
     fullScreenVideo: {
         width: "100%",

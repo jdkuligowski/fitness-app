@@ -25,6 +25,7 @@ import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
 import TimerVideoMobilityModal from '../../../screens/modalScreens/TimerVideoMobilityModal';
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
+import VideoModal from "../../modalScreens/VideoModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH - 85;
@@ -44,7 +45,7 @@ export default function MobilityWorkout({ route, navigation }) {
     })
     const [isTimerModalVisible, setIsTimerModalVisible] = useState(false);
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
-
+    const [selectedMovement, setSelectedMovement] = useState(null);
 
     const updateMobilityWorkout = async () => {
         try {
@@ -158,108 +159,56 @@ export default function MobilityWorkout({ route, navigation }) {
                 {/* Tab Content */}
                 <ScrollView style={styles.tabContent}>
                     {activeTab === "Summary" && (
-                        <View style={styles.summaryContent}>
-                            {/* Horizontal Video FlatList */}
-                            <FlatList
-                                data={movements}
-                                horizontal
-                                // pagingEnabled
-                                snapToInterval={ITEM_WIDTH}     // So each swipe snaps to the item width
-                                decelerationRate="fast"         // Usually helps snapping feel smooth
-                                showsHorizontalScrollIndicator={false}
-                                keyExtractor={(item, index) => index.toString()}
-                                renderItem={({ item }) => (
-                                    // Each item is ITEM_WIDTH wide
-                                    <View style={{ width: ITEM_WIDTH, height: 200 }}>
-                                        <TouchableOpacity
-                                            style={styles.thumbnailContainer}
-                                            onPress={() => {
-                                                setSelectedVideo(item.movements?.portrait_video_url);
-                                                setIsModalVisible(true);
-                                            }}
-                                        >
-                                            <Image
-                                                source={{ uri: item.movements?.landscape_thumbnail }}
-                                                style={styles.thumbnailImage}
-                                                resizeMode="cover"
-                                            />
-                                            <View style={styles.playIconOverlay}>
-                                                <Ionicons name="play-circle" size={48} color="white" />
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                                onMomentumScrollEnd={(e) => {
-                                    const offsetX = e.nativeEvent.contentOffset.x;
-                                    // index = how many item-widths we’ve scrolled
-                                    const index = Math.round(offsetX / ITEM_WIDTH);
-                                    setCurrentIndex(index);
-                                }}
-                            />
-                            {/* Carousel Dots */}
-                            <View style={styles.carouselContainer}>
-                                {movements.map((_, index) => (
-                                    <View
-                                        key={index}
-                                        style={[
-                                            styles.carouselDot,
-                                            index === currentIndex && styles.activeDot,
-                                        ]}
-                                    />
-                                ))}
-                            </View>
+                        <View style={styles.screenContainer}>
+                            <View style={styles.sectionContainer}>
 
-                            {/* Modal for Full-Screen Video */}
-                            <Modal
-                                animationType="slide"
-                                transparent={false}
-                                visible={isModalVisible}
-                                onRequestClose={() => setIsModalVisible(false)}
-                            >
-                                <View style={styles.modalContainer}>
-                                    {selectedVideo ? (
-                                        <Video
-                                            source={{ uri: selectedVideo }}
-                                            style={styles.fullScreenVideo}
-                                            resizeMode="contain"
-                                            useNativeControls
-                                            shouldPlay
-                                            onError={(error) => console.error("Video Error:", error)}
-                                        />
-                                    ) : (
-                                        <Text style={styles.noVideoText}>Video not available</Text>
-                                    )}
-                                    <TouchableOpacity
-                                        style={styles.closeButton}
-                                        onPress={() => setIsModalVisible(false)}
-                                    >
-                                        <Ionicons name="close" size={30} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </Modal>
-
-                            <View style={styles.movementDetails}>
-
-                                <Text style={styles.summaryMessage}>
-                                    {workout.mobility_sessions.length > 0 && workout.mobility_sessions[0].mobility_details.length > 0
-                                        ? `Work through these ${workout.mobility_sessions[0].mobility_details.length} movements, spending ${workout.mobility_sessions[0].mobility_details[0].duration} minute${workout.mobility_sessions[0].mobility_details[0].duration > 1 ? 's' : ''} on each.`
-                                        : "No mobility session details available."}
+                                {/* 1) The general summary message (like “Work through these X movements…”) */}
+                                <Text style={styles.summaryDetail}>
+                                    {workout.mobility_sessions?.length > 0 &&
+                                        workout.mobility_sessions[0].mobility_details?.length > 0
+                                        ? `Spend ${workout.mobility_sessions[0].mobility_details[0].duration} minutes working through these ${workout.mobility_sessions[0].mobility_details.length} movements.`
+                                        : "No mobility session details available."
+                                    }
                                 </Text>
 
-                                <Text style={styles.subMessage}>Exercises</Text>
+                                <View style={styles.blockContainer}>
+                                    <Text style={styles.sectionTitle}>Mobility Block</Text>
 
-                                {/* Movement Details */}
-                                {movements.map((movement, index) => (
-                                    <View key={index} style={styles.movementRow}>
-                                        <Text style={styles.movementName}>{movement.movements?.exercise}</Text>
-                                        {/* <Text style={styles.movementDetail}>
-                                        {movement.movements?.primary_body_part}
-                                    </Text> */}
-                                    </View>
-                                ))}
+                                    {(workout.mobility_sessions?.[0]?.mobility_details || []).map((detail, index) => {
+                                        // Each `detail` has: detail.movements (exercise info), detail.duration, detail.order, etc.
+                                        const movement = detail.movements || {};
+                                        const exerciseName = movement.exercise || "No exercise name";
+                                        const movementDuration = detail.duration || "N/A"; // e.g. "5" or "10/10"
+
+                                        return (
+                                            <View key={index} style={styles.movementRow}>
+                                                <View style={styles.movementLeft}>
+                                                    {/* Show e.g. "1. Cat Cow - 5" */}
+                                                    <Text style={styles.movementName}>
+                                                        {`${index + 1}. ${movementDuration} ${exerciseName}`}
+                                                    </Text>
+                                                </View>
+                                                {/* If there's a video, show a play button */}
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        // Store the video URL so the modal can play it
+                                                        setSelectedMovement(movement);
+                                                    }}
+                                                >
+                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        );
+                                    })}
+
+                                    {/* Divider line, like your HIIT summary */}
+                                    <View style={styles.subDividerLine} />
+                                </View>
                             </View>
+
                         </View>
                     )}
+
 
                     {activeTab === "Log" && (
                         <KeyboardAvoidingView
@@ -376,6 +325,14 @@ export default function MobilityWorkout({ route, navigation }) {
                     visible={rpeModalVisible}
                     onClose={() => setRpeModalVisible(false)}
                 />
+                {selectedMovement && (
+                    <VideoModal
+                        visible={!!selectedMovement}
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
+                )}
+
             </View>
         </SafeAreaView>
     );
@@ -543,7 +500,10 @@ const styles = StyleSheet.create({
         fontWeight: 600,
     },
     movementRow: {
-        marginBottom: 5,
+        marginVertical: 5,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     movementName: {
         // marginLeft: 20,
@@ -909,5 +869,11 @@ const styles = StyleSheet.create({
     },
     commentHistoryBlock: {
         width: '70%',
-    }
+    },
+    movementLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '85%',
+    },
+
 });

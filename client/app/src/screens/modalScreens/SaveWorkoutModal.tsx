@@ -165,7 +165,7 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
 
                                 // The server also expects an array of movements
                                 movements: section.movements.map((movement, mIndex) => ({
-                                    movement_order: mIndex + 1,
+                                    movement_order: movement.movementOrder,
                                     movement_name: movement.exercise,
                                     detail: movement.detail || null,
                                 })),

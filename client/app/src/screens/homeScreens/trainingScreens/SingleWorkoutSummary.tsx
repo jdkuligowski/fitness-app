@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ENV from '../../../../../env'
 import { Colours } from '@/app/src/components/styles';
 import { Video } from "expo-av";
+import VideoModal from '../../modalScreens/VideoModal';
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -287,16 +288,7 @@ export default function WorkoutSummary({ route, navigation }) {
 
                                                 <TouchableOpacity
                                                     onPress={() => {
-                                                        // If there's a valid video URL, store it in state
-                                                        if (currentMovement.portrait_video_url || currentMovement.landscape_video_url) {
-                                                            // Example: setSelectedMovement just the object or the URL
-                                                            setSelectedMovement(currentMovement);
-                                                        } else {
-                                                            Alert.alert(
-                                                                "No video found",
-                                                                "This movement doesn't have an associated video."
-                                                            );
-                                                        }
+                                                        setSelectedMovement(currentMovement);
                                                     }}
                                                 >
                                                     <Ionicons name="play-circle" size={24} color="black" />
@@ -328,36 +320,28 @@ export default function WorkoutSummary({ route, navigation }) {
                                                             <Text style={styles.sectionSubTitle}>{section.conditioning_elements[0].conditioning_overview.notes}</Text> :
                                                             ''}
 
-                                    {section.section_movement_details.map((movementDetail, i) => {
-                                        // Destructure the movement for clarity
-                                        const currentMovement = movementDetail.movements;
+                                    {[...section.section_movement_details]
+                                        .sort((a, b) => a.movement_order - b.movement_order)
+                                        .map((movementDetail, i) => {
+                                            const currentMovement = movementDetail.movements;
+                                            return (
+                                                <View key={i} style={styles.movementRow}>
+                                                    <View style={styles.rowText}>
+                                                        <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                        <Text style={styles.movementGymDetail}>{currentMovement.exercise}</Text>
+                                                    </View>
 
-                                        return (
-                                            <View key={i} style={styles.movementRow}>
-                                                <View style={styles.rowText}>
-                                                    <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
-                                                    <Text style={styles.movementGymDetail}>{currentMovement.exercise}</Text>
-                                                </View>
-
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        // If there's a valid video URL, store it in state
-                                                        if (currentMovement.portrait_video_url || currentMovement.landscape_video_url) {
-                                                            // Example: setSelectedMovement just the object or the URL
+                                                    <TouchableOpacity
+                                                        onPress={() => {
                                                             setSelectedMovement(currentMovement);
-                                                        } else {
-                                                            Alert.alert(
-                                                                "No video found",
-                                                                "This movement doesn't have an associated video."
-                                                            );
-                                                        }
-                                                    }}
-                                                >
-                                                    <Ionicons name="play-circle" size={24} color="black" />
-                                                </TouchableOpacity>
-                                            </View>
-                                        );
-                                    })}
+                                                        }}
+                                                    >
+                                                        <Ionicons name="play-circle" size={24} color="black" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            );
+                                        })
+                                    }
                                     <View style={styles.subDividerLine}></View>
                                 </View>
                             ))
@@ -516,14 +500,10 @@ export default function WorkoutSummary({ route, navigation }) {
                                                 </View>
                                                 <TouchableOpacity
                                                     onPress={() => {
-                                                        if (detail.movements.portrait_video_url) {
-                                                            setSelectedMovement({
-                                                                ...detail,
-                                                                portrait_video_url: detail.movements.portrait_video_url,
-                                                            });
-                                                        } else {
-                                                            Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                                        }
+                                                        setSelectedMovement({
+                                                            ...detail,
+                                                            portrait_video_url: detail.movements.portrait_video_url,
+                                                        });
                                                     }}
                                                 >
                                                     <Ionicons name="play-circle" size={24} color="black" />
@@ -560,14 +540,10 @@ export default function WorkoutSummary({ route, navigation }) {
                                                             null :
                                                             <TouchableOpacity
                                                                 onPress={() => {
-                                                                    if (movement.movements?.portrait_video_url) {
-                                                                        setSelectedMovement({
-                                                                            ...movement,
-                                                                            portrait_video_url: movement.movements.portrait_video_url,
-                                                                        });
-                                                                    } else {
-                                                                        Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                                                    }
+                                                                    setSelectedMovement({
+                                                                        ...movement,
+                                                                        portrait_video_url: movement.movements.portrait_video_url,
+                                                                    });
                                                                 }}
                                                             >
                                                                 <Ionicons name="play-circle" size={24} color="black" />
@@ -602,33 +578,11 @@ export default function WorkoutSummary({ route, navigation }) {
                 </View>
                 {
                     selectedMovement && (
-                        <Modal
-                            animationType="slide"
-                            transparent={false}
+                        <VideoModal
                             visible={!!selectedMovement}
-                            onRequestClose={() => setSelectedMovement(null)}
-                        >
-                            <View style={styles.videoModalContainer}>
-                                {selectedMovement?.portrait_video_url ? (
-                                    <Video
-                                        source={{ uri: selectedMovement.portrait_video_url }}
-                                        style={styles.fullScreenVideo}
-                                        resizeMode="contain"
-                                        useNativeControls
-                                        shouldPlay
-                                        onError={(error) => console.error("Video Error:", error)}
-                                    />
-                                ) : (
-                                    <Text style={styles.noVideoText}>Video coming soon</Text>
-                                )}
-                                <TouchableOpacity
-                                    style={styles.closeButton}
-                                    onPress={() => setSelectedMovement(null)}
-                                >
-                                    <Ionicons name="close" size={30} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                        </Modal>
+                            movement={selectedMovement}
+                            onClose={() => setSelectedMovement(null)}
+                        />
                     )
                 }
             </View >

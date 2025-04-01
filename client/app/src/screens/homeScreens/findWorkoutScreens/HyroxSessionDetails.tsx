@@ -20,6 +20,7 @@ import min60Workouts from '../../../components/hyroxRules/60minWorkouts'
 import commonRules from '../../../components/workoutRules/commonRules'
 import ruleSet from '../../../components/workoutRules/warmupBRules'
 import { Video } from 'expo-av';
+import VideoModal from "../../modalScreens/VideoModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -750,29 +751,27 @@ export default function HyroxDetails({ route }) {
                                                             Conditioning: {section.workoutName || "Unnamed Conditioning Workout"}
                                                         </Text>
                                                         <View style={styles.movementsContainer}>
-                                                            {section.movements.map((movement, i) => {
-                                                                const movementFilter = findConditioningByExercise(movement);
-                                                                return (
-                                                                    <View key={i} style={styles.movementRow}>
-                                                                        <View style={styles.movementLeft}>
-                                                                            <Text style={styles.movementValue}>{`${movement.movementOrder}: `}</Text>
-                                                                            <Text style={styles.movementDetail}>
-                                                                                {movement.detail && movement.detail !== "No detail provided" ? `${movement.detail} ` : ""}
-                                                                            </Text>
-                                                                            <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
-                                                                        </View>
-                                                                        <TouchableOpacity onPress={() => {
-                                                                            if (movementFilter) {
+                                                            {[...section.movements]
+                                                                .sort((a, b) => a.movementOrder - b.movementOrder)
+                                                                .map((movement, i) => {
+                                                                    const movementFilter = findConditioningByExercise(movement);
+                                                                    return (
+                                                                        <View key={i} style={styles.movementRow}>
+                                                                            <View style={styles.movementLeft}>
+                                                                                <Text style={styles.movementValue}>{`${movement.movementOrder}: `}</Text>
+                                                                                <Text style={styles.movementDetail}>
+                                                                                    {`${movement.detail} `}
+                                                                                </Text>
+                                                                                <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
+                                                                            </View>
+                                                                            <TouchableOpacity onPress={() => {
                                                                                 setSelectedMovement(movementFilter);
-                                                                            } else {
-                                                                                Alert.alert("No video found", "This movement doesn't have an associated video.");
-                                                                            }
-                                                                        }}>
-                                                                            <Ionicons name="play-circle" size={24} color="black" />
-                                                                        </TouchableOpacity>
-                                                                    </View>
-                                                                );
-                                                            })}
+                                                                            }}>
+                                                                                <Ionicons name="play-circle" size={24} color="black" />
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    );
+                                                                })}
                                                             {section.rest > 0 && (
                                                                 <View style={styles.movementRow}>
                                                                     <Text style={styles.restDetail}>
@@ -795,11 +794,7 @@ export default function HyroxDetails({ route }) {
                                                                         <Text style={styles.movementDetail}>{movement}</Text>
                                                                     </View>
                                                                     <TouchableOpacity onPress={() => {
-                                                                        if (movementFilter) {
-                                                                            setSelectedMovement(movementFilter);
-                                                                        } else {
-                                                                            Alert.alert("No video found", "This movement doesn't have an associated video.");
-                                                                        }
+                                                                        setSelectedMovement(movementFilter);
                                                                     }}>
                                                                         <Ionicons name="play-circle" size={24} color="black" />
                                                                     </TouchableOpacity>
@@ -850,37 +845,13 @@ export default function HyroxDetails({ route }) {
                     </Modal>
                 )}
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
+                    <VideoModal
                         visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.modalContainer}>
-                            {/* <View style={styles.overlay}>
-                                <Text style={styles.overlayText}>{selectedMovement.exercise}</Text>
-                            </View> */}
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
-                )}
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
+                )
+                }
             </View>
         </SafeAreaView>
     );

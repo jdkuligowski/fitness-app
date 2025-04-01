@@ -218,7 +218,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
 
                 {item.details.map((movement, index) => {
                     // Find the matching movement in movementData
-                    const matchedMovement = movementData.find((data) =>
+                    const matchedMovement = movementData && movementData.find((data) =>
                         (data.exercise || "").trim().toLowerCase() === (movement.exercise || "").trim().toLowerCase()
                     );
 
@@ -238,14 +238,10 @@ export default function SuggestedMobilityWorkouts({ route }) {
                             }
                             <TouchableOpacity
                                 onPress={() => {
-                                    if (matchedMovement?.portrait_video_url) {
-                                        setSelectedMovement({
-                                            ...movement,
-                                            video_url: matchedMovement.portrait_video_url,
-                                        });
-                                    } else {
-                                        Alert.alert("No video available", "This movement doesn't have an associated video.");
-                                    }
+                                    setSelectedMovement({
+                                        ...movement,
+                                        video_url: matchedMovement.portrait_video_url,
+                                    })
                                 }}
                             >
                                 <Ionicons name="play-circle" size={24} color="black" />

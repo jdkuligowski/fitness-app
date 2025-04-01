@@ -22,6 +22,7 @@ import { Video } from "expo-av";
 import { useWorkout } from '../../context/WorkoutContext'; // Importing the context
 import { useLoader } from '../../context/LoaderContext';
 import { Colours } from "../../components/styles";
+import VideoModal from "../modalScreens/VideoModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -33,6 +34,7 @@ export default function VideoLibraryScreen({ navigation }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access loader functions
+    const [selectedMovement, setSelectedMovement] = useState(null);
 
     // Categories for filtering
     const categories = ["Lower body", "Upper body", "Core"];
@@ -123,34 +125,6 @@ export default function VideoLibraryScreen({ navigation }) {
                                 placeholderTextColor="#B0B0B0"
                             />
                         </View>
-
-                        {/* Categories */}
-                        {/* <View style={styles.categoriesContainer}>
-                            {categories.map((category, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[
-                                        styles.categoryButton,
-                                        selectedCategory === category && styles.activeCategory,
-                                    ]}
-                                    onPress={() => handleCategorySelect(category)}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.categoryText,
-                                            selectedCategory === category && styles.activeCategoryText,
-                                        ]}
-                                    >
-                                        {category}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View> */}
-
-                        {/* Video List */}
-                        {/* {isLoading ? (
-                            <ActivityIndicator size="large" color="#4B0082" style={styles.loader} />
-                        ) : ( */}
                         <View style={styles.videosList}>
                             <FlatList
                                 data={filteredVideos}
@@ -159,8 +133,7 @@ export default function VideoLibraryScreen({ navigation }) {
                                     <TouchableOpacity
                                         style={styles.videoCard}
                                         onPress={() => {
-                                            setSelectedVideo(item);
-                                            setIsModalVisible(true);
+                                            setSelectedMovement(item);
                                         }}
                                     >
                                         <Image
@@ -169,9 +142,7 @@ export default function VideoLibraryScreen({ navigation }) {
                                         />
                                         <View style={styles.videoInfo}>
                                             <Text style={styles.videoTitle}>{item.exercise}</Text>
-                                            {/* <Text style={styles.videoDuration}>
-                                                    {item.duration ? `${item.duration} mins` : "N/A"}
-                                                </Text> */}
+                    
                                         </View>
                                     </TouchableOpacity>
                                 )}
@@ -180,34 +151,13 @@ export default function VideoLibraryScreen({ navigation }) {
                                 }
                             />
                         </View>
-                        {/* )} */}
 
-                        {/* Modal for Full-Screen Video */}
-                        {selectedVideo && (
-                            <Modal
-                                animationType="slide"
-                                transparent={false}
-                                visible={isModalVisible}
-                                onRequestClose={() => setIsModalVisible(false)}
-                            >
-                                <View style={styles.modalContainer}>
-                                    <Video
-                                        source={{ uri: selectedVideo.portrait_video_url }}
-                                        style={styles.fullScreenVideo}
-                                        resizeMode="contain"
-                                        useNativeControls
-                                        shouldPlay
-                                        onError={(error) => console.error("Video Error:", error)}
-                                    />
-                                    {/* Close Button */}
-                                    <TouchableOpacity
-                                        style={styles.closeButton}
-                                        onPress={() => setIsModalVisible(false)}
-                                    >
-                                        <Ionicons name="close" size={24} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </Modal>
+                        {selectedMovement && (
+                            <VideoModal
+                                visible={!!selectedMovement}
+                                movement={selectedMovement}
+                                onClose={() => setSelectedMovement(null)}
+                            />
                         )}
                     </View>
                 </KeyboardAvoidingView>

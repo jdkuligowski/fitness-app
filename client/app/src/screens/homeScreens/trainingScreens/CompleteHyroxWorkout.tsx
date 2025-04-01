@@ -27,6 +27,7 @@ import { useLoader } from '@/app/src/context/LoaderContext';
 import { Colours } from '@/app/src/components/styles';
 import { Video } from 'expo-av';
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
+import VideoModal from '../../modalScreens/VideoModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = SCREEN_WIDTH - 45;
@@ -453,42 +454,43 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                             </Text>
 
                                                             {/* 3) Movements list, similar to HIIT’s block.hiit_movements */}
-                                                            {item.section_movement_details?.map((movementDetail, i) => {
-                                                                // movementDetail.movements is your actual movement object
-                                                                const movement = movementDetail.movements || {};
-                                                                const movementName = movement.exercise || "No exercise name";
-                                                                const hasPortraitVideo = !!movement.portrait_video_url;
+                                                            {[...item.section_movement_details]
+                                                                .sort((a, b) => a.movement_order - b.movement_order)
+                                                                .map((movementDetail, i) => {
+                                                                    const movement = movementDetail.movements || {};
+                                                                    const movementName = movement.exercise || "No exercise name";
+                                                                    const condDetail = item.conditioning_elements?.[0]?.conditioning_overview?.conditioning_details?.find(
+                                                                        (cd) => cd.movement_order === movementDetail.movement_order
+                                                                    );
 
-                                                                return (
-                                                                    <View key={i} style={styles.movementRow}>
-                                                                        <View style={styles.movementLeft}>
-                                                                            <Text>
-                                                                                {/* Index label + movement name */}
-                                                                                <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
-                                                                                <Text style={styles.movementDetail}>{movementName}</Text>
-                                                                            </Text>
-                                                                        </View>
+                                                                    const detail = condDetail?.detail;
+                                                                    return (
+                                                                        <View key={i} style={styles.movementRow}>
+                                                                            <View style={styles.movementLeft}>
+                                                                                <Text>
+                                                                                    {/* Index label + movement name */}
+                                                                                    <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                                                    <Text style={styles.movementDetail}>{`${detail} `}</Text>
+                                                                                    <Text style={styles.movementDetail}>{movementName}</Text>
+                                                                                </Text>
+                                                                            </View>
 
-                                                                        {/* 4) Play button (except for “Rest”) */}
-                                                                        {movementName.toLowerCase() === "rest" ? null : (
-                                                                            <TouchableOpacity
-                                                                                onPress={() => {
-                                                                                    if (hasPortraitVideo) {
+                                                                            {/* 4) Play button (except for “Rest”) */}
+                                                                            {movementName.toLowerCase() === "rest" ? null : (
+                                                                                <TouchableOpacity
+                                                                                    onPress={() => {
                                                                                         setSelectedMovement({
                                                                                             ...movement,
                                                                                             portrait_video_url: movement.portrait_video_url,
                                                                                         });
-                                                                                    } else {
-                                                                                        Alert.alert("Video coming soon.");
-                                                                                    }
-                                                                                }}
-                                                                            >
-                                                                                <Ionicons name="play-circle" size={24} color="black" />
-                                                                            </TouchableOpacity>
-                                                                        )}
-                                                                    </View>
-                                                                );
-                                                            })}
+                                                                                    }}
+                                                                                >
+                                                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                                                </TouchableOpacity>
+                                                                            )}
+                                                                        </View>
+                                                                    );
+                                                                })}
 
                                                             {/* 5) Divider line at the end of the block, like in HIIT */}
                                                             <View style={styles.subDividerLine}></View>
@@ -660,59 +662,33 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                             {/* Dynamic Tab Content */}
                                             {activeTab === 'Summary' && (
                                                 <View style={styles.tabContent}>
-                                                    {movement.movements?.portrait_video_url && movement.movements?.landscape_thumbnail ? (
-                                                        <>
-                                                            {/* Thumbnail Button */}
-                                                            <TouchableOpacity
-                                                                style={styles.thumbnailContainer}
-                                                                onPress={() => setSelectedMovement(movement.movements)}
-                                                            >
-                                                                {/* Thumbnail */}
-                                                                <Image
-                                                                    style={styles.thumbnailImage}
-                                                                    source={{ uri: movement.movements.landscape_thumbnail }}
-                                                                />
 
-                                                                {/* Play Icon Overlay */}
-                                                                <View style={styles.playIconOverlay}>
-                                                                    <Ionicons name="play-circle" size={48} color="white" />
-                                                                </View>
-                                                            </TouchableOpacity>
+                                                    {/* Thumbnail Button */}
+                                                    <TouchableOpacity
+                                                        style={styles.thumbnailContainer}
+                                                        onPress={() => setSelectedMovement(movement.movements)}
+                                                    >
+                                                        {/* Thumbnail */}
+                                                        <Image
+                                                            style={styles.thumbnailImage}
+                                                            source={{ uri: movement.movements.landscape_thumbnail }}
+                                                        />
 
-                                                            {/* Modal for Full-Screen Video */}
-                                                            {selectedMovement?.id === movement.movements.id && (
-                                                                <Modal
-                                                                    animationType="slide"
-                                                                    transparent={false}
-                                                                    visible={!!selectedMovement} // Only visible for the selected movement
-                                                                    onRequestClose={() => setSelectedMovement(null)} // Reset when closed
-                                                                >
-                                                                    <View style={styles.modalContainer}>
-                                                                        <Video
-                                                                            key={selectedMovement.portrait_video_url} // Ensures re-render when URL changes
-                                                                            source={{ uri: selectedMovement.portrait_video_url }}
-                                                                            style={styles.fullScreenVideo}
-                                                                            resizeMode="contain"
-                                                                            useNativeControls
-                                                                            shouldPlay
-                                                                            onError={(error) => console.error('Video Error:', error)}
-                                                                        />
-                                                                        {/* Close Button */}
-                                                                        <TouchableOpacity
-                                                                            style={styles.closeButton}
-                                                                            onPress={() => setSelectedMovement(null)} // Close modal
-                                                                        >
-                                                                            <Ionicons name="close" size={24} color="white" />
-                                                                        </TouchableOpacity>
-                                                                    </View>
-                                                                </Modal>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <View style={styles.thumbnail}>
-                                                            <Text style={styles.noVideoText}>Video coming soon</Text>
+                                                        {/* Play Icon Overlay */}
+                                                        <View style={styles.playIconOverlay}>
+                                                            <Ionicons name="play-circle" size={48} color="white" />
                                                         </View>
+                                                    </TouchableOpacity>
+
+                                                    {/* Modal for Full-Screen Video */}
+                                                    {selectedMovement?.id === movement.movements.id && (
+                                                        <VideoModal
+                                                            visible={!!selectedMovement}
+                                                            movement={selectedMovement}
+                                                            onClose={() => setSelectedMovement(null)}
+                                                        />
                                                     )}
+
                                                     <Text style={styles.movementName}>{movement.movements.exercise}</Text>
 
                                                 </View>
@@ -937,33 +913,11 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                     onClose={() => setRpeModalVisible(false)}
                 />
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
+                    <VideoModal
                         visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.videoModalContainer}>
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
                 )
                 }
 
@@ -1472,7 +1426,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         fontSize: 16,
     },
-    sectionContainer: { 
+    sectionContainer: {
         padding: 20,
     },
 });

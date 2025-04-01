@@ -24,6 +24,7 @@ import Slider from '@react-native-community/slider'
 import RPEGauge from "@/app/src/components/RPEGauge";
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 import TimerVideoHiitModal from '../../modalScreens/TimerVideoHiitModal';
+import VideoModal from "../../modalScreens/VideoModal";
 
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -34,7 +35,6 @@ export default function HiitWorkout({ route, navigation }) {
     console.log('Hiit workout: ', JSON.stringify(workout, null, 2))
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [selectedVideo, setSelectedVideo] = useState(null);
-    const [isModalVisible, setIsModalVisible] = useState(false); // Video modal visibility
     const [currentBlockIndex, setCurrentBlockIndex] = useState(0); // Track current HIIT block
     const [selectedMovement, setSelectedMovement] = useState(null);
 
@@ -193,20 +193,10 @@ export default function HiitWorkout({ route, navigation }) {
                                                     {/* Button to watch movement video (if available) */}
                                                     {movement.exercise_name === 'Rest' ?
                                                         null :
-                                                        <TouchableOpacity
-                                                            onPress={() => {
-                                                                if (movement.movements?.portrait_video_url) {
-                                                                    setSelectedMovement({
-                                                                        ...movement,
-                                                                        portrait_video_url: movement.movements.portrait_video_url,
-                                                                    });
-                                                                } else {
-                                                                    Alert.alert(
-                                                                        "Video coming soon."
-                                                                    );
-                                                                }
-                                                            }}
-                                                        >
+                                                        <TouchableOpacity onPress={() => setSelectedMovement({
+                                                            ...movement,
+                                                            portrait_video_url: movement.movements.portrait_video_url,
+                                                        })}>
                                                             <Ionicons name="play-circle" size={24} color="black" />
                                                         </TouchableOpacity>
                                                     }
@@ -279,51 +269,17 @@ export default function HiitWorkout({ route, navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Video Modal */}
-                <Modal visible={isModalVisible} transparent={false}>
-                    <View style={styles.modalContainer}>
-                        {selectedVideo ? (
-                            <Video source={{ uri: selectedVideo }} style={styles.fullScreenVideo} resizeMode="contain" useNativeControls shouldPlay />
-                        ) : (
-                            <Text>No video available</Text>
-                        )}
-                        <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                            <Ionicons name="close" size={30} color="white" />
-                        </TouchableOpacity>
-                    </View>
-                </Modal>
+                {/* RPE Modal */}
                 <RPEInfoModal
                     visible={rpeModalVisible}
                     onClose={() => setRpeModalVisible(false)}
                 />
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
+                    <VideoModal
                         visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.videoModalContainer}>
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
                 )
                 }
                 <TimerVideoHiitModal

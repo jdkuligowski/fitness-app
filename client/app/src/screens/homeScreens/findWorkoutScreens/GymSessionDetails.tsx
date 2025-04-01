@@ -21,6 +21,7 @@ import strengthRules75 from '../../../components/workoutRules/strengthRules60'
 import commonRules from '../../../components/workoutRules/commonRules'
 import ruleSet from '../../../components/workoutRules/warmupBRules'
 import { Video } from 'expo-av';
+import VideoModal from "../../modalScreens/VideoModal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -744,11 +745,7 @@ export default function WorkoutScreen({ route }) {
                                                                             <Text style={styles.movementDetail}>{movement.exercise || "Unknown Movement"}</Text>
                                                                         </View>
                                                                         <TouchableOpacity onPress={() => {
-                                                                            if (movementFilter) {
-                                                                                setSelectedMovement(movementFilter);
-                                                                            } else {
-                                                                                Alert.alert("No video found", "This movement doesn't have an associated video.");
-                                                                            }
+                                                                            setSelectedMovement(movementFilter);
                                                                         }}>
                                                                             <Ionicons name="play-circle" size={24} color="black" />
                                                                         </TouchableOpacity>
@@ -832,37 +829,13 @@ export default function WorkoutScreen({ route }) {
                     </Modal>
                 )}
                 {selectedMovement && (
-                    <Modal
-                        animationType="slide"
-                        transparent={false}
+                    <VideoModal
                         visible={!!selectedMovement}
-                        onRequestClose={() => setSelectedMovement(null)}
-                    >
-                        <View style={styles.modalContainer}>
-                            {/* <View style={styles.overlay}>
-                                <Text style={styles.overlayText}>{selectedMovement.exercise}</Text>
-                            </View> */}
-                            {selectedMovement?.portrait_video_url ? (
-                                <Video
-                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                    style={styles.fullScreenVideo}
-                                    resizeMode="contain"
-                                    useNativeControls
-                                    shouldPlay
-                                    onError={(error) => console.error("Video Error:", error)}
-                                />
-                            ) : (
-                                <Text style={styles.noVideoText}>Video coming soon</Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedMovement(null)}
-                            >
-                                <Ionicons name="close" size={30} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
-                )}
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
+                )
+                }
             </View>
         </SafeAreaView>
     );

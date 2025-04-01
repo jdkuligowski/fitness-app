@@ -27,6 +27,7 @@ import { useLoader } from '@/app/src/context/LoaderContext';
 import { Colours } from '@/app/src/components/styles';
 import { Video } from 'expo-av';
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
+import VideoModal from '../../modalScreens/VideoModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = SCREEN_WIDTH - 45;
@@ -374,156 +375,65 @@ export default function CompleteWorkout({ route, navigation }) {
                                         </View>
                                         <View style={styles.tabContent}>
                                             {activeTab === "Summary" && (
-                                                <View style={styles.summaryContent}>
+                                                <View style={styles.screenContainer}>
+                                                    <View style={styles.sectionContainer}>
 
-                                                    <ScrollView
-                                                        horizontal
-                                                        pagingEnabled
-                                                        nestedScrollEnabled
-                                                        showsHorizontalScrollIndicator={false}
-                                                        decelerationRate="fast"
-                                                        style={{ width: ITEM_WIDTH }}
-                                                        onMomentumScrollEnd={(e) => {
-                                                            const offsetX = e.nativeEvent.contentOffset.x;
-                                                            const index = Math.round(offsetX / ITEM_WIDTH);
-                                                            setCurrentIndex(index);
-                                                        }}
-                                                    >
-                                                        {item.section_movement_details.map((movementDetail, index) => {
-                                                            const movement = movementDetail.movements || {};
-                                                            console.log('Movement: ', movement)
-                                                            // Decide if we have a valid portrait video + thumbnail
-                                                            const hasPortraitVideo =
-                                                                movement.portrait_video_url && movement.landscape_thumbnail;
+                                                        {/* 1) Show the general structure, similar to HIIT's <Text style={styles.summaryDetail}>{session.structure}</Text> */}
+                                                        <Text style={styles.summaryDetail}>
+                                                            {item.conditioning_elements?.[0]?.conditioning_overview?.notes || "No structure/notes provided"}
+                                                        </Text>
 
-                                                            return (
-                                                                <View
-                                                                    key={index}
-                                                                    style={{
-                                                                        width: ITEM_WIDTH,
-                                                                        height: 220,
-                                                                    }}
-                                                                >
-                                                                    {hasPortraitVideo ? (
-                                                                        <>
-                                                                            {/* Thumbnail Button */}
+                                                        {/* 2) A single blockContainer that lists the “movements” (similar to HIIT blocks) */}
+                                                        <View style={styles.blockContainer}>
+                                                            {/* If you want a “block name” like HIIT’s block_name: rep_scheme */}
+                                                            <Text style={styles.sectionTitle}>
+                                                                {item.conditioning_elements?.[0]?.conditioning_overview?.name || "Conditioning Block"}
+                                                            </Text>
+
+                                                            {/* 3) Movements list, similar to HIIT’s block.hiit_movements */}
+                                                            {item.section_movement_details?.map((movementDetail, i) => {
+                                                                // movementDetail.movements is your actual movement object
+                                                                const movement = movementDetail.movements || {};
+                                                                const movementName = movement.exercise || "No exercise name";
+                                                                const condDetail = item.conditioning_elements?.[0]?.conditioning_overview?.conditioning_details?.find(
+                                                                    (cd) => cd.movement_order === movementDetail.movement_order
+                                                                  );
+                                                                
+                                                                  // If found, `condDetail?.detail` might be “10” or another value
+                                                                  const detail = condDetail?.detail;  // e.g. "10"
+                                                                
+                                                                console.log('Movement: ', JSON.stringify(item, null, 2))
+                                                                return (
+                                                                    <View key={i} style={styles.movementRow}>
+                                                                        <View style={styles.movementLeft}>
+                                                                            <Text>
+                                                                                {/* Index label + movement name */}
+                                                                                <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                                                <Text style={styles.movementDetail}>{`${detail} `}</Text>
+                                                                                <Text style={styles.movementDetail}>{movementName}</Text>
+                                                                            </Text>
+                                                                        </View>
+
+                                                                        {/* 4) Play button (except for “Rest”) */}
+                                                                        {movementName.toLowerCase() === "rest" ? null : (
                                                                             <TouchableOpacity
-                                                                                style={styles.thumbnailContainer}
                                                                                 onPress={() => {
-                                                                                    setSelectedMovement(movement); // store the entire movement object
-                                                                                    setIsModalVisible(true);
+                                                                                    setSelectedMovement({
+                                                                                        ...movement,
+                                                                                        portrait_video_url: movement.portrait_video_url,
+                                                                                    });
                                                                                 }}
                                                                             >
-                                                                                {/* Thumbnail */}
-                                                                                <Image
-                                                                                    style={styles.thumbnailImage}
-                                                                                    source={{ uri: movement.landscape_thumbnail }}
-                                                                                />
-                                                                                {/* Play Icon Overlay */}
-                                                                                <View style={styles.playIconOverlay}>
-                                                                                    <Ionicons name="play-circle" size={48} color="white" />
-                                                                                </View>
+                                                                                <Ionicons name="play-circle" size={24} color="black" />
                                                                             </TouchableOpacity>
-                                                                        </>
-                                                                    ) : (
-                                                                        // Fallback if no portraitURL or no thumbnail
-                                                                        <View style={styles.thumbnail}>
-                                                                            <Text style={styles.noVideoText}>Video coming soon</Text>
-                                                                        </View>
-                                                                    )}
-                                                                </View>
-                                                            );
-                                                        })}
-                                                    </ScrollView>
-
-                                                    {/* Dot Indicators */}
-                                                    <View style={styles.carouselContainer}>
-                                                        {item.section_movement_details.map((_, i) => (
-                                                            <View
-                                                                key={i}
-                                                                style={[
-                                                                    styles.carouselDot,
-                                                                    i === currentIndex && styles.activeDot,
-                                                                ]}
-                                                            />
-                                                        ))}
-                                                    </View>
-
-                                                    {/* Modal for Full-Screen Video */}
-                                                    <Modal
-                                                        animationType="slide"
-                                                        transparent={false}
-                                                        visible={isModalVisible}
-                                                        onRequestClose={() => setIsModalVisible(false)}
-                                                    >
-                                                        <View style={styles.modalContainer}>
-                                                            {/* Show the video if we have a selectedMovement with a valid URL */}
-                                                            {selectedMovement?.portrait_video_url ? (
-                                                                <Video
-                                                                    key={selectedMovement.portrait_video_url} // ensures re-render if URL changes
-                                                                    source={{ uri: selectedMovement.portrait_video_url }}
-                                                                    style={styles.fullScreenVideo}
-                                                                    resizeMode="contain"
-                                                                    useNativeControls
-                                                                    shouldPlay
-                                                                    onError={(error) => console.error("Video Error:", error)}
-                                                                />
-                                                            ) : (
-                                                                <Text style={styles.noVideoText}>Video not available</Text>
-                                                            )}
-
-                                                            {/* Close Button */}
-                                                            <TouchableOpacity
-                                                                style={styles.closeButton}
-                                                                onPress={() => setIsModalVisible(false)}
-                                                            >
-                                                                <Ionicons name="close" size={30} color="white" />
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </Modal>
-
-                                                    {/* --- The rest of your "Summary" section info (details, rest, etc.) --- */}
-                                                    <View style={styles.conditioningDetails}>
-                                                        <Text style={styles.sectionTitle}>
-                                                            {item.conditioning_elements[0]?.conditioning_overview?.name ||
-                                                                "No name provided"}
-                                                        </Text>
-                                                        <Text style={styles.conditioningDescription}>
-                                                            {item.conditioning_elements[0]?.conditioning_overview?.notes ||
-                                                                "No description provided"}
-                                                        </Text>
-
-                                                        {item.section_movement_details.map((movementDetail, index) => {
-                                                            const movement = movementDetail.movements;
-                                                            const conditioningDetail =
-                                                                item.conditioning_elements[0]?.conditioning_overview?.conditioning_details?.find(
-                                                                    (detail) => detail.movement_order === movementDetail.movement_order
+                                                                        )}
+                                                                    </View>
                                                                 );
+                                                            })}
 
-                                                            return (
-                                                                <View key={index} style={styles.movementDetails}>
-                                                                    {conditioningDetail.detail ? (
-                                                                        <Text style={styles.movementDetail}>
-                                                                            {`${conditioningDetail.detail} ` || "No detail provided"}
-                                                                        </Text>
-                                                                    ) : ''}
-                                                                    <Text style={styles.movementDetail}>
-                                                                        {movement.exercise || "No exercise provided"}
-                                                                    </Text>
-                                                                </View>
-                                                            );
-                                                        })}
-
-                                                        {/* Rest Details */}
-                                                        {item.conditioning_elements[0]?.conditioning_overview?.rest > 0 && (
-                                                            <View style={styles.movementDetails}>
-                                                                <Text style={styles.movementDetail}>
-                                                                    Rest for{" "}
-                                                                    {item.conditioning_elements[0].conditioning_overview.rest} seconds
-                                                                    between rounds
-                                                                </Text>
-                                                            </View>
-                                                        )}
+                                                            {/* 5) Divider line at the end of the block, like in HIIT */}
+                                                            <View style={styles.subDividerLine}></View>
+                                                        </View>
                                                     </View>
                                                 </View>
                                             )}
@@ -690,67 +600,35 @@ export default function CompleteWorkout({ route, navigation }) {
                                             {/* Dynamic Tab Content */}
                                             {activeTab === 'Summary' && (
                                                 <View style={styles.tabContent}>
-                                                    {movement.movements?.portrait_video_url && movement.movements?.landscape_thumbnail ? (
-                                                        <>
-                                                            {/* Thumbnail Button */}
-                                                            <TouchableOpacity
-                                                                style={styles.thumbnailContainer}
-                                                                onPress={() => setSelectedMovement(movement.movements)}
-                                                            >
-                                                                {/* Thumbnail */}
-                                                                <Image
-                                                                    style={styles.thumbnailImage}
-                                                                    source={{ uri: movement.movements.landscape_thumbnail }}
-                                                                />
+                                                    {/* Thumbnail Button */}
+                                                    <TouchableOpacity
+                                                        style={styles.thumbnailContainer}
+                                                        onPress={() => setSelectedMovement(movement.movements)}
+                                                    >
+                                                        {/* Thumbnail */}
+                                                        <Image
+                                                            style={styles.thumbnailImage}
+                                                            source={{ uri: movement.movements.landscape_thumbnail }}
+                                                        />
 
-                                                                {/* Play Icon Overlay */}
-                                                                <View style={styles.playIconOverlay}>
-                                                                    <Ionicons name="play-circle" size={48} color="white" />
-                                                                </View>
-                                                            </TouchableOpacity>
-
-                                                            {/* Modal for Full-Screen Video */}
-                                                            {selectedMovement?.id === movement.movements.id && (
-                                                                <Modal
-                                                                    animationType="slide"
-                                                                    transparent={false}
-                                                                    visible={!!selectedMovement} // Only visible for the selected movement
-                                                                    onRequestClose={() => setSelectedMovement(null)} // Reset when closed
-                                                                >
-                                                                    <View style={styles.modalContainer}>
-                                                                        <Video
-                                                                            key={selectedMovement.portrait_video_url} // Ensures re-render when URL changes
-                                                                            source={{ uri: selectedMovement.portrait_video_url }}
-                                                                            style={styles.fullScreenVideo}
-                                                                            resizeMode="contain"
-                                                                            useNativeControls
-                                                                            shouldPlay
-                                                                            onError={(error) => console.error('Video Error:', error)}
-                                                                        />
-                                                                        {/* Close Button */}
-                                                                        <TouchableOpacity
-                                                                            style={styles.closeButton}
-                                                                            onPress={() => setSelectedMovement(null)} // Close modal
-                                                                        >
-                                                                            <Ionicons name="close" size={24} color="white" />
-                                                                        </TouchableOpacity>
-                                                                    </View>
-                                                                </Modal>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <View style={styles.thumbnail}>
-                                                            <Text style={styles.noVideoText}>Video coming soon</Text>
+                                                        {/* Play Icon Overlay */}
+                                                        <View style={styles.playIconOverlay}>
+                                                            <Ionicons name="play-circle" size={48} color="white" />
                                                         </View>
+                                                    </TouchableOpacity>
+
+                                                    {/* Modal for Full-Screen Video */}
+                                                    {selectedMovement?.id === movement.movements.id && (
+                                                        <VideoModal
+                                                            visible={!!selectedMovement}
+                                                            movement={selectedMovement}
+                                                            onClose={() => setSelectedMovement(null)}
+                                                        />
                                                     )}
                                                     <Text style={styles.movementName}>{movement.movements.exercise}</Text>
 
                                                 </View>
                                             )}
-
-
-
-
 
                                             {activeTab === 'Log' && (
                                                 <KeyboardAwareScrollView
@@ -966,8 +844,13 @@ export default function CompleteWorkout({ route, navigation }) {
                     visible={rpeModalVisible}
                     onClose={() => setRpeModalVisible(false)}
                 />
-
-
+                {selectedMovement && (
+                    <VideoModal
+                        visible={!!selectedMovement}
+                        movement={selectedMovement}
+                        onClose={() => setSelectedMovement(null)}
+                    />
+                )}
             </View>
         </SafeAreaView >
 
@@ -1422,6 +1305,34 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     conditioningPlaceholder: {
+        padding: 20,
+    },
+    blockContainer: {
+        marginBottom: 10,
+    },
+    movementRow: {
+        marginVertical: 5,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    rowText: {
+        flexDirection: 'row',
+        paddingLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '80%',
+    },
+    movementLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '85%',
+    },
+    summaryDetail: {
+        marginBottom: 10,
+        fontSize: 16,
+    },
+    sectionContainer: {
         padding: 20,
     },
 });
