@@ -36,7 +36,7 @@ const strengthRulesMap = {
 export default function WorkoutScreen({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity } = route.params;
+    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity, userData } = route.params;
     const { workoutData, fetchWorkoutData, isLoading, conditioningData, fetchConditioningData } = useWorkout();
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -514,6 +514,7 @@ export default function WorkoutScreen({ route }) {
 
 
         const equipmentFilter = await AsyncStorage.getItem("activeEquipmentFilter");
+        const userEmail = userData.email
 
         if (validPlans.length === 0 && !didShowNoPlanAlert) {
             Alert.alert(
@@ -535,8 +536,9 @@ export default function WorkoutScreen({ route }) {
                     selectedTime,
                     complexity,
                     selectedFinish,
-                    equipmentFilter, // string from AsyncStorage
-                    candidatePlans
+                    equipmentFilter,
+                    candidatePlans,
+                    userEmail
                 };
                 await axios.post(`${ENV.API_URL}/api/movements/no-plan-email/`, payload);
                 console.log("No-plan email posted successfully");

@@ -254,7 +254,7 @@ export default function HomeScreen() {
               contentContainerStyle={styles.activityArray}
             >
               <View style={styles.activity}>
-                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Gym')}>
+                <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Gym', { userData })}>
                   <Ionicons name="barbell-outline" size={26} color="#897AD3" />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Strength</Text>

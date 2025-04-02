@@ -13,8 +13,10 @@ const SLIDER_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = 20; // Width of each slider item
 
 
-export default function GymSession() {
+export default function GymSession({ route }) {
+  
   const navigation = useNavigation();
+  const { userData } = route.params;
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [selectedFinish, setSelectedFinish] = useState(null);
   const [selectedValue, setSelectedValue] = useState(50); // Default selected value
@@ -397,6 +399,7 @@ export default function GymSession() {
                     selectedWorkout,
                     frequency: 'Sometimes',
                     complexity: complexity,
+                    userData
                   })
                 }
               >

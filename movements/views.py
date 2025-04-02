@@ -12,8 +12,9 @@ from saved_equipment_lists.models import SavedEquipmentFilter
 from equipment_movements.models import EquipmentMovement
 
 from django.core.mail import send_mail
+from django.utils.html import format_html
 import json
-
+import re
 
 
 class MovementList(APIView):
@@ -88,61 +89,6 @@ class FilteredMovements(APIView):
 
 
 
-
-# class NoPlanEmailView(APIView):
-#     def post(self, request):
-#         data = request.data
-
-#         required_fields = [
-#             "selectedWorkout",
-#             "selectedTime",
-#             "complexity",
-#             "selectedFinish",
-#             "equipmentFilter",
-#             "candidatePlans"
-#         ]
-#         for field in required_fields:
-#             if field not in data:
-#                 return Response(
-#                     {"error": f"'{field}' is required"},
-#                     status=status.HTTP_400_BAD_REQUEST
-#                 )
-
-#         # Convert candidatePlans to a nicely formatted JSON string
-#         plans_str = json.dumps(data.get("candidatePlans"), indent=2)
-
-#         subject = "Burst Alert: No strength plan generated"
-#         body = (
-#             "A user could not generate a workout plan with the following details:\n\n"
-#             f"Selected Workout: {data.get('selectedWorkout')}\n"
-#             f"Selected Time: {data.get('selectedTime')}\n"
-#             f"Complexity: {data.get('complexity')}\n"
-#             f"Selected Finish: {data.get('selectedFinish')}\n"
-#             f"Equipment Filter: {data.get('equipmentFilter')}\n\n"
-#             f"Workouts provided:\n{plans_str}"
-#         )
-
-#         send_mail(
-#             subject,
-#             body,
-#             "jdkuligowski@gmail.com",      # or a valid 'from_email'
-#             ["jdkuligowski@gmail.com"],    # recipients
-#             fail_silently=False,
-#         )
-
-#         return Response({"message": "No-plan email sent successfully"}, status=status.HTTP_200_OK)
-
-
-import re
-from django.utils.html import format_html
-
-# import re
-# from django.core.mail import send_mail
-# from django.utils.html import format_html
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-
 class NoPlanEmailView(APIView):
     """
     POST endpoint to send a "no plan" email with a fixed-order table.
@@ -173,7 +119,8 @@ class NoPlanEmailView(APIView):
             "complexity",
             "selectedFinish",
             "equipmentFilter",
-            "candidatePlans"
+            "candidatePlans", 
+            "userEmail", 
         ]
         for field in required_fields:
             if field not in data:
@@ -189,6 +136,7 @@ class NoPlanEmailView(APIView):
         selected_finish = data["selectedFinish"]
         equipment_filter = data["equipmentFilter"]
         all_plans = data["candidatePlans"]  # array of "plans"
+        user_email = data["userEmail"]  # array of "plans"
 
         # 2) We define the EXACT order we want from left to right:
         LABEL_ORDER = ["Strong 1", "Strong 2",
@@ -254,6 +202,7 @@ class NoPlanEmailView(APIView):
         top_msg = f"""
         <p>A user could not generate a workout plan with the following details:</p>
         <ul>
+          <li><b>User</b>: {user_email}</li>
           <li><b>Selected Workout</b>: {selected_workout}</li>
           <li><b>Selected Time</b>: {selected_time}</li>
           <li><b>Complexity</b>: {complexity}</li>
@@ -270,7 +219,7 @@ class NoPlanEmailView(APIView):
         send_mail(
             subject=subject,
             message="",  # plain-text version blank
-            from_email="no-reply@myapp.com",
+            from_email="jdkuligowski@gmail.com",
             recipient_list=["jdkuligowski@gmail.com"],
             html_message=html_body,
             fail_silently=False,
