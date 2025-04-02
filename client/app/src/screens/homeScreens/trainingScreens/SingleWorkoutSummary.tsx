@@ -177,7 +177,7 @@ export default function WorkoutSummary({ route, navigation }) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.scrollContainer}>
+            <ScrollView style={styles.scrollContainer}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity
@@ -585,7 +585,7 @@ export default function WorkoutSummary({ route, navigation }) {
                         />
                     )
                 }
-            </View >
+            </ScrollView >
         </SafeAreaView >
     );
 }
@@ -716,6 +716,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
+        maxHeight: 650,
 
     },
     workoutInfoTile: {

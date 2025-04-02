@@ -50,7 +50,7 @@ const ruleSet = {
 
     "Upper Body 1 (Option 1)": {
         movement1: "Bent Arm Pec Stretch",
-        movement2: "Side Lying Thoracic Sweeps",
+        movement2: "Side Lying Thoracic Sweeps", //changed,
         movement3: "Low to High",
         movement4: "Push up to Beast" // changed
     },

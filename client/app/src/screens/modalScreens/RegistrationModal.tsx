@@ -118,12 +118,6 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                     five_k_mins,
                     five_k_secs,
                 },
-                // {
-                //     headers: {
-                //         Authorization: `Bearer ${token}`,
-                //         'Content-Type': 'application/json',
-                //     },
-                // },
             );
 
             if (response.status === 200) {

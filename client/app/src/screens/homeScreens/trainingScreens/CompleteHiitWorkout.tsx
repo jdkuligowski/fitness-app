@@ -37,7 +37,7 @@ export default function HiitWorkout({ route, navigation }) {
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [currentBlockIndex, setCurrentBlockIndex] = useState(0); // Track current HIIT block
     const [selectedMovement, setSelectedMovement] = useState(null);
-
+    const [roundsValue, setRoundsValue] = useState(null)
     const [logData, setLogData] = useState({
         session_comments: workout.hiit_sessions[0]?.comments || "", // Default to an empty string
         session_rpe: workout.hiit_sessions[0]?.rpe || 0, // Default to 0
@@ -47,6 +47,56 @@ export default function HiitWorkout({ route, navigation }) {
 
     const hiitBlocks = workout.hiit_sessions?.[0]?.hiit_details || []; // HIIT blocks
     const hiitMovements = hiitBlocks.flatMap((block) => block.hiit_movements || []);
+
+
+    const getHiitRoundsSingleBlock = (hiitSession) => {
+        if (!hiitSession?.hiit_details?.length) {
+            return 0; // no blocks
+        }
+        console.log("Hiit session object ", hiitSession)
+        const workoutType = hiitSession.workout_type;
+        const totalDuration = hiitSession.duration; // in minutes
+        const firstBlock = hiitSession.hiit_details[0];
+
+        // Count how many lines (movements) in the block
+        // If you want to include "Rest" as a slot in EMOM or 30/30, keep it
+        // If you want to exclude rest, do filter((m) => !m.rest_period)
+        const movementCount = firstBlock.hiit_movements.length;
+
+        // Decide minutes per movement
+        let minutesPerMovement;
+        switch (workoutType) {
+            case "Tabata":
+                minutesPerMovement = 0.5; // 30s
+                break;
+            case "EMOM":
+                minutesPerMovement = 1;   // 1 minute each
+                break;
+            case "30/30":
+                minutesPerMovement = 1;   // total 1 minute slot each
+                break;
+            default:
+                // For everything else (AMRAP?), you can handle differently or just do 1
+                // but AMRAP typically doesn't have "rounds" in the same sense
+                minutesPerMovement = 1;
+        }
+
+        // time for 1 round = movementCount * minutesPerMovement
+        const oneRoundTime = movementCount * minutesPerMovement;
+
+        // how many full rounds fit in totalDuration
+        // for AMRAP, you might skip or do Infinity
+        const rounds = Math.floor(totalDuration / oneRoundTime);
+
+        setRoundsValue(rounds);
+    }
+
+    useEffect(() => {
+        if (workout?.hiit_sessions?.length) {
+          const session = workout.hiit_sessions[0];
+          getHiitRoundsSingleBlock(session);
+        }
+      }, [workout]);
 
 
     const updateHiitWorkout = async () => {
@@ -174,7 +224,10 @@ export default function HiitWorkout({ route, navigation }) {
                                     {session.hiit_details?.map((block, i) => (
                                         <View key={i} style={styles.blockContainer}>
                                             {/* Name of the block or round */}
-                                            <Text style={styles.sectionTitle}>{block.block_name}: {block.rep_scheme}</Text>
+                                            {session.workout_type === "AMRAP" ?
+                                                <Text style={styles.sectionTitle}>{block.block_name}: {block.rep_scheme}</Text> :
+                                                <Text style={styles.sectionTitle}>{block.block_name}: {roundsValue} rounds in {workout.duration} mins</Text>
+                                            }
 
                                             {/* Movements within this block */}
                                             {block.hiit_movements?.map((movement, j) => (

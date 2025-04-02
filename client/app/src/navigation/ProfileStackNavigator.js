@@ -1,6 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import ProfileOverview from '../screens/profileScreens/ProfileOverview';
 import AccountPage from '../screens/profileScreens/AccountPage';
+import PreferencesPage from '../screens/profileScreens/PreferencesPage'
 
 const Stack = createStackNavigator();
 
@@ -13,6 +14,7 @@ export default function ProfileStackNavigator() {
     >
       <Stack.Screen name="ProfilePage" component={ProfileOverview} />
       <Stack.Screen name="AccountPage" component={AccountPage} />
+      <Stack.Screen name="PreferencesPage" component={PreferencesPage} />
     </Stack.Navigator>
   );
 }

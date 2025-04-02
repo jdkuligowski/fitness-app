@@ -37,21 +37,9 @@ export default function HiitScreen({ route }) {
 
     const workoutDurationLimits = {
         "AMRAP": [10, 15, 20, 30, 40],
-        "EMOM": [15, 20, 25, 30, 40, 50],
-        "Tabata": [10, 15],
+        "EMOM": [12, 16, 20, 24, 28, 30, 32, 40, 50],
+        "Tabata": [8, 12, 16, 20],
         "30/30": [10, 15, 20],
-    };
-
-
-    const snapTimeToClosestValidValue = (selectedTime, validDurations) => {
-        // Ensure we don't exceed the user-specified time
-        let closestValid = validDurations
-            .filter(time => time <= selectedTime) // Remove options exceeding the input
-            .reduce((prev, curr) =>
-                Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime) ? curr : prev
-                , validDurations[0]); // Default to the smallest if no exact match
-
-        return closestValid;
     };
 
     useEffect(() => {
@@ -95,166 +83,385 @@ export default function HiitScreen({ route }) {
         loadFilteredMovements();
     }, []);
 
+    function getValidDurationRange(selectedTime, validDurations, allowedDelta = 3) {
+        // e.g. If user picks 15, and allowedDelta = 3,
+        // we keep all durations in validDurations with |duration - 15| <= 3
+        // so for [12,16,20,24] → we keep [12,16].
+        const inRange = validDurations.filter(
+            (d) => Math.abs(d - selectedTime) <= allowedDelta
+        );
+
+        // If that yields nothing (e.g. user picks 7, none is near),
+        // fallback to the single nearest. So at least we get 1 option.
+        if (!inRange.length) {
+            // fallback to single nearest
+            return [
+                validDurations.reduce((prev, curr) => {
+                    return Math.abs(curr - selectedTime) < Math.abs(prev - selectedTime)
+                        ? curr
+                        : prev;
+                }, validDurations[0]),
+            ];
+        }
+
+        return inRange;
+    }
+
 
 
     const generateHiitWorkout = (selectedWorkout, selectedTime, movementsDB) => {
-        const hiitMovementsDB = movementsDB.filter(movement => movement.hiit_flag === 1);
+        // Filter movements for HIIT
+        const hiitMovementsDB = movementsDB.filter(
+            (movement) => movement.hiit_flag === 1
+        );
 
-        let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30, 40, 50];
-        let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
+        // Valid durations for the chosen type
+        let validDurations =
+            workoutDurationLimits[selectedWorkout] || [10, 12, 15, 16, 20, 24, 25, 28, 30, 32, 40, 50];
+
+        // Now get ALL durations near the user’s pick (±3 min by default)
+        const durationsToUse = getValidDurationRange(selectedTime, validDurations, 3);
+
+        // Decide how many final workouts to produce
         let numWorkouts = selectedWorkout === "I don't mind" ? 15 : 10;
         let allWorkouts = [];
 
-        console.log(`⏳ User Selected Time: ${selectedTime} → Snapped to: ${adjustedTime}`);
+        console.log(
+            `⏳ User selectedTime: ${selectedTime}. durationsToUse →`,
+            durationsToUse
+        );
 
+        // -------------------------------
+        // CASE 1: “I don't mind” scenario
+        // -------------------------------
         if (selectedWorkout === "I don't mind") {
             console.log("🔄 Generating a mixed HIIT selection...");
 
-            if (workoutDurationLimits["Tabata"].includes(adjustedTime)) {
-                allWorkouts.push(...generateMultipleWorkouts(
-                    tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
-                    "Tabata",
-                    movementsDB,
-                    5
-                ));
-            }
-            if (workoutDurationLimits["AMRAP"].includes(adjustedTime)) {
-                allWorkouts.push(...generateMultipleWorkouts(
-                    amrapWorkouts.filter(w => Number(w.duration) === adjustedTime).map(w => ({ ...w, style: w.type })),
-                    "AMRAP",
-                    movementsDB,
-                    3
-                ));
-            }
-            if (workoutDurationLimits["EMOM"].includes(adjustedTime)) {
-                // Use the same filter you have in your dedicated "EMOM" case:
-                const possibleEmoms = emomWorkouts
-                    .filter((w) => {
-                        // For 15 or 25 => only combos < 10 movements
-                        if ([15, 25].includes(adjustedTime)) {
-                            return w.movements.length < 10;
-                        }
-                        // For 40 or 50 => only combos == 10 movements
-                        if ([40, 50].includes(adjustedTime)) {
-                            return w.movements.length === 10;
-                        }
-                        // Otherwise => keep them all (10, 20, 30, etc.)
-                        return true;
-                    })
-                    .map((w) => ({ ...w, duration: adjustedTime }));
+            // For each possible duration near the user’s pick
+            durationsToUse.forEach((timeValue) => {
+                // Then run the same "I don't mind" logic you had, but using `timeValue`
+                if (workoutDurationLimits["Tabata"].includes(timeValue)) {
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(
+                            tabataWorkouts.map((w) => ({ ...w, duration: timeValue })),
+                            "Tabata",
+                            movementsDB,
+                            5
+                        )
+                    );
+                }
+                if (workoutDurationLimits["AMRAP"].includes(timeValue)) {
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(
+                            amrapWorkouts
+                                .filter((w) => Number(w.duration) === timeValue)
+                                .map((w) => ({ ...w, style: w.type })),
+                            "AMRAP",
+                            movementsDB,
+                            3
+                        )
+                    );
+                }
+                if (workoutDurationLimits["EMOM"].includes(timeValue)) {
+                    const possibleEmoms = emomWorkouts
+                        .filter((w) => {
+                            if ([12, 16, 24, 28, 32].includes(timeValue)) {
+                                return w.movements.length < 10;
+                            }
+                            if ([30, 40, 50].includes(timeValue)) {
+                                return w.movements.length === 10;
+                            }
+                            return true;
+                        })
+                        .map((w) => ({ ...w, duration: timeValue }));
 
-                // Then push into your “allWorkouts”
-                allWorkouts.push(
-                    ...generateMultipleWorkouts(
-                        possibleEmoms,
-                        "EMOM",
-                        movementsDB,
-                        4
-                    )
-                );
-            }
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(possibleEmoms, "EMOM", movementsDB, 4)
+                    );
+                }
+                if (workoutDurationLimits["30/30"].includes(timeValue)) {
+                    // pick from your block sets
+                    const blockSet =
+                        [10].includes(timeValue)
+                            ? tenMinBlocks
+                            : [15].includes(timeValue)
+                                ? fifteenMinBlocks
+                                : twentyMinBlocks;
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts
+                            (blockSet.map((w) => ({ ...w, duration: timeValue })),
+                                "30/30",
+                                movementsDB,
+                                3
+                            )
+                    );
+                }
+            });
 
-            if (workoutDurationLimits["30/30"].includes(adjustedTime)) {
-                allWorkouts.push(...generateMultipleWorkouts(
-                    adjustedTime === 10 ? tenMinBlocks :
-                        adjustedTime === 15 ? fifteenMinBlocks :
-                            twentyMinBlocks,
-                    "30/30",
-                    movementsDB,
-                    3
-                ));
-            }
-
-            let formattedWorkouts = allWorkouts
-                .sort(() => Math.random() - 0.5)
-                .slice(0, numWorkouts);
-
-            // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
-            return formattedWorkouts;
+            let formattedWorkouts = allWorkouts.sort(() => Math.random() - 0.5);
+            // slice to 15 if you want fewer
+            return formattedWorkouts.slice(0, numWorkouts);
         }
 
+        // -------------------------------------
+        // CASE 2: A specific type (Tabata, AMRAP, etc.)
+        // -------------------------------------
         console.log(`🎯 Generating specific ${selectedWorkout} workouts...`);
 
-        if (!validDurations.includes(adjustedTime)) {
-            console.warn(`⚠️ ${selectedWorkout} is not available for ${selectedTime} mins. Adjusted to ${adjustedTime}.`);
-            return [];
-        }
-
-        switch (selectedWorkout) {
-            case "Tabata":
-                allWorkouts.push(...generateMultipleWorkouts(
-                    tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
-                    "Tabata",
-                    movementsDB,
-                    numWorkouts
-                ));
-                break;
-            case "AMRAP":
-                allWorkouts.push(...generateMultipleWorkouts(
-                    amrapWorkouts
-                        .filter(w => Number(w.duration) === adjustedTime)
-                        .map(w => ({
-                            ...w,
-                            style: w.type,  // <— Add this
-                            type: "AMRAP"   // <— Force "AMRAP" so formatWorkout sees it
-                        })),
-                    "AMRAP",
-                    movementsDB,
-                    numWorkouts
-                ));
-                break;
-
-            case "EMOM": {
-                // Filter based on adjustedTime
-                const possibleEmoms = emomWorkouts
-                    .filter((workout) => {
-                        // 1) For 15 or 25: only combos with fewer than 10 movements
-                        if ([15, 25].includes(adjustedTime)) {
-                            return workout.movements.length < 10;
-                        }
-                        // 2) For 40 or 50: only combos with exactly 10 movements
-                        if ([40, 50].includes(adjustedTime)) {
-                            return workout.movements.length === 10;
-                        }
-                        // 3) Otherwise (e.g. 10, 20, 30, etc.): keep all combos
-                        return true;
-                    })
-                    .map((w) => ({
-                        ...w,
-                        duration: adjustedTime,
-                    }));
-
-                // Then generate multiple EMOM workouts from the final list
-                allWorkouts.push(
-                    ...generateMultipleWorkouts(
-                        possibleEmoms,
-                        "EMOM",
-                        movementsDB,
-                        numWorkouts
-                    )
+        // Instead of checking a single `adjustedTime`, we loop through each timeValue
+        durationsToUse.forEach((timeValue) => {
+            // If timeValue not in validDurations, skip?
+            if (!validDurations.includes(timeValue)) {
+                console.warn(
+                    `⚠️ ${selectedWorkout} might not be officially available for ${timeValue}... skipping`
                 );
-                break;
+                return;
             }
-            case "30/30":
-                allWorkouts.push(...generateMultipleWorkouts(
-                    adjustedTime === 10 ? tenMinBlocks :
-                        adjustedTime === 15 ? fifteenMinBlocks :
-                            twentyMinBlocks,
-                    "30/30",
-                    movementsDB,
-                    numWorkouts
-                ));
-                break;
-            default:
-                console.error("⚠️ Unrecognized workout type:", selectedWorkout);
-                return [];
-        }
+
+            switch (selectedWorkout) {
+                case "Tabata":
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(
+                            tabataWorkouts.map((w) => ({ ...w, duration: timeValue })),
+                            "Tabata",
+                            movementsDB,
+                            numWorkouts
+                        )
+                    );
+                    break;
+
+                case "AMRAP":
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(
+                            amrapWorkouts
+                                .filter((w) => Number(w.duration) === timeValue)
+                                .map((w) => ({
+                                    ...w,
+                                    style: w.type,
+                                    type: "AMRAP",
+                                })),
+                            "AMRAP",
+                            movementsDB,
+                            numWorkouts
+                        )
+                    );
+                    break;
+
+                case "EMOM": {
+                    const possibleEmoms = emomWorkouts
+                        .filter((workout) => {
+                            if ([12, 16, 24, 28, 32].includes(timeValue)) {
+                                return workout.movements.length < 10;
+                            }
+                            if ([30, 40, 50].includes(timeValue)) {
+                                return workout.movements.length === 10;
+                            }
+                            return true;
+                        })
+                        .map((w) => ({
+                            ...w,
+                            duration: timeValue,
+                        }));
+
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts(
+                            possibleEmoms,
+                            "EMOM",
+                            movementsDB,
+                            numWorkouts
+                        )
+                    );
+                    break;
+                }
+
+                case "30/30": {
+                    const blockSet =
+                        [10].includes(timeValue)
+                            ? tenMinBlocks
+                            : [15].includes(timeValue)
+                                ? fifteenMinBlocks
+                                : twentyMinBlocks;
+
+                    allWorkouts.push(
+                        ...generateMultipleWorkouts
+                            (blockSet.map((w) => ({ ...w, duration: timeValue })),
+                                "30/30",
+                                movementsDB,
+                                3
+                            )
+                    );
+                    break;
+                }
+
+                default:
+                    console.error("⚠️ Unrecognized workout type:", selectedWorkout);
+                    return;
+            }
+        });
 
         let formattedWorkouts = allWorkouts.sort(() => Math.random() - 0.5);
-        // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
-
-        return formattedWorkouts;
+        // slice to keep e.g. 10
+        return formattedWorkouts.slice(0, numWorkouts);
     };
+    // const generateHiitWorkout = (selectedWorkout, selectedTime, movementsDB) => {
+    //     const hiitMovementsDB = movementsDB.filter(movement => movement.hiit_flag === 1);
+
+    //     let validDurations = workoutDurationLimits[selectedWorkout] || [10, 15, 20, 25, 30, 40, 50];
+    //     const durationsToUse = getValidDurationRange(selectedTime, validDurations, 3);
+    //     // let adjustedTime = snapTimeToClosestValidValue(selectedTime, validDurations);
+    //     let numWorkouts = selectedWorkout === "I don't mind" ? 15 : 10;
+    //     let allWorkouts = [];
+
+    //     console.log(`User picked ${selectedTime} → durationsToUse:`, durationsToUse);
+
+    //     if (selectedWorkout === "I don't mind") {
+    //         console.log("🔄 Generating a mixed HIIT selection...");
+
+    //         if (workoutDurationLimits["Tabata"].includes(adjustedTime)) {
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
+    //                 "Tabata",
+    //                 movementsDB,
+    //                 5
+    //             ));
+    //         }
+    //         if (workoutDurationLimits["AMRAP"].includes(adjustedTime)) {
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 amrapWorkouts.filter(w => Number(w.duration) === adjustedTime).map(w => ({ ...w, style: w.type })),
+    //                 "AMRAP",
+    //                 movementsDB,
+    //                 3
+    //             ));
+    //         }
+    //         if (workoutDurationLimits["EMOM"].includes(adjustedTime)) {
+    //             // Use the same filter you have in your dedicated "EMOM" case:
+    //             const possibleEmoms = emomWorkouts
+    //                 .filter((w) => {
+    //                     // For 15 or 25 => only combos < 10 movements
+    //                     if ([15, 25].includes(adjustedTime)) {
+    //                         return w.movements.length < 10;
+    //                     }
+    //                     // For 40 or 50 => only combos == 10 movements
+    //                     if ([30, 40, 50].includes(adjustedTime)) {
+    //                         return w.movements.length === 10;
+    //                     }
+    //                     // Otherwise => keep them all (10, 20, 30, etc.)
+    //                     return true;
+    //                 })
+    //                 .map((w) => ({ ...w, duration: adjustedTime }));
+
+    //             // Then push into your “allWorkouts”
+    //             allWorkouts.push(
+    //                 ...generateMultipleWorkouts(
+    //                     possibleEmoms,
+    //                     "EMOM",
+    //                     movementsDB,
+    //                     4
+    //                 )
+    //             );
+    //         }
+
+    //         if (workoutDurationLimits["30/30"].includes(adjustedTime)) {
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 adjustedTime === 10 ? tenMinBlocks :
+    //                     adjustedTime === 15 ? fifteenMinBlocks :
+    //                         twentyMinBlocks,
+    //                 "30/30",
+    //                 movementsDB,
+    //                 3
+    //             ));
+    //         }
+
+    //         let formattedWorkouts = allWorkouts
+    //             .sort(() => Math.random() - 0.5)
+    //             .slice(0, numWorkouts);
+
+    //         // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
+    //         return formattedWorkouts;
+    //     }
+
+    //     console.log(`🎯 Generating specific ${selectedWorkout} workouts...`);
+
+    //     if (!validDurations.includes(adjustedTime)) {
+    //         console.warn(`⚠️ ${selectedWorkout} is not available for ${selectedTime} mins. Adjusted to ${adjustedTime}.`);
+    //         return [];
+    //     }
+
+    //     switch (selectedWorkout) {
+    //         case "Tabata":
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 tabataWorkouts.map(w => ({ ...w, duration: adjustedTime })),  // ✅ Apply default duration
+    //                 "Tabata",
+    //                 movementsDB,
+    //                 numWorkouts
+    //             ));
+    //             break;
+    //         case "AMRAP":
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 amrapWorkouts
+    //                     .filter(w => Number(w.duration) === adjustedTime)
+    //                     .map(w => ({
+    //                         ...w,
+    //                         style: w.type,  // <— Add this
+    //                         type: "AMRAP"   // <— Force "AMRAP" so formatWorkout sees it
+    //                     })),
+    //                 "AMRAP",
+    //                 movementsDB,
+    //                 numWorkouts
+    //             ));
+    //             break;
+
+    //         case "EMOM": {
+    //             // Filter based on adjustedTime
+    //             const possibleEmoms = emomWorkouts
+    //                 .filter((workout) => {
+    //                     // 1) For 15 or 25: only combos with fewer than 10 movements
+    //                     if ([15, 25].includes(adjustedTime)) {
+    //                         return workout.movements.length < 10;
+    //                     }
+    //                     // 2) For 40 or 50: only combos with exactly 10 movements
+    //                     if ([40, 50].includes(adjustedTime)) {
+    //                         return workout.movements.length === 10;
+    //                     }
+    //                     // 3) Otherwise (e.g. 10, 20, 30, etc.): keep all combos
+    //                     return true;
+    //                 })
+    //                 .map((w) => ({
+    //                     ...w,
+    //                     duration: adjustedTime,
+    //                 }));
+
+    //             // Then generate multiple EMOM workouts from the final list
+    //             allWorkouts.push(
+    //                 ...generateMultipleWorkouts(
+    //                     possibleEmoms,
+    //                     "EMOM",
+    //                     movementsDB,
+    //                     numWorkouts
+    //                 )
+    //             );
+    //             break;
+    //         }
+    //         case "30/30":
+    //             allWorkouts.push(...generateMultipleWorkouts(
+    //                 adjustedTime === 10 ? tenMinBlocks :
+    //                     adjustedTime === 15 ? fifteenMinBlocks :
+    //                         twentyMinBlocks,
+    //                 "30/30",
+    //                 movementsDB,
+    //                 numWorkouts
+    //             ));
+    //             break;
+    //         default:
+    //             console.error("⚠️ Unrecognized workout type:", selectedWorkout);
+    //             return [];
+    //     }
+
+    //     let formattedWorkouts = allWorkouts.sort(() => Math.random() - 0.5);
+    //     // console.log("✅ Final Selected Workouts:", JSON.stringify(formattedWorkouts, null, 2));
+
+    //     return formattedWorkouts;
+    // };
 
 
 
@@ -327,7 +534,7 @@ export default function HiitScreen({ route }) {
             return {
                 type: "EMOM",
                 structure: "Perform one movement every minute and loop through these for the time available",
-                duration: snapTimeToClosestValidValue(selectedTime, validDurations),
+                duration: workout.duration,
                 movements: workout.movements.map(filter => getRandomMovement(filter)),
             };
         }
@@ -339,7 +546,7 @@ export default function HiitScreen({ route }) {
             return {
                 type: "30/30",
                 structure: "Alternate between movements every 30 seconds without taking any rest",
-                duration: snapTimeToClosestValidValue(selectedTime, validDurations),
+                duration: workout.duration,
                 blocks: workout.movements.length / 2,
                 movements: workout.movements.map(filter => getRandomMovement(filter)),
 
@@ -352,7 +559,7 @@ export default function HiitScreen({ route }) {
             return {
                 type: "Tabata",
                 structure: "20s work / 10s rest and rotate through the movements until the time is up",
-                duration: snapTimeToClosestValidValue(selectedTime, validDurations),
+                duration: workout.duration,
                 movements: workout.movements.map(filter => getRandomMovement(filter)),
             };
         }

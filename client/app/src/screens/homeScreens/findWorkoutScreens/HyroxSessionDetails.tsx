@@ -290,39 +290,11 @@ export default function HyroxDetails({ route }) {
         );
         console.log(`Hyrox: Adjusted selectedTime from ${selectedTime} to ${closestTime}`);
 
-        if (selectedFinish === "Conditioning") {
-            // Just create a plan array with one conditioning section 
-            // using the user’s (closest) time — BUT we also clamp below
-            // inside generateConditioningSection() for "Conditioning only."
-            const condSection = generateConditioningSection(closestTime);
-            return [condSection]; // just an array of one
-        }
-
-        // get the "rules" for that time
-        const rules = hyroxRulesMap[closestTime];
-        if (!rules) {
-            console.error(`No hyrox rules found for ${closestTime} minutes.`);
-            return [];
-        }
-
-        // pick a random "option_" key
-        const optionKeys = Object.keys(rules);
-        if (optionKeys.length === 0) {
-            console.error(`No option keys found in hyroxRulesMap for time ${closestTime}`);
-            return [];
-        }
-        const chosenOption = optionKeys[Math.floor(Math.random() * optionKeys.length)];
-        const selectedRules = rules[chosenOption];
-
-        if (!selectedRules || !selectedRules.sections) {
-            console.error(`No sections found for chosenOption ${chosenOption}`);
-            return [];
-        }
-
-        const usedExercises = new Set();
         const plan = [];
 
-        // 1) Warm Up A
+        // ~~~~~~~~~~~~~~~~~~~~~
+        // 1) Always push Warm Up A
+        // ~~~~~~~~~~~~~~~~~~~~~
         const warmUpA = filterWarmUpA(); // exactly like your Gym logic
         plan.push({
             partLabel: "Warm Up A",
@@ -330,7 +302,9 @@ export default function HyroxDetails({ route }) {
             sectionType: "single"
         });
 
-        // 2) Warm Up B – **only** from “Lower Body” sets
+        // ~~~~~~~~~~~~~~~~~~~~~
+        // 2) Always push Warm Up B
+        // ~~~~~~~~~~~~~~~~~~~~~
         // pick random from the 4 “Lower Body X (Option Y)” keys
         const randomIndex = Math.floor(Math.random() * lowerBodyWarmUpKeys.length);
         const warmUpKey = lowerBodyWarmUpKeys[randomIndex];
@@ -367,7 +341,42 @@ export default function HyroxDetails({ route }) {
             });
         }
 
-        // For each section, if "Conditioning", handle differently
+        // ~~~~~~~~~~~~~~~~~~~~~
+        // 3) Condition-Only Scenario?
+        // ~~~~~~~~~~~~~~~~~~~~~
+        if (selectedFinish === "Conditioning") {
+            // We only want to add a single conditioning block
+            const condSection = generateConditioningSection(closestTime);
+            plan.push(condSection);
+            return plan;
+        }
+
+        // ~~~~~~~~~~~~~~~~~~~~~
+        // 4) If not condition-only, build from hyroxRulesMap
+        // ~~~~~~~~~~~~~~~~~~~~~
+        const rules = hyroxRulesMap[closestTime];
+        if (!rules) {
+            console.error(`No hyrox rules found for ${closestTime} minutes.`);
+            return plan;
+        }
+
+        // pick a random "option_" key
+        const optionKeys = Object.keys(rules);
+        if (optionKeys.length === 0) {
+            console.error(`No option keys found in hyroxRulesMap for time ${closestTime}`);
+            return plan;
+        }
+
+        const chosenOption = optionKeys[Math.floor(Math.random() * optionKeys.length)];
+        const selectedRules = rules[chosenOption];
+        if (!selectedRules || !selectedRules.sections) {
+            console.error(`No sections found for chosenOption ${chosenOption}`);
+            return plan;
+        }
+
+        const usedExercises = new Set();
+
+        // Now for each "section" in the chosen rule, if "Conditioning" => add condition
         selectedRules.sections.forEach((sectionRule) => {
             const { section, filters, duration } = sectionRule;
 
@@ -416,6 +425,7 @@ export default function HyroxDetails({ route }) {
 
         return plan;
     };
+
 
     // -------------------------- CLAMP FUNCTION --------------------------
     function clampToAllowedTimes(userSelectedTime) {

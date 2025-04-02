@@ -176,24 +176,25 @@ export default function ProfileOverview() {
 
                     </TouchableOpacity>
                     <View style={styles.divider}></View>
-                    <TouchableOpacity style={styles.supportRow}>
-
-                        <View style={styles.supportLeft}>
-                            <View
-                                style={[
-                                    styles.supportIconContainer,
-                                    { backgroundColor: '#D6F7F4' }
-                                ]}>
-                                <Ionicons name="id-card-outline" color={'black'} size={20} />
-                            </View>
-                            <Text style={styles.supportText}>Personal information</Text>
+                    <TouchableOpacity style={styles.supportRow} onPress={() => navigation.navigate("PreferencesPage", {
+                        userData: userData,
+                    })}>
+                    <View style={styles.supportLeft}>
+                        <View
+                            style={[
+                                styles.supportIconContainer,
+                                { backgroundColor: '#D6F7F4' }
+                            ]}>
+                            <Ionicons name="id-card-outline" color={'black'} size={20} />
                         </View>
-                        <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
+                        <Text style={styles.supportText}>Personal information</Text>
+                    </View>
+                    <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
 
-                    </TouchableOpacity>
-                    <View style={styles.divider}></View>
+                </TouchableOpacity>
+                <View style={styles.divider}></View>
 
-                    <TouchableOpacity style={styles.supportRow}>
+                {/* <TouchableOpacity style={styles.supportRow}>
 
                         <View style={styles.supportLeft}>
                             <View
@@ -207,25 +208,25 @@ export default function ProfileOverview() {
                         </View>
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
 
-                    </TouchableOpacity>
-                    <View style={styles.divider}></View>
+                    </TouchableOpacity> */}
+                <View style={styles.divider}></View>
 
-                    <TouchableOpacity
-                        style={styles.supportRow}
-                        onPress={handleLogout}
-                        activeOpacity={0.7} // 🔥 Provides feedback on press
-                    >
-                        <View style={styles.supportLeft}>
-                            <View style={[styles.supportIconContainer, { backgroundColor: '#F8FAE4' }]}>
-                                <Ionicons name="log-out-outline" color={'black'} size={20} />
-                            </View>
-                            <Text style={styles.supportText}>Logout</Text>
+                <TouchableOpacity
+                    style={styles.supportRow}
+                    onPress={handleLogout}
+                    activeOpacity={0.7} // 🔥 Provides feedback on press
+                >
+                    <View style={styles.supportLeft}>
+                        <View style={[styles.supportIconContainer, { backgroundColor: '#F8FAE4' }]}>
+                            <Ionicons name="log-out-outline" color={'black'} size={20} />
                         </View>
-                        <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
-                    </TouchableOpacity>
-                </View>
+                        <Text style={styles.supportText}>Logout</Text>
+                    </View>
+                    <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
+                </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </View>
+        </SafeAreaView >
 
     )
 }
@@ -236,11 +237,11 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     profilePageContainer: {
         flexGrow: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     header: {
         padding: 20,

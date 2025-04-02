@@ -180,45 +180,45 @@ class OnboardingView(APIView):
 
         try:
             user = User.objects.get(id=int(user_id))  # Ensure it's an integer
-            print(f"✅ DEBUG: Retrieved user -> {user.id} (Username: {user.username})")
+            print(f"DEBUG: Retrieved user -> {user.id} (Username: {user.username})")
         except (User.DoesNotExist, ValueError):
             return Response({"detail": "User not found or invalid ID."}, status=status.HTTP_404_NOT_FOUND)
 
         data = request.data
         print(f"📩 Received data: {data}")
 
-        # ✅ Extract & Validate required fields
+        # Extract & Validate required fields
         fitness_goals = data.get("fitnessGoal")
         exercise_regularity = data.get("exerciseFrequency")
         non_negotiable_dislikes = data.get("exerciseExclusions", [])
 
-        # ✅ Ensure exerciseExclusions is a list
+        # Ensure exerciseExclusions is a list
         if isinstance(non_negotiable_dislikes, str):
             non_negotiable_dislikes = non_negotiable_dislikes.split(",") if non_negotiable_dislikes else []
 
-        # ✅ Convert 5K Time
+        # Convert 5K Time
         five_k_mins = int(data.get("five_k_mins", 0)) if str(data.get("five_k_mins", "")).isdigit() else None
         five_k_secs = int(data.get("five_k_secs", 0)) if str(data.get("five_k_secs", "")).isdigit() else None
 
-        # ✅ Required fields validation
+        # Required fields validation
         if not fitness_goals:
             return Response({"detail": "Fitness goals are required."}, status=status.HTTP_400_BAD_REQUEST)
         if not exercise_regularity:
             return Response({"detail": "Exercise regularity is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Validate list format
+        # Validate list format
         if not isinstance(non_negotiable_dislikes, list):
             return Response({"detail": "Non-negotiable dislikes must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Validate 5k run time
+        # Validate 5k run time
         if five_k_mins is not None and five_k_mins < 0:
             return Response({"detail": "5k minutes must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
         if five_k_secs is not None and not (0 <= five_k_secs < 60):
             return Response({"detail": "5k seconds must be between 0 and 59."}, status=status.HTTP_400_BAD_REQUEST)
 
-        print(f"✅ Processed Data: {fitness_goals}, {exercise_regularity}, {non_negotiable_dislikes}, {five_k_mins}:{five_k_secs}")
+        print(f"Processed Data: {fitness_goals}, {exercise_regularity}, {non_negotiable_dislikes}, {five_k_mins}:{five_k_secs}")
 
-        # ✅ Update user fields
+        # Update user fields
         user.fitness_goals = fitness_goals
         user.exercise_regularity = exercise_regularity
         user.non_negotiable_dislikes = ",".join(non_negotiable_dislikes)
@@ -227,7 +227,7 @@ class OnboardingView(APIView):
         user.is_onboarding_complete = True
         user.save()
 
-        print(f"✅ Onboarding updated for user {user.id}")
+        print(f"Onboarding updated for user {user.id}")
 
         return Response({"message": "Onboarding data updated successfully."}, status=status.HTTP_200_OK)
 
