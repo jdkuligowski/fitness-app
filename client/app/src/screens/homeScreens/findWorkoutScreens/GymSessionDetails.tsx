@@ -47,6 +47,7 @@ export default function WorkoutScreen({ route }) {
 
     const [currentWorkout, setCurrentWorkout] = useState(null); // Store the current workout for the modal
     const [filteredWorkoutData, setFilteredWorkoutData] = useState([]); // Store the current workout for the modal
+    const [didShowNoPlanAlert, setDidShowNoPlanAlert] = useState(false);
 
     const flatListRef = useRef(null);
 
@@ -54,16 +55,16 @@ export default function WorkoutScreen({ route }) {
     const ANIMATION_KEY = 'hasSeenSwipeAnimation';
 
     // run this animation on first load
-    useEffect(() => {
-        const checkIfAnimationSeen = async () => {
-            // const hasSeen = await AsyncStorage.getItem(ANIMATION_KEY);
-            if (!hasSeenAnimation) {
-                setTimeout(() => startSwipeAnimation(), 1000); // Delay so everything loads first
-            }
-        };
+    // useEffect(() => {
+    const checkIfAnimationSeen = async () => {
+        // const hasSeen = await AsyncStorage.getItem(ANIMATION_KEY);
+        if (!hasSeenAnimation) {
+            setTimeout(() => startSwipeAnimation(), 1000); // Delay so everything loads first
+        }
+    };
 
-        checkIfAnimationSeen();
-    }, []);
+    //     checkIfAnimationSeen();
+    // }, []);
 
     // Animation logic
     const startSwipeAnimation = async () => {
@@ -93,40 +94,37 @@ export default function WorkoutScreen({ route }) {
         }
     }, [workoutPlans]);
 
-    useEffect(() => {
-        const loadFilteredMovements = async () => {
-            try {
-                setIsBouncerLoading(true);
+    const loadFilteredMovements = async () => {
+        try {
+            setIsBouncerLoading(true);
 
-                const stored = await AsyncStorage.getItem("activeEquipmentFilter");
-                if (!stored) {
-                    console.warn("No stored filter found; fallback to all movements?");
-                    // Optionally fetch all movements or do nothing
-                    return;
-                }
-                const parsed = JSON.parse(stored);
-                const filterId = parsed.filterId; // e.g. 12
-                if (!filterId) {
-                    console.warn("No filterId in active filter data; fallback?");
-                    return;
-                }
-
-                const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
-                console.log("Fetching filtered movements from:", url);
-                const response = await fetch(url);
-                const data = await response.json();
-
-                setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
-                console.log('Filtered movements: ', data)
-            } catch (error) {
-                console.error("Error fetching filtered movements:", error);
-            } finally {
-                setIsBouncerLoading(false);
+            const stored = await AsyncStorage.getItem("activeEquipmentFilter");
+            if (!stored) {
+                console.warn("No stored filter found; fallback to all movements?");
+                // Optionally fetch all movements or do nothing
+                return;
             }
-        };
+            const parsed = JSON.parse(stored);
+            const filterId = parsed.filterId; // e.g. 12
+            if (!filterId) {
+                console.warn("No filterId in active filter data; fallback?");
+                return;
+            }
 
-        loadFilteredMovements();
-    }, []);
+            const url = `${ENV.API_URL}/api/movements/filtered-movements/?filter_id=${filterId}`;
+            console.log("Fetching filtered movements from:", url);
+            const response = await fetch(url);
+            const data = await response.json();
+
+            setFilteredWorkoutData(data);  // "data" will be an array of Movement objects 
+            console.log('Filtered movements: ', data)
+        } catch (error) {
+            console.error("Error fetching filtered movements:", error);
+        } finally {
+            setIsBouncerLoading(false);
+        }
+    };
+
 
 
     // Filter workout data for a section
@@ -430,6 +428,7 @@ export default function WorkoutScreen({ route }) {
             }
         }
 
+
         return plan.slice(0, 9);
     };
 
@@ -494,33 +493,75 @@ export default function WorkoutScreen({ route }) {
 
 
     // Generate multiple workout plans
-    const generateWorkoutPlans = () => {
-        const plans = [];
+    const generateWorkoutPlans = async () => {
+        const candidatePlans = [];
         for (let i = 0; i < 10; i++) {
-            plans.push(generateWorkoutPlan());
+            const plan = generateWorkoutPlan();
+            // plan is either an array of sections or possibly empty
+            candidatePlans.push(plan);
         }
-        setWorkoutPlans(plans);
-        // console.log("Generated workout plans:", JSON.stringify(filteredWorkoutData, null, 2));
-        console.log("Filtered data length:", filteredWorkoutData.length);
-        // console.log("Original data:", JSON.stringify(plans, null, 2));
-        // Are #304 and #305 present in the array?
-        // const has304 = filteredWorkoutData.some(item => item.id === 304);
-        // const has305 = filteredWorkoutData.some(item => item.id === 305);
 
-        // console.log("Has ID #304?", has304);
-        // console.log("Has ID #305?", has305);
+        // Filter out any plan that has an empty or missing section
+        // i.e. we only keep the plan if every section has movements
+        const validPlans = candidatePlans.filter((plan) => {
+            if (!plan || !plan.length) return false; // no sections at all => discard
+
+            // Check if ANY section is empty => discard
+            return plan.every((section) => section.movements && section.movements.length > 0);
+        });
+
+
+
+
+        const equipmentFilter = await AsyncStorage.getItem("activeEquipmentFilter");
+
+        if (validPlans.length === 0 && !didShowNoPlanAlert) {
+            Alert.alert(
+                "No workout generated",
+                "We couldn't find any workouts that satisfy your equipment/filters. Please adjust and try again.",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            navigation.goBack(); // Return user to the previous screen
+                        },
+                    },
+                ]
+            );
+            setDidShowNoPlanAlert(true);
+            try {
+                const payload = {
+                    selectedWorkout,
+                    selectedTime,
+                    complexity,
+                    selectedFinish,
+                    equipmentFilter, // string from AsyncStorage
+                    candidatePlans
+                };
+                await axios.post(`${ENV.API_URL}/api/movements/no-plan-email/`, payload);
+                console.log("No-plan email posted successfully");
+            } catch (error) {
+                console.warn("Failed to send no-plan email:", error);
+            }
+        }
+        setWorkoutPlans(validPlans);
+        console.log(`Found ${validPlans.length} valid plans (out of 10).`);
     };
+
 
     // Fetch data and generate workout plans
     useEffect(() => {
         fetchWorkoutData();
         fetchConditioningData();
+        loadFilteredMovements();
+        checkIfAnimationSeen();
+
     }, []);
 
 
 
     useEffect(() => {
-        if (filteredWorkoutData.length > 0 && conditioningData.length > 0) {
+        if (filteredWorkoutData.length > 0 && conditioningData.length > 0 && filteredWorkoutData) {
             generateWorkoutPlans();
         }
     }, [filteredWorkoutData, conditioningData]);

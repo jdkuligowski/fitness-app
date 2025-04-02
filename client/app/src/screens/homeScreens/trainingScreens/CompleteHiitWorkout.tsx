@@ -47,6 +47,7 @@ export default function HiitWorkout({ route, navigation }) {
 
     const hiitBlocks = workout.hiit_sessions?.[0]?.hiit_details || []; // HIIT blocks
     const hiitMovements = hiitBlocks.flatMap((block) => block.hiit_movements || []);
+    console.log('Hiit movements: ', JSON.stringify(hiitMovements, null, 2))
 
 
     const getHiitRoundsSingleBlock = (hiitSession) => {
@@ -93,10 +94,10 @@ export default function HiitWorkout({ route, navigation }) {
 
     useEffect(() => {
         if (workout?.hiit_sessions?.length) {
-          const session = workout.hiit_sessions[0];
-          getHiitRoundsSingleBlock(session);
+            const session = workout.hiit_sessions[0];
+            getHiitRoundsSingleBlock(session);
         }
-      }, [workout]);
+    }, [workout]);
 
 
     const updateHiitWorkout = async () => {
@@ -166,14 +167,16 @@ export default function HiitWorkout({ route, navigation }) {
                             </View>
                         </View>
 
-                        {workout?.hiit_sessions?.[0]?.workout_type === "EMOM" ? (
-                            <TouchableOpacity
-                                style={styles.startTimerButton}
-                                onPress={() => setIsHiitTimerVisible(true)}
-                            >
-                                <Ionicons name="alarm-outline" size={34} color="black" />
-                            </TouchableOpacity>
-                        ) : null}
+                        {workout?.hiit_sessions?.[0]?.workout_type === "AMRAP" ?
+                            null :
+                            (
+                                <TouchableOpacity
+                                    style={styles.startTimerButton}
+                                    onPress={() => setIsHiitTimerVisible(true)}
+                                >
+                                    <Ionicons name="alarm-outline" size={34} color="black" />
+                                </TouchableOpacity>
+                            )}
                     </View>
                 </View>
 
@@ -340,8 +343,9 @@ export default function HiitWorkout({ route, navigation }) {
                     onClose={() => setIsHiitTimerVisible(false)}
                     workoutName={workout?.name || "HIIT Workout"}
                     hiitMovements={hiitMovements}
-                    workoutType={"EMOM"}
+                    workoutType={workout.hiit_sessions[0].workout_type}
                     totalWorkoutDuration={workout?.duration}
+                    workoutRounds={roundsValue}
                 />
             </View>
         </SafeAreaView>
