@@ -32,7 +32,7 @@ const ITEM_WIDTH = SCREEN_WIDTH - 85;
 
 export default function HiitWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive workout data as a parameter
-    console.log('Hiit workout: ', JSON.stringify(workout, null, 2))
+    // console.log('Hiit workout: ', JSON.stringify(workout, null, 2))
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [currentBlockIndex, setCurrentBlockIndex] = useState(0); // Track current HIIT block
@@ -47,14 +47,14 @@ export default function HiitWorkout({ route, navigation }) {
 
     const hiitBlocks = workout.hiit_sessions?.[0]?.hiit_details || []; // HIIT blocks
     const hiitMovements = hiitBlocks.flatMap((block) => block.hiit_movements || []);
-    console.log('Hiit movements: ', JSON.stringify(hiitMovements, null, 2))
+    // console.log('Hiit movements: ', JSON.stringify(hiitMovements, null, 2))
 
 
     const getHiitRoundsSingleBlock = (hiitSession) => {
         if (!hiitSession?.hiit_details?.length) {
             return 0; // no blocks
         }
-        console.log("Hiit session object ", hiitSession)
+        // console.log("Hiit session object ", hiitSession)
         const workoutType = hiitSession.workout_type;
         const totalDuration = hiitSession.duration; // in minutes
         const firstBlock = hiitSession.hiit_details[0];
@@ -114,7 +114,7 @@ export default function HiitWorkout({ route, navigation }) {
             };
 
             const workoutId = workout.id;
-            console.log("Payload being sent:", JSON.stringify(payload, null, 2));
+            // console.log("Payload being sent:", JSON.stringify(payload, null, 2));
 
             // Send the PUT request to complete the workout
             const response = await axios.put(
@@ -129,8 +129,10 @@ export default function HiitWorkout({ route, navigation }) {
             );
 
             if (response.status === 200) {
-                console.log("HIIT workout updated successfully:", response.data);
-                alert("HIIT workout updated successfully!");
+                // console.log("HIIT workout updated successfully:", response.data);
+                Alert.alert(
+                    "Well done",
+                    "HIIT workout logged!");
             } else {
                 console.error("Unexpected response:", response);
                 alert("There was an issue updating the workout. Please try again.");

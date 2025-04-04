@@ -271,8 +271,8 @@ class FullUserView(APIView):
 
         # 1. Basic workout stats
         today = now().date()
-        start_of_month = today.replace(day=1)
-        start_of_week = today - timedelta(days=today.weekday())
+        start_of_month = today - timedelta(days=30)
+        start_of_week = today - timedelta(days=7)
         workouts = Workout.objects.filter(owner=user, status='Completed')
         workout_stats = workouts.aggregate(
             workouts_this_month=Count('id', filter=Q(completed_date__gte=start_of_month)),

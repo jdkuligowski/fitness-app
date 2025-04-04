@@ -338,20 +338,37 @@ export default function SaveWorkoutModal({ currentWorkout, setCurrentWorkout, on
                     scheduled_date: status === "Scheduled" ? formattedDate : null,
                     sections: workoutPlan.workout.workout_sections.map((section, index) => {
                         if (section.section_name === "Conditioning") {
+                            // If there's at least one conditioning element, let's grab it:
+                            const [firstElement] = section.conditioning_elements || [];
+                            if (!firstElement) {
+                                console.warn("No conditioning_elements found; skipping or fallback");
+                                return {
+                                    section_name: section.section_name,
+                                    section_order: index + 1,
+                                    section_type: section.section_type,
+                                    conditioning_workout: {
+                                        conditioning_overview_id: null,
+                                        movements: [],
+                                    },
+                                };
+                            }
+                            const overviewId = firstElement.conditioning_overview?.id || null;
+
+                            const movements = (section.section_movement_details || []).map((movement, movementIndex) => ({
+                                movement_order: movementIndex + 1,
+                                movement_name: movement.movements?.exercise || "Unknown Movement",
+                                detail: null, // or something if you want a detail
+                            }));
                             return {
                                 section_name: section.section_name,
                                 section_order: index + 1,
                                 section_type: section.section_type,
                                 conditioning_workout: {
-                                    conditioning_overview_id: section.conditioning_workout.conditioning_overview_id,
-                                    notes: section.conditioning_workout.notes,
-                                    rpe: section.conditioning_workout.rpe,
-                                    comments: section.conditioning_workout.comments,
-                                    movements: section.conditioning_workout.movements.map((movement, movementIndex) => ({
-                                        movement_order: movement.movement_order,
-                                        movement_name: movement.movement_name,
-                                        detail: movement.detail || null,
-                                    })),
+                                    conditioning_overview_id: overviewId,
+                                    notes: firstElement.conditioning_overview?.notes || "",
+                                    rpe: firstElement.rpe || 0,
+                                    comments: firstElement.comments || null,
+                                    movements: movements,
                                 },
                             };
                         } else {

@@ -1,7 +1,7 @@
 from django.db import models
 
 class SavedEquipmentFilter(models.Model):
-    filter_name = models.CharField(max_length=100, unique=True)  # e.g. "Home Gym", "Gym Setup"
+    filter_name = models.CharField(max_length=100)  # e.g. "Home Gym", "Gym Setup"
     equipment = models.ManyToManyField(
         "equipment.Equipment", 
         related_name="saved_filters")  

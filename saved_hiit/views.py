@@ -72,10 +72,10 @@ class CompleteHIITWorkoutAPIView(APIView):
                     workout_id=workout.id,
                     score_type="Full HIIT Logging"
                 ).exists():
-                    leaderboard.total_score += 20
-                    leaderboard.weekly_score += 20
-                    leaderboard.monthly_score += 20
-                    leaderboard.save()
+                    # leaderboard.total_score += 20
+                    # leaderboard.weekly_score += 20
+                    # leaderboard.monthly_score += 20
+                    # leaderboard.save()
 
                     ScoreLog.objects.create(
                         user=user,

@@ -27,9 +27,9 @@ export default function StatsOverview() {
     const [activeAggregatePeriod, setActiveAggregatePeriod] = useState('monthly');
 
     const PERIOD_TABS = [
-        { id: 'weekly', label: 'Week' },
-        { id: 'monthly', label: 'Month' },
-        { id: 'yearly', label: 'Year' },
+        { id: 'weekly', label: 'last 7 days' },
+        { id: 'monthly', label: 'last 30 days' },
+        { id: 'yearly', label: 'this year' },
     ];
 
 
@@ -47,6 +47,12 @@ export default function StatsOverview() {
                 return stats.aggregates.monthly_activity_type;
         }
     };
+
+    const dataObj = getActivityTypeData();
+    const hasActivityData = dataObj
+        && Object.keys(dataObj).length > 0
+        && Object.values(dataObj).some(val => val > 0);
+
 
     const getBodyPartData = () => {
         if (!stats?.aggregates) return null;
@@ -117,7 +123,8 @@ export default function StatsOverview() {
             const response = await axios.get(`${ENV.API_URL}/api/auth/full-profile/${userId}/`);
             const freshStats = response.data.stats;
             setStats(freshStats);
-            console.log('Stats: ', response.data.stats)
+            console.log('Stats: ', JSON.stringify(response.data.stats, null, 2))
+
 
             // Cache the fresh stats
             await AsyncStorage.setItem('cachedStats', JSON.stringify(freshStats));
@@ -145,6 +152,12 @@ export default function StatsOverview() {
     const onRefresh = () => {
         fetchStats(true);
     };
+
+    const getCurrentMonthName = () => {
+        // “long” gives the full month name, e.g. “April”
+        return new Date().toLocaleString("en-GB", { month: "long" });
+    }
+
 
     // 6. If still loading and have no cached stats, show a spinner
     if (isBouncerLoading && !stats) {
@@ -201,34 +214,16 @@ export default function StatsOverview() {
                     </View>
                 </View>
 
-                {/* Workouts Completed (Month + All Time) */}
-                {/* <View style={styles.completedWorkoutsContainer}>
-                    <Text style={styles.workoutsCompletedTitle}>Workouts Completed</Text>
-                    <View style={styles.workoutsResults}>
-                        <View style={styles.workoutsBox}>
-                            <Text style={styles.workoutsMonth}>THIS MONTH</Text>
-                            <Text style={styles.workoutsValue}>
-                                {stats ? stats.workouts_this_month : '...'}
-                            </Text>
-                        </View>
-                        <View style={styles.workoutsBox}>
-                            <Text style={styles.workoutsMonth}>ALL TIME</Text>
-                            <Text style={styles.workoutsValue}>
-                                {stats ? stats.workouts_all_time : '...'}
-                            </Text>
-                        </View>
-                    </View>
-                </View> */}
 
                 {/* Leaderboard Scores + Ranks */}
                 <TouchableOpacity
                     style={styles.leaderboardOverviewContainer}
                     onPress={() => {
-                        // e.g., navigate to a full Leaderboard screen if you have one
                         navigation.navigate('LeaderboardOverview');
+
                     }}
                 >
-                    <Text style={styles.leaderboardTitle}>Monthly leaderboard</Text>
+                    <Text style={styles.leaderboardTitle}>{getCurrentMonthName()} leaderboard</Text>
                     <View style={styles.leaderboardResults}>
                         {/* Example user info row */}
                         <View style={styles.profileBox}>
@@ -289,7 +284,9 @@ export default function StatsOverview() {
                                 onPress={() => setActiveAggregatePeriod(tab.id)}
                             >
                                 <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-                                    {tab.label}  {/* This is "Week", "Month", or "Year" */}
+                                    {tab.label === "this year" ? "Year" :
+                                        tab.label === "last 30 days" ? "Month" :
+                                            "Week"}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -301,22 +298,21 @@ export default function StatsOverview() {
 
                 {/* Activity Chart */}
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
-                    {/* <Text style={styles.workoutsCompletedTitle}>
-                        Workouts this {getActiveLabel().toLowerCase()}{`: ${getWorkoutsCompleted()}`}
-                    </Text> */}
                     <View style={styles.sectionTitle}>
 
                         <Text style={styles.workoutsCompletedTitle}>
-                            Workouts this {getActiveLabel().toLowerCase()}
+                            Workouts {getActiveLabel().toLowerCase()}
                         </Text>
                         <Text style={styles.workoutsCompletedNumber}>{getWorkoutsCompleted()}</Text>
 
                     </View>
                     <View style={{ marginVertical: 10 }}>
-                        {getActivityTypeData() ? (
-                            <ActivityTypePieChart dataObject={getActivityTypeData()} />
+                        {hasActivityData ? (
+                            <ActivityTypePieChart dataObject={dataObj} />
                         ) : (
-                            <Text style={styles.noDataMessage}>Do some workouts to see your ectivity</Text>
+                            <Text style={styles.noDataMessage}>
+                                Do some workouts to see your activity
+                            </Text>
                         )}
                     </View>
                 </View>
@@ -324,7 +320,7 @@ export default function StatsOverview() {
                 {/* Body Part Chart */}
                 <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
                     <Text style={styles.workoutsCompletedTitle}>
-                        Body parts targeted this {getActiveLabel().toLowerCase()}
+                        Body parts targeted {getActiveLabel().toLowerCase()}
                     </Text>
                     <View style={{ marginVertical: 10 }}>
                         {getBodyPartData() ? (

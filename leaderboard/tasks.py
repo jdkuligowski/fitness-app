@@ -43,7 +43,6 @@ def update_leaderboards():
 def _update_ranks():
     """
     Sort by total_score, weekly_score, monthly_score and assign ranks.
-    Could also do this with a window function, but here's a simple Python approach.
     """
     # RANK ALL-TIME
     all_time_lb = Leaderboard.objects.order_by('-total_score')

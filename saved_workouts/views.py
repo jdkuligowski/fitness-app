@@ -1585,21 +1585,21 @@ class CompleteWorkoutAPIView(APIView):
                 ConditioningWorkout.objects.bulk_update(conditioning_updates, ['comments', 'rpe'])
 
             # 5️⃣ --- NEW: Award Single +20 If ALL "Strength" Movements Are Fully Logged ---
-            if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
-                # Avoid double awarding if they've completed this before
-                if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
-                    leaderboard.total_score += 20
-                    leaderboard.weekly_score += 20
-                    leaderboard.monthly_score += 20
-                    leaderboard.save()
+            # if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
+            #     # Avoid double awarding if they've completed this before
+            #     if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
+            #         # leaderboard.total_score += 20
+            #         # leaderboard.weekly_score += 20
+            #         # leaderboard.monthly_score += 20
+            #         leaderboard.save()
 
-                    ScoreLog.objects.create(
-                        user=user,
-                        score_type='Full Strength Logging',
-                        score_value=20,
-                        workout_id=workout.id
-                    )
-                    logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
+            #         ScoreLog.objects.create(
+            #             user=user,
+            #             score_type='Full Strength Logging',
+            #             score_value=20,
+            #             workout_id=workout.id
+            #         )
+            #         logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
 
             logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
             return Response({'message': 'Workout completed successfully!'}, status=200)

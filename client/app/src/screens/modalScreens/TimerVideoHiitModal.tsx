@@ -83,7 +83,9 @@ const TimerVideoHiitModal = ({
                             name,
                             durationSecs: mv.duration || 60,
                             isRest: /rest/i.test(name),
-                            roundIndex: c // so we can display "Round c"
+                            roundIndex: c, // so we can display "Round c"
+                            landscape_video_url: mv.movements?.landscape_video_url || null
+
                         });
                     });
                 }

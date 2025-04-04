@@ -397,11 +397,10 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                 const movementName = movement.exercise || "No exercise name";
                                                                 const condDetail = item.conditioning_elements?.[0]?.conditioning_overview?.conditioning_details?.find(
                                                                     (cd) => cd.movement_order === movementDetail.movement_order
-                                                                  );
-                                                                
-                                                                  // If found, `condDetail?.detail` might be “10” or another value
-                                                                  const detail = condDetail?.detail;  // e.g. "10"
-                                                                
+                                                                );
+
+                                                                const detail = condDetail?.detail; 
+
                                                                 console.log('Movement: ', JSON.stringify(item, null, 2))
                                                                 return (
                                                                     <View key={i} style={styles.movementRow}>

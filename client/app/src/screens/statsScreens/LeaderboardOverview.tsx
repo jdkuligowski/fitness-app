@@ -107,10 +107,16 @@ export default function LeaderboardScreen() {
     // Because you asked for the "exact same box" from the previous screen:
     const getUserInitials = () => {
         if (!currentUser) return '';
-        const first = currentUser?.first_name?.charAt(0) || '';
-        const last = currentUser?.last_name?.charAt(0) || '';
+        const first = currentUser?.user.first_name?.charAt(0) || '';
+        const last = currentUser?.user.last_name?.charAt(0) || '';
         return (first + last).toUpperCase();
     };
+
+    const getCurrentMonthName = () => {
+        // “long” gives the full month name, e.g. “April”
+        return new Date().toLocaleString("en-GB", { month: "long" });
+      }
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -123,7 +129,7 @@ export default function LeaderboardScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
-                    <Text style={styles.headingText}>Monthly leaderboard</Text>
+                    <Text style={styles.headingText}>{getCurrentMonthName()} leaderboard</Text>
                 </View>
 
                 {/* Leaderboard box from previous page */}

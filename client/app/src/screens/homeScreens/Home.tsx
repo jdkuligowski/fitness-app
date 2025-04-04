@@ -343,7 +343,7 @@ export default function HomeScreen() {
                   >
                     <View style={styles.topRow}>
                       <Text style={styles.workoutTitle}>{workout.name}</Text>
-                      <Text style={styles.workoutDescription}>{workout.description}</Text>
+                      {/* <Text style={styles.workoutDescription}>{workout.description}</Text> */}
 
                     </View>
 

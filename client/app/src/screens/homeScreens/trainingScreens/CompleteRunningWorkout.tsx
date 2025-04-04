@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     TextInput,
     Dimensions,
-    KeyboardAvoidingView, Platform,
+    KeyboardAvoidingView, Platform, Alert
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colours } from '@/app/src/components/styles';
@@ -27,17 +27,25 @@ export default function RunningWorkout({ route, navigation }) {
     const { workout, completeWorkouts } = route.params; // Receive the workout data as a parameter
     const [activeTab, setActiveTab] = useState("Summary"); // Active tab
     const [logData, setLogData] = useState({
-        session_comments: workout.running_sessions[0]?.comments || "", // Default to an empty string
-        session_rpe: workout.running_sessions[0]?.rpe || 0, // Default to 0
+        session_comments: workout.running_sessions[0]?.comments || "",
+        session_rpe: workout.running_sessions[0]?.rpe || 0,
         intervals: workout.running_sessions[0]?.saved_intervals.map((interval) => ({
             ...interval,
-            split_times: interval.split_times.map((split) => ({
-                ...split,
-                actual_mins: split.actual_time ? Math.floor(split.actual_time / 60) : "", // Extract minutes
-                actual_secs: split.actual_time ? split.actual_time % 60 : "", // Extract seconds
-            })),
+            split_times: interval.split_times.map((split) => {
+                const rawMins = Math.floor(split.actual_time / 60) || 0;
+                const rawSecs = split.actual_time % 60 || 0;
+
+                return {
+                    ...split,
+                    actual_mins: rawMins, // numeric
+                    actual_secs: rawSecs,
+                    actual_mins_str: String(rawMins).padStart(2, "0"),
+                    actual_secs_str: String(rawSecs).padStart(2, "0"),
+                };
+            }),
         })) || [],
     });
+
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
 
 
@@ -76,7 +84,7 @@ export default function RunningWorkout({ route, navigation }) {
                 })),
             };
             const workoutId = workout.id
-            console.log("Payload being sent:", JSON.stringify(payload, null, 2));
+            // console.log("Payload being sent:", JSON.stringify(payload, null, 2));
 
             // Send the PUT request to complete the workout
             const response = await axios.put(
@@ -92,7 +100,9 @@ export default function RunningWorkout({ route, navigation }) {
 
             if (response.status === 200) {
                 console.log("Workout updated successfully:", response.data);
-                alert("Workout updated successfully!");
+                Alert.alert(
+                    "Well done",
+                    "Running workout logged!");
             } else {
                 console.error("Unexpected response:", response);
                 alert("There was an issue updating the workout. Please try again.");
@@ -323,7 +333,7 @@ export default function RunningWorkout({ route, navigation }) {
                                                 <Text style={styles.splitLabel}>Split {split.repeat_number}:</Text>
                                             }
                                             <View style={styles.timeInputContainer}>
-                                                <TextInput
+                                                {/* <TextInput
                                                     style={[styles.input, styles.timeInput]}
                                                     value={split.actual_mins !== undefined ? String(split.actual_mins) : ''}
                                                     placeholder="Min"
@@ -336,9 +346,31 @@ export default function RunningWorkout({ route, navigation }) {
                                                         updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_time = mins * 60 + secs;
                                                         setLogData(updatedLogData);
                                                     }}
-                                                />
-                                                <Text style={styles.colon}>:</Text>
+                                                /> */}
                                                 <TextInput
+                                                    style={[styles.input, styles.timeInput]}
+                                                    value={split.actual_mins_str}
+                                                    placeholder="Min"
+                                                    keyboardType="numeric"
+                                                    onChangeText={(text) => {
+                                                        const updatedLogData = { ...logData };
+
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_mins_str = text;
+
+                                                        const mins = parseInt(text, 10) || 0;
+
+                                                        const secsText = updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_secs_str;
+                                                        const secs = parseInt(secsText, 10) || 0;
+
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_mins = mins;
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_time = mins * 60 + secs;
+
+                                                        setLogData(updatedLogData);
+                                                    }}
+                                                />
+
+                                                <Text style={styles.colon}>:</Text>
+                                                {/* <TextInput
                                                     style={[styles.input, styles.timeInput]}
                                                     value={split.actual_secs !== undefined ? String(split.actual_secs) : ''}
                                                     placeholder="Sec"
@@ -351,7 +383,32 @@ export default function RunningWorkout({ route, navigation }) {
                                                         updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_time = mins * 60 + secs;
                                                         setLogData(updatedLogData);
                                                     }}
+                                                /> */}
+                                                <TextInput
+                                                    style={[styles.input, styles.timeInput]}
+                                                    value={split.actual_secs_str} // show "01" if user typed "01"
+                                                    placeholder="Sec"
+                                                    keyboardType="numeric"
+                                                    onChangeText={(text) => {
+                                                        const updatedLogData = { ...logData };
+
+                                                        // 1) Store the raw text
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_secs_str = text;
+
+                                                        // 2) Parse ignoring leading zeros
+                                                        const secs = parseInt(text, 10) || 0;
+
+                                                        // 3) Recompute total
+                                                        const minsText = updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_mins_str;
+                                                        const mins = parseInt(minsText, 10) || 0;
+
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_secs = secs;
+                                                        updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_time = mins * 60 + secs;
+
+                                                        setLogData(updatedLogData);
+                                                    }}
                                                 />
+
                                             </View>
                                         </View>
                                     ))}
@@ -394,6 +451,8 @@ export default function RunningWorkout({ route, navigation }) {
                                         }}
                                     />
                                 </View>
+                            </View>
+                            <View style={{ height: 30 }}>
                             </View>
                         </ScrollView>
                     </KeyboardAvoidingView>
@@ -662,6 +721,7 @@ const styles = StyleSheet.create({
 
     tabContent: {
         marginTop: 10,
+        // marginBottom: 10,
         marginHorizontal: 20,
         backgroundColor: 'white',
         borderRightWidth: 4,
@@ -670,7 +730,9 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRadius: 20,
         padding: 20,
-        // flex: 1,
+        paddingBottom: 200,
+        overflow: 'hidden',
+
     },
     workoutActivity: {
         marginBottom: 5,
@@ -808,7 +870,9 @@ const styles = StyleSheet.create({
     },
     sliderContainer: {
         marginTop: 10,
-        marginBottom: 30, // Prevent overlap with elements below
+        marginBottom: 30,
+        paddingBottom: 30,
+        overflow: 'hidden',
     },
     slider: {
         width: '90%',

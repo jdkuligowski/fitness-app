@@ -16,7 +16,7 @@ const ACTIVITY_TYPE_COLORS = {
 export default function ActivityTypePieChart({ dataObject }) {
   if (!dataObject) {
     // No data => return a small placeholder
-    return <Text>No activity type data</Text>;
+    return <Text>Do some workouts to see your activity</Text>;
   }
 
   // dataObject might look like: { Strength: 120, Running: 60, Mobility: 15 }
@@ -63,56 +63,3 @@ export default function ActivityTypePieChart({ dataObject }) {
     </View>
   );
 }
-
-// import React from 'react';
-// import { View, Text } from 'react-native';
-// import { VictoryPie, VictoryLegend, VictoryContainer } from 'victory-native';
-
-// const ACTIVITY_TYPE_COLORS = {
-//   Gym: '#EFE8FF',
-//   Hiit: '#F6F6DC',
-//   Mobility: '#FFDDDE',
-//   Running: '#D2E4EA',
-//   Strength: '#FFB6C1',
-// };
-
-// export default function ActivityTypeDonutChart({ dataObject }) {
-//   // e.g. dataObject = { Gym: 100, Hiit: 30, Mobility: 5, Running: 37 }
-//   if (!dataObject || Object.keys(dataObject).length === 0) {
-//     return <Text>No data</Text>;
-//   }
-
-//   // Convert object to Victory-friendly data: [ { x: 'Gym', y: 100 }, { x: 'Hiit', y: 30 }, ... ]
-//   const chartData = Object.entries(dataObject).map(([key, value]) => ({
-//     x: key,
-//     y: value,
-//   }));
-
-//   // Build colorScale in the same order
-//   const colorScale = chartData.map((datum) => {
-//     return ACTIVITY_TYPE_COLORS[datum.x] || '#ccc';
-//   });
-
-//   // 1) Calculate total once
-//   const total = chartData.reduce((acc, datum) => acc + datum.y, 0);
-
-//   return (
-//     <View style={{ alignItems: 'center' }}>
-//       <VictoryPie
-//         data={chartData}
-//         width={280}
-//         height={200}
-//         innerRadius={100}         // donut hole
-//         colorScale={colorScale}
-//         // 2) Format label as a percentage
-//         labels={({ datum }) => {
-//           const pct = ((datum.y / total) * 100).toFixed(0); // e.g. 45.6
-//           return `${datum.x}: ${pct}%`;
-//         }}
-//         style={{
-//           labels: { fontSize: 14, fill: '#333' },
-//         }}
-//       />
-//     </View>
-//   );
-// }

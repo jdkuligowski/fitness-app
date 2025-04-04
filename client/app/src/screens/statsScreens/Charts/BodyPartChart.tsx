@@ -16,7 +16,7 @@ const BODY_PART_COLORS = {
 
 export default function BodyPartBarChart({ dataObject }) {
   if (!dataObject || Object.keys(dataObject).length === 0) {
-    return <Text>No body-part data</Text>;
+    return <Text>Save some gym workouts to track your gains</Text>;
   }
 
   // Example: dataObject = { Back: 5, Chest: 3, Core: 7, ... }

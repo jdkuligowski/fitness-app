@@ -68,7 +68,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
     const { workout, movementHistory, conditioningHistory } = route.params; // Get the workout data from the previous screen
     // console.log('Movement history: ', JSON.stringify(movementHistory, null, 2))
-    console.log('Conditioning history: ', JSON.stringify(conditioningHistory, null, 2))
+    // console.log('Conditioning history: ', JSON.stringify(conditioningHistory, null, 2))
     const [currentStage, setCurrentStage] = useState(0); // Current workout stage index
     const [activeTab, setActiveTab] = useState('Summary'); // Active tab for Summary, Log, History
     const flatListRef = useRef(null); // Ref for FlatList to programmatically scroll
@@ -89,7 +89,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
     const getUser = async () => {
         try {
             const userId = await AsyncStorage.getItem("userId"); // Retrieve the user ID from local storage
-            console.log("user_id ->", userId);
+            // console.log("user_id ->", userId);
 
             if (!userId) {
                 console.error('User ID not found in AsyncStorage.');
@@ -98,10 +98,10 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
             }
 
             const { data } = await axios.get(`${ENV.API_URL}/api/auth/profile/${userId}/`);
-            console.log('User data ->', data); // Debug log
+            // console.log('User data ->', data); // Debug log
             setUserData(data);
             setDivision(data.hyrox_division)
-            console.log('Hyrox: ', data.hyrox_division)
+            // console.log('Hyrox: ', data.hyrox_division)
         } catch (error) {
             console.error('Error fetching user data:', error?.response?.data || error.message);
         }
@@ -303,7 +303,9 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                 alert('Error saving workout');
             } else {
                 const data = await response.json();
-                alert('Workout saved successfully!');
+                Alert.alert(
+                    "Well done",
+                    "Hyrox workout logged!");
                 console.log('Saved response:', data);
             }
         } catch (error) {
@@ -354,7 +356,9 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
             );
             setIsBouncerLoading(false);
             navigation.navigate('TrainingOverview');
-            alert('Workout completed successfully!');
+            Alert.alert(
+                "Well done",
+                "Hyrox workout logged!");
         } catch (error) {
             console.error('Error saving workout:', error);
             if (error.response && error.response.data) {
