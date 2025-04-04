@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('api/leaderboard/', include('leaderboard.urls')),
     path('api/stats/', include('user_stats.urls')),
+    path('api/movement_workout_tracking/', include('movement_workout_tracking.urls')),
 ]

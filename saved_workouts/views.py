@@ -1736,9 +1736,9 @@ class CompleteHyroxAPIView(APIView):
             if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
                 # Avoid double awarding if they've completed this before
                 if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
-                    leaderboard.total_score += 20
-                    leaderboard.weekly_score += 20
-                    leaderboard.monthly_score += 20
+                    # leaderboard.total_score += 20
+                    # leaderboard.weekly_score += 20
+                    # leaderboard.monthly_score += 20
                     leaderboard.save()
 
                     ScoreLog.objects.create(

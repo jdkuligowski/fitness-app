@@ -391,24 +391,18 @@ export default function RunningWorkout({ route, navigation }) {
                                                     keyboardType="numeric"
                                                     onChangeText={(text) => {
                                                         const updatedLogData = { ...logData };
-
                                                         // 1) Store the raw text
                                                         updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_secs_str = text;
-
                                                         // 2) Parse ignoring leading zeros
                                                         const secs = parseInt(text, 10) || 0;
-
                                                         // 3) Recompute total
                                                         const minsText = updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_mins_str;
                                                         const mins = parseInt(minsText, 10) || 0;
-
                                                         updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_secs = secs;
                                                         updatedLogData.intervals[intervalIndex].split_times[splitIndex].actual_time = mins * 60 + secs;
-
                                                         setLogData(updatedLogData);
                                                     }}
                                                 />
-
                                             </View>
                                         </View>
                                     ))}

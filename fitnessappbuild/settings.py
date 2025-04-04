@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'saved_equipment_lists',
     'notifications',
     'user_stats',
+    'movement_workout_tracking',
 ]
 
 MIDDLEWARE = [

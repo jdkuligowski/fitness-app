@@ -53,6 +53,7 @@ export default function WorkoutScreen({ route }) {
 
     const [hasSeenAnimation, setHasSeenAnimation] = useState(false);
     const ANIMATION_KEY = 'hasSeenSwipeAnimation';
+    const hasGeneratedOnce = useRef(false);
 
     // run this animation on first load
     // useEffect(() => {
@@ -545,6 +546,26 @@ export default function WorkoutScreen({ route }) {
             } catch (error) {
                 console.warn("Failed to send no-plan email:", error);
             }
+        } else if (validPlans.length > 0) {
+            try {
+                const storePayload = {
+                    selectedWorkout,
+                    selectedTime,
+                    complexity,
+                    selectedFinish,
+                    equipmentFilter,
+                    candidatePlans: validPlans, // only store the valid ones
+                    userEmail
+                };
+                // Make a POST to your new endpoint
+                const resp = await axios.post(
+                    `${ENV.API_URL}/api/movement_workout_tracking/store-plans/`,
+                    storePayload
+                );
+                console.log("Plans stored successfully:", resp.data);
+            } catch (error) {
+                console.warn("Failed to store workout plans:", error);
+            }
         }
         setWorkoutPlans(validPlans);
         console.log(`Found ${validPlans.length} valid plans (out of 10).`);
@@ -562,13 +583,27 @@ export default function WorkoutScreen({ route }) {
 
 
 
+    // useEffect(() => {
+    //     if (filteredWorkoutData.length > 0 && conditioningData.length > 0 && workoutData) {
+    //         generateWorkoutPlans();
+    //     }
+    // }, [filteredWorkoutData, conditioningData, workoutData]);
+
     useEffect(() => {
-        if (filteredWorkoutData.length > 0 && conditioningData.length > 0 && filteredWorkoutData) {
-            generateWorkoutPlans();
+        // If we've already generated, skip
+        if (hasGeneratedOnce.current) {
+          return;
         }
-    }, [filteredWorkoutData, conditioningData]);
-
-
+      
+        if (
+          filteredWorkoutData.length > 0 &&
+          conditioningData.length > 0 &&
+          workoutData.length > 0
+        ) {
+          generateWorkoutPlans();
+          hasGeneratedOnce.current = true;
+        }
+    }, [filteredWorkoutData, conditioningData, workoutData]);
 
     if (isLoading) {
         return (
