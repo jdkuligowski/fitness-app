@@ -1,14 +1,15 @@
+import { Colours } from '@/app/src/components/styles';
 import React from 'react';
 import { View, Text } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 
 // Example color palette – adjust as you wish
 const ACTIVITY_TYPE_COLORS = {
-    "Running": "#ABCFDC",
-    "Mobility": "#F0C5C7",
-    "Hiit": "#FCFCB6",
-    "Gym": "#DBCDFD",
-    "Hyrox": "#E7F4E5",
+    "Running": Colours.runningColour,
+    "Mobility": Colours.mobilityColour,
+    "Hiit": Colours.hiitColour,
+    "Gym": Colours.gymColour,
+    "Hyrox": Colours.hyroxColour,
     // Add as many as you want
   };
 

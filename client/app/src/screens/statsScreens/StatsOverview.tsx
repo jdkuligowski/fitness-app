@@ -269,9 +269,9 @@ export default function StatsOverview() {
                         const isActive = (activeAggregatePeriod === tab.id);
                         // You can define a map of background colors keyed by ID:
                         const tabColors = {
-                            weekly: '#DFD7F3',
-                            monthly: '#DFD7F3',
-                            yearly: '#DFD7F3',
+                            weekly: Colours.buttonColour,
+                            monthly:  Colours.buttonColour,
+                            yearly:  Colours.buttonColour,
                         };
 
                         return (
@@ -297,7 +297,7 @@ export default function StatsOverview() {
                 {/* Donut Chart for Weekly Activity */}
 
                 {/* Activity Chart */}
-                <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
+                <View style={[styles.completedWorkoutsContainer, { backgroundColor: Colours.secondaryColour }]}>
                     <View style={styles.sectionTitle}>
 
                         <Text style={styles.workoutsCompletedTitle}>
@@ -318,7 +318,7 @@ export default function StatsOverview() {
                 </View>
 
                 {/* Body Part Chart */}
-                <View style={[styles.completedWorkoutsContainer, { backgroundColor: '#F3F3FF' }]}>
+                <View style={[styles.completedWorkoutsContainer, { backgroundColor: Colours.secondaryColour }]}>
                     <Text style={styles.workoutsCompletedTitle}>
                         Body parts targeted {getActiveLabel().toLowerCase()}
                     </Text>
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
         // marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         borderWidth: 1,
     },
     initialsText: {
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
         color: 'white',
     },
     profileButton: {
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         width: 50,
         height: 50,
         borderRadius: 10,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
-        backgroundColor: '#D6F7F4',
+        backgroundColor: Colours.secondaryColour,
     },
     leaderboardTitle: {
         fontSize: 16,
@@ -582,6 +582,7 @@ const styles = StyleSheet.create({
     },
     activeTabText: {
         fontWeight: 'bold',
+        color: Colours.secondaryColour
     },
     sectionTitle: {
         flexDirection: 'row',

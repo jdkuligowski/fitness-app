@@ -14,6 +14,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ENV from '../../../../env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colours } from '../../components/styles';
 
 const CORE_EQUIPMENT = [
     { id: 'Barbell', label: 'Barbell' },
@@ -309,12 +310,12 @@ export default function EquipmentFilterModal({
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F1FF', // Light background
+        backgroundColor: Colours.primaryBackground,
     },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F1FF',
+        backgroundColor: Colours.primaryBackground,
         paddingTop: 70,
         paddingHorizontal: 16,
         paddingBottom: 14,
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     sectionToggle: {
-        backgroundColor: '#E0F4DE',
+        backgroundColor: Colours.buttonColour,
         borderWidth: 1,
         borderColor: '#ADADAD',
         paddingVertical: 2,
@@ -407,7 +408,8 @@ const styles = StyleSheet.create({
         // borderWidth: 1,
         // borderColor: '#6E44FF',
         borderRadius: 6,
-        color: 'black',
+        color: 'white',
+        fontWeight: 600,
     },
 
     equipmentList: {
@@ -450,7 +452,7 @@ const styles = StyleSheet.create({
     optionCircleSelected: {
         // When selected, highlight
         borderColor: '#008080', // e.g. teal or your brand color
-        backgroundColor: '#DEF3F4',
+        backgroundColor: Colours.buttonColour,
     },
     optionLabel: {
         fontSize: 12,
@@ -483,7 +485,7 @@ const styles = StyleSheet.create({
     saveButton: {
         marginTop: 20,
         marginHorizontal: 16,
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         borderRadius: 20,
         paddingVertical: 14,
         alignItems: 'center',

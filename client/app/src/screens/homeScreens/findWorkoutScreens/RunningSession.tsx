@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     profileButton: {
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         width: 50,
         height: 50,
         borderRadius: 10,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
         marginRight: 15,
     },
     selectedOptionText: {
-        backgroundColor: '#DEF3F4',
+        backgroundColor: Colours.buttonColour,
     },
     labelText: {
         fontSize: 18,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,

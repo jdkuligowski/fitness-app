@@ -16,6 +16,7 @@ import axios from 'axios';
 import ENV from '../../../../env';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colours } from '../../components/styles';
 
 const { width } = Dimensions.get('window');
 
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     // general container
     container: {
         flex: 1,
-        backgroundColor: '#F8F5FE',
+        backgroundColor: Colours.primaryBackground,
     },
     loadingContainer: {
         flex: 1,
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
-        backgroundColor: '#D6F7F4',
+        backgroundColor: Colours.secondaryColour,
     },
     profileImage: {
         width: 50,
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         borderWidth: 1,
     },
     profilePlaceholder: {
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
         // marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#EFE8FF',
+        backgroundColor: Colours.secondaryColour,
         borderWidth: 1,
     },
     initialsText: {
@@ -391,6 +392,6 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
-        // backgroundColor: '#D6F7F4',
+        backgroundColor: Colours.secondaryColour,
     },
 });

@@ -53,12 +53,10 @@ const strengthRules50 = {
                     [
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "body_area", value: "Lower", operator: "contains" },
-                        // { key: "movement_type", value: ["Metcon, Accessory"], operator: "contains" },
                     ],
                     [
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
                         { key: "body_area", value: "Upper", operator: "contains" },
-                        // { key: "movement_type", value: ["Metcon, Accessory"], operator: "contains" },
                     ],
                 ],
             },
@@ -106,7 +104,6 @@ const strengthRules50 = {
                         { key: "movement", value: "Squat Unilateral", operator: "contains" },
                     ],
                     [
-                        // { key: "movement_type", value: ["Accessory, Metcon"], operator: "contains" },
                         { key: "primary_body_part", value: "Core", operator: "contains" },
                     ],
                 ],
@@ -117,14 +114,11 @@ const strengthRules50 = {
                     [
                         { key: "body_area", value: "Lower", operator: "contains" },
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
-
-                        // { key: "movement_type", value: ["Metcon, Accessory"], operator: "contains" },
                     ],
                     [
                         { key: "body_area", value: "Upper", operator: "contains" },
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
 
-                        // { key: "movement_type", value: ["Metcon, Accessory"], operator: "contains" },
                     ],
                 ],
             },

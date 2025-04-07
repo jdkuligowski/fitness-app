@@ -166,7 +166,7 @@ export default function ProfileOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: '#E0DCF6' }
+                                    { backgroundColor: Colours.secondaryColour }
                                 ]}>
                                 <Ionicons name="person-outline" color={'black'} size={20} />
                             </View>
@@ -183,7 +183,7 @@ export default function ProfileOverview() {
                         <View
                             style={[
                                 styles.supportIconContainer,
-                                { backgroundColor: '#D6F7F4' }
+                                { backgroundColor: Colours.secondaryColour }
                             ]}>
                             <Ionicons name="id-card-outline" color={'black'} size={20} />
                         </View>
@@ -194,22 +194,6 @@ export default function ProfileOverview() {
                 </TouchableOpacity>
                 <View style={styles.divider}></View>
 
-                {/* <TouchableOpacity style={styles.supportRow}>
-
-                        <View style={styles.supportLeft}>
-                            <View
-                                style={[
-                                    styles.supportIconContainer,
-                                    { backgroundColor: '#FFE0E1' }
-                                ]}>
-                                <Ionicons name="notifications-outline" color={'black'} size={20} />
-                            </View>
-                            <Text style={styles.supportText}>Notifications</Text>
-                        </View>
-                        <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
-
-                    </TouchableOpacity> */}
-                <View style={styles.divider}></View>
 
                 <TouchableOpacity
                     style={styles.supportRow}
@@ -217,7 +201,7 @@ export default function ProfileOverview() {
                     activeOpacity={0.7} // 🔥 Provides feedback on press
                 >
                     <View style={styles.supportLeft}>
-                        <View style={[styles.supportIconContainer, { backgroundColor: '#F8FAE4' }]}>
+                        <View style={[styles.supportIconContainer, { backgroundColor: Colours.secondaryColour }]}>
                             <Ionicons name="log-out-outline" color={'black'} size={20} />
                         </View>
                         <Text style={styles.supportText}>Logout</Text>
@@ -287,7 +271,7 @@ const styles = StyleSheet.create({
         marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 4,

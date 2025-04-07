@@ -143,9 +143,9 @@ export default function RunningWorkout({ route, navigation }) {
                 <View style={styles.tabs}>
                     {['Summary', 'Log', 'History'].map((tab) => {
                         const tabColors = {
-                            'Summary': '#DFD7F3',  // Purple for active "Summary" tab
-                            'Log': '#D6F7F4',      // Teal for active "Log" tab
-                            'History': '#FFDCDD'   // Pink for active "History" tab
+                            'Summary': Colours.buttonColour, 
+                            'Log': Colours.buttonColour, 
+                            'History': Colours.buttonColour,
                         };
 
                         return (
@@ -711,6 +711,7 @@ const styles = StyleSheet.create({
     },
     activeTabText: {
         fontWeight: 'bold',
+        color: Colours.secondaryColour,
     },
 
     tabContent: {
@@ -774,7 +775,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#A9A9A9',
     },
     finishButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         flex: 1,
         marginHorizontal: 10,
         alignItems: 'center',
@@ -948,7 +949,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         fontSize: 12,
         textAlign: 'center',
-        backgroundColor: '#FFDCDD',
+        backgroundColor: Colours.buttonColour,
+        color: Colours.secondaryColour,
         marginRight: 5,
     },
     setValue: {

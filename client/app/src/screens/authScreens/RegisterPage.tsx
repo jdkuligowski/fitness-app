@@ -393,7 +393,7 @@ export default function RegisterPage() {
                     <ScrollView contentContainerStyle={styles.scrollViewContainer} keyboardShouldPersistTaps="handled">
                         <View style={styles.registerContainer}>
                             <Text style={styles.signUpText}>Sign up</Text>
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 style={styles.googleButton}
                                 onPress={() => {
                                     console.log("Google Sign-In Button Pressed ✅");
@@ -408,7 +408,7 @@ export default function RegisterPage() {
 
                                 <AntDesign name="google" size={24} color="black" />
                                 <Text style={styles.googleButtonText}>Sign up with Google</Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             <View style={styles.inputContainer}>
                                 {/* First Name */}
@@ -458,7 +458,7 @@ export default function RegisterPage() {
                                             <Ionicons
                                                 name={isPasswordVisible ? "eye-off" : "eye"}
                                                 size={24}
-                                                color="black"
+                                                color={Colours.buttonColour}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -479,7 +479,7 @@ export default function RegisterPage() {
                                             <Ionicons
                                                 name={isConfirmPasswordVisible ? "eye-off" : "eye"}
                                                 size={24}
-                                                color="black"
+                                                color={Colours.buttonColour}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -596,17 +596,17 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderColor: '#A9A9C7',
         borderWidth: 1,
-        padding: 12,
+        padding: 15,
         borderRadius: 16,
     },
     registerButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         flexDirection: 'row',
         width: '100%',
         padding: 5,
         borderRadius: 20,
         alignItems: 'center',
-        borderWidth: 1,
+        // borderWidth: 1,
         marginTop: 20,
 
     },
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     loginButton: {
-        color: '#9BB0E2',
+        color: Colours.buttonColour,
     },
     passwordWrapper: {
         flexDirection: 'row',

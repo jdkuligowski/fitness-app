@@ -414,9 +414,9 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                         <View style={styles.tabs}>
                                             {['Summary', 'Log', 'History'].map((tab) => {
                                                 const tabColors = {
-                                                    'Summary': '#DFD7F3', // Purple for active "Summary" tab
-                                                    'Log': '#D6F7F4', // Teal for active "Log" tab
-                                                    'History': '#FFDCDD' // Pink for active "History" tab
+                                                    'Summary': Colours.buttonColour, 
+                                                    'Log': Colours.buttonColour, 
+                                                    'History': Colours.buttonColour,
                                                 };
 
                                                 return (
@@ -636,9 +636,9 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                             <View style={styles.tabs}>
                                                 {['Summary', 'Log', 'History'].map((tab) => {
                                                     const tabColors = {
-                                                        'Summary': '#DFD7F3',  // Purple for active "Summary" tab
-                                                        'Log': '#D6F7F4',      // Teal for active "Log" tab
-                                                        'History': '#FFDCDD'   // Pink for active "History" tab
+                                                        'Summary': Colours.buttonColour, 
+                                                        'Log': Colours.buttonColour, 
+                                                        'History': Colours.buttonColour,
                                                     };
 
                                                     return (
@@ -1048,6 +1048,7 @@ const styles = StyleSheet.create({
     },
     activeTabText: {
         fontWeight: 'bold',
+        color: Colours.secondaryColour
     },
     tabContent: {
         // alignItems: 'center',
@@ -1132,7 +1133,7 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     navButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         padding: 15,
         borderRadius: 50,
     },
@@ -1140,7 +1141,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#A9A9A9',
     },
     finishButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         flex: 1,
         marginHorizontal: 10,
         alignItems: 'center',
@@ -1173,9 +1174,10 @@ const styles = StyleSheet.create({
         width: 25,
         height: 25,
         textAlign: 'center',
-        backgroundColor: '#D6F7F4',
+        backgroundColor: Colours.buttonColour,
         borderRadius: 20,
         fontWeight: 600,
+        color: Colours.secondaryColour
     },
     weightInput: {
         borderWidth: 1,
@@ -1203,7 +1205,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     saveButton: {
-        backgroundColor: '#D6F7F4',
+        backgroundColor: Colours.buttonColour,
         // flex: 1,
         marginHorizontal: 10,
         alignItems: 'center',
@@ -1212,7 +1214,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     saveButtonText: {
-        color: 'black',
+        color: Colours.secondaryColour,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -1315,8 +1317,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         fontSize: 12,
         textAlign: 'center',
-        backgroundColor: '#FFDCDD',
-        // marginRight: 5,
+        backgroundColor: Colours.buttonColour,
+        color: Colours.secondaryColour,
     },
     setValue: {
         fontWeight: 600,

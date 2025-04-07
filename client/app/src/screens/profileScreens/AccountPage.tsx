@@ -119,7 +119,7 @@ export default function AccountOverview({ route }) {
 
                                 <TouchableOpacity style={styles.row}>
                                     <View style={styles.rowLeft}>
-                                        <View style={[styles.iconContainer, { backgroundColor: '#FFE0E1' }]}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.secondaryColour }]}>
                                             <Ionicons name="lock-closed-outline" color={'black'} size={20} />
                                         </View>
                                         <Text style={styles.actionTitle}>Delete account</Text>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         padding: 15,
         width: '80%',
         borderRadius: 30,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
         marginRight: 20,
         borderRadius: 10,
         borderWidth: 1,
-        backgroundColor: '#E0DCF6',
+        backgroundColor: Colours.secondaryColour,
     },
     actionTitle: {
         fontSize: 18,

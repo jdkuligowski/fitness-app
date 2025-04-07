@@ -10,6 +10,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 // import { useWorkout } from "../../../context/WorkoutContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ENV from '../../../../env'
+import { Colours } from "../../components/styles";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = 20; // Width of each slider item
@@ -324,15 +325,15 @@ const styles = StyleSheet.create({
         width: 110,
     },
     selectedFilterOption: {
-        backgroundColor: 'white',
-        borderColor: '#6B6BF7',
+        backgroundColor: Colours.buttonColour,
+        borderColor: Colours.buttonColour,
     },
     filterOptionText: {
         fontSize: 14,
         textAlign: 'center',
     },
     selectedFilterText: {
-        color: '#6B6BF7',
+        color: Colours.secondaryColour,
     },
     filterActions: {
         flexDirection: 'row',

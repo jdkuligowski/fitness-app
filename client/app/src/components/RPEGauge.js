@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import { Colours } from './styles';
 
 const RPEGauge = ({ score }) => {
     return (
@@ -9,8 +10,8 @@ const RPEGauge = ({ score }) => {
                 size={65}
                 width={7}
                 fill={(score / 10) * 100} // Ensure the score is between 0 and 100
-                tintColor="#D32F2F"
-                backgroundColor="#E0E0E0"
+                tintColor={Colours.buttonColour}
+                backgroundColor={Colours.primaryBackground}
                 rotation={-120}
                 arcSweepAngle={240}
                 lineCap="round"

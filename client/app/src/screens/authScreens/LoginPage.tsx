@@ -73,7 +73,7 @@ export default function LoginPage() {
                             <View style={styles.imageContainer}>
                                 <Image
                                     style={styles.brandImage}
-                                    source={require('../../../../assets/images/burst_logo.png')}
+                                    source={require('../../../../assets/images/simple_burst_logo2.png')}
                                 />
                             </View>
 
@@ -105,7 +105,7 @@ export default function LoginPage() {
                                             <Ionicons
                                                 name={isPasswordVisible ? "eye-off" : "eye"}
                                                 size={24}
-                                                color="black"
+                                                color={Colours.buttonColour}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -147,12 +147,13 @@ const styles = StyleSheet.create({
     imageContainer: {
         justifyContent: 'center',
         alignItems: 'center',
+        width: '100%',
     },
+
     brandImage: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: '50%',       // or '100%'
+        height: 180,        // pick a suitable height
+        resizeMode: 'contain',
     },
     scrollViewContainer: {
         flexGrow: 1,
@@ -190,13 +191,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     registerButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         flexDirection: 'row',
         width: '100%',
         padding: 5,
         borderRadius: 20,
         alignItems: 'center',
-        borderWidth: 1,
+        // borderWidth: 1,
         marginTop: 20,
     },
     registerArrow: {
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     loginButton: {
-        color: '#9BB0E2',
+        color: Colours.buttonColour,
     },
 });
 

@@ -194,36 +194,29 @@ export default function WorkoutSummary({ route, navigation }) {
                 {/* Workout Overview */}
                 <View style={[styles.workoutCard,
                 {
-                    backgroundColor:
-                        userWorkouts.activity_type === 'Gym'
-                            ? '#F3F1FF'
-                            : userWorkouts.activity_type === 'Running'
-                                ? '#E4EAEC'
-                                : userWorkouts.activity_type === 'Mobility'
-                                    ? '#FFEEEF'
-                                    : userWorkouts.activity_type === 'Hiit'
-                                        ? '#F6F6DC'
-                                        : userWorkouts.activity_type === 'Hyrox'
-                                            ? '#E7F4E5'
-                                            : 'black',
+                    backgroundColor: Colours.secondaryColour,
                 }]}>
 
                     <View style={styles.workoutOverview}>
-                        <View style={[styles.overviewBox,
-                        {
-                            backgroundColor:
-                                userWorkouts.activity_type === 'Gym'
-                                    ? '#EFE8FF'
-                                    : userWorkouts.activity_type === 'Running'
-                                        ? '#D2E4EA'
-                                        : userWorkouts.activity_type === 'Mobility'
-                                            ? '#FFDDDE'
-                                            : userWorkouts.activity_type === 'Hiit'
-                                                ? '#FFFFEF'
-                                                : userWorkouts.activity_type === 'Hyrox'
-                                                    ? '#F5FFF4'
-                                                    : 'black',
-                        }]}>
+                        <View
+                            style={[
+                                styles.colorStrip,
+                                {
+                                    backgroundColor:
+                                        userWorkouts.activity_type === 'Gym'
+                                            ? Colours.gymColour
+                                            : userWorkouts.activity_type === 'Running'
+                                                ? Colours.runningColour
+                                                : userWorkouts.activity_type === 'Mobility'
+                                                    ? Colours.mobilityColour
+                                                    : userWorkouts.activity_type === 'Hiit'
+                                                        ? Colours.hiitColour
+                                                        : userWorkouts.activity_type === 'Hyrox'
+                                                            ? Colours.hyroxColour
+                                                            : 'white',
+                                }]}
+                        />
+                        <View style={styles.overviewBox}>
                             <View style={styles.overviewHeader}>
                                 <Text style={styles.workoutTitle}>{userWorkouts.name}</Text>
                                 <View style={styles.workoutOverviewTime}>
@@ -291,7 +284,7 @@ export default function WorkoutSummary({ route, navigation }) {
                                                         setSelectedMovement(currentMovement);
                                                     }}
                                                 >
-                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                    <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                 </TouchableOpacity>
                                             </View>
                                         );
@@ -336,7 +329,7 @@ export default function WorkoutSummary({ route, navigation }) {
                                                             setSelectedMovement(currentMovement);
                                                         }}
                                                     >
-                                                        <Ionicons name="play-circle" size={24} color="black" />
+                                                        <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                     </TouchableOpacity>
                                                 </View>
                                             );
@@ -506,7 +499,7 @@ export default function WorkoutSummary({ route, navigation }) {
                                                         });
                                                     }}
                                                 >
-                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                    <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                 </TouchableOpacity>
                                             </View>
                                         ))}
@@ -546,7 +539,7 @@ export default function WorkoutSummary({ route, navigation }) {
                                                                     });
                                                                 }}
                                                             >
-                                                                <Ionicons name="play-circle" size={24} color="black" />
+                                                                <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                             </TouchableOpacity>
                                                         }
                                                     </View>
@@ -645,7 +638,7 @@ const styles = StyleSheet.create({
 
     },
     workoutSummaryButton: {
-        backgroundColor: '#F5EAB7',
+        backgroundColor: 'white',
         borderWidth: 1,
         borderRadius: 10,
         paddingLeft: 10,
@@ -659,18 +652,21 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         fontWeight: 600,
         color: 'black',
-        flex: 1,
+        flex: 1, // Makes the text take remaining space
     },
     workoutOverview: {
         paddingLeft: 10,
         paddingRight: 10,
         paddingTop: 10,
+        flexDirection: 'row',
+
     },
     overviewBox: {
-        width: '100%',
+        width: '90%',
         padding: 10,
-        backgroundColor: '#EFE8FF',
-        borderRadius: 20,
+        backgroundColor: Colours.primaryBackground,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -678,6 +674,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    colorStrip: {
+        width: 30,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 18,
+
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -716,8 +718,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        maxHeight: 650,
-
+        backgroundColor: Colours.secondaryColour,
     },
     workoutInfoTile: {
         paddingLeft: 10,
@@ -820,7 +821,7 @@ const styles = StyleSheet.create({
     },
     movementLabel: {
         fontSize: 16,
-        color: '#6456B1',
+        color: Colours.primaryHeader,
         fontWeight: "500",
         lineHeight: 24,
         width: '10%',
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,

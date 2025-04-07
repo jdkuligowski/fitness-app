@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import SquigglyLineReg from '../../components/SquigglyLineRegistration';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ENV from '../../../../env'
+import { Colours } from '../../components/styles';
 
 
 const OnboardingModal = ({ isVisible, onClose, navigation }) => {
@@ -36,10 +37,10 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
     });
 
     const exerciseData = [
-        { name: 'Get stronger', icon: 'barbell-outline', colour: '#EFE8FF' },
-        { name: 'Get fitter', icon: 'heart-outline', colour: '#D2E4EA' },
-        { name: 'Get more lean', icon: 'person-outline', colour: '#FFDDDE' },
-        { name: 'Get bigger', icon: 'person-outline', colour: '#F6F6DC' },
+        { name: 'Get stronger', icon: 'barbell-outline', colour: Colours.gymColour },
+        { name: 'Get fitter', icon: 'heart-outline', colour: Colours.runningColour },
+        { name: 'Get more lean', icon: 'person-outline', colour: Colours.hyroxColour },
+        { name: 'Get bigger', icon: 'person-outline', colour: Colours.mobilityColour },
     ];
 
 
@@ -123,7 +124,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
             if (response.status === 200) {
                 // Alert.alert('Success', 'Onboarding completed!');
                 await AsyncStorage.setItem('is_onboarding_complete', 'true');
-    
+
                 setCurrentStep(6);
             } else {
                 Alert.alert('Error', 'Failed to update your details. Please try again.');
@@ -199,7 +200,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 </View>
                                 <View style={styles.stepMiddleSection}>
                                     <View style={styles.stepRow}>
-                                        <View style={[styles.iconContainer, { backgroundColor: '#E0DBFF' }]}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.secondaryColour }]}>
                                             <Ionicons name="person-outline" size={24} color="black" />
                                         </View>
                                         <View style={styles.rowDetail}>
@@ -208,7 +209,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                         </View>
                                     </View>
                                     <View style={styles.stepRow}>
-                                        <View style={[styles.iconContainer, { backgroundColor: '#D6F7F4' }]}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.secondaryColour }]}>
                                             <Ionicons name="barbell-outline" size={24} color="black" />
                                         </View>
                                         <View style={styles.rowDetail}>
@@ -217,7 +218,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                         </View>
                                     </View>
                                     <View style={styles.stepRow}>
-                                        <View style={[styles.iconContainer, { backgroundColor: '#FFDCDD' }]}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.secondaryColour }]}>
                                             <Ionicons name="list-outline" size={24} color="black" />
                                         </View>
                                         <View style={styles.rowDetail}>
@@ -273,7 +274,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 <TouchableOpacity
                                     style={[
                                         styles.nextButton,
-                                        { backgroundColor: formData.fitnessGoal ? 'black' : '#ccc' }, // Disable button if no selection
+                                        { backgroundColor: formData.fitnessGoal ? Colours.buttonColour : '#ccc' }, // Disable button if no selection
                                     ]}
                                     onPress={formData.fitnessGoal ? nextStep : null} // Prevent advancing without selection
                                     disabled={!formData.fitnessGoal} // Disable if no selection
@@ -291,21 +292,22 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 <View style={styles.stepMiddleSection}>
                                     <View style={styles.daysArray}>
                                         {[
-                                            { day: 1, color: '#E0DCF6' },
-                                            { day: 2, color: '#FFE0E1' },
-                                            { day: 3, color: '#E0F4DE' },
-                                            { day: 4, color: '#F6F6DC' },
-                                            { day: 5, color: '#DEF3F4' },
-                                            { day: 6, color: '#F5EAE0' },
+                                            { day: 1, color: Colours.secondaryColour },
+                                            { day: 2, color: Colours.secondaryColour },
+                                            { day: 3, color: Colours.secondaryColour },
+                                            { day: 4, color: Colours.secondaryColour },
+                                            { day: 5, color: Colours.secondaryColour },
+                                            { day: 6, color: Colours.secondaryColour },
                                         ].map(({ day, color }) => (
                                             <TouchableOpacity
                                                 key={day}
                                                 style={[
                                                     styles.dayButton,
                                                     {
-                                                        backgroundColor: color, // Default background color
-                                                        borderWidth: formData.exerciseFrequency === day ? 2 : 0, // Add border if selected
-                                                        borderColor: formData.exerciseFrequency === day ? 'black' : 'transparent',
+                                                        backgroundColor: formData.exerciseFrequency === day ? Colours.buttonColour : color, 
+                                                        borderWidth: formData.exerciseFrequency === day ? 2 : 1, // Add border if selected
+                                                        borderColor: formData.exerciseFrequency === day ? Colours.buttonColour : 'gray',
+
                                                     },
                                                 ]}
                                                 onPress={() => handleInputChange('exerciseFrequency', day)}
@@ -313,7 +315,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                                 <Text
                                                     style={[
                                                         styles.dayButtonText,
-                                                        { color: formData.exerciseFrequency === day ? 'black' : 'black' },
+                                                        { color: formData.exerciseFrequency === day ? Colours.secondaryColour : 'black' },
                                                     ]}
                                                 >
                                                     {day}
@@ -325,7 +327,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 <TouchableOpacity
                                     style={[
                                         styles.nextButton,
-                                        { backgroundColor: formData.exerciseFrequency ? 'black' : '#ccc' },
+                                        { backgroundColor: formData.exerciseFrequency ? Colours.buttonColour : '#ccc' },
                                     ]}
                                     onPress={formData.exerciseFrequency ? nextStep : null}
                                     disabled={!formData.exerciseFrequency}
@@ -347,19 +349,19 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 <View style={styles.stepMiddleSection}>
                                     <View style={styles.exerciseOptionsArray}>
                                         {[
-                                            { name: "Running", color: "#E0DCF6" },
-                                            { name: "Rowing", color: "#FFE0E1" },
-                                            { name: "Ski erg", color: "#E0F4DE" },
-                                            { name: "HIIT", color: "#F6F6DC" },
+                                            { name: "Running", color: Colours.secondaryColour },
+                                            { name: "Rowing", color: Colours.secondaryColour },
+                                            { name: "Ski erg", color: Colours.secondaryColour },
+                                            { name: "HIIT", color: Colours.secondaryColour },
                                         ].map(({ name, color }, index) => (
                                             <TouchableOpacity
                                                 key={index}
                                                 style={[
                                                     styles.exerciseOption,
                                                     {
-                                                        backgroundColor: color,
-                                                        borderWidth: formData.exerciseExclusions.includes(name) ? 2 : 0,
-                                                        borderColor: formData.exerciseExclusions.includes(name) ? 'black' : 'transparent',
+                                                        backgroundColor:formData.exerciseExclusions.includes(name) ? Colours.buttonColour: color,
+                                                        borderWidth: formData.exerciseExclusions.includes(name) ? 2 : 1,
+                                                        borderColor: formData.exerciseExclusions.includes(name) ? Colours.buttonColour : 'grey',
                                                     },
                                                 ]}
                                                 onPress={() => handleOptionSelect(name)}
@@ -367,7 +369,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                                 <Text
                                                     style={[
                                                         styles.exerciseOptionText,
-                                                        { color: formData.exerciseExclusions.includes(name) ? 'black' : 'black' },
+                                                        { color: formData.exerciseExclusions.includes(name) ? Colours.secondaryColour : 'black' },
                                                     ]}
                                                 >
                                                     {name}
@@ -379,7 +381,6 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                 <TouchableOpacity
                                     style={[
                                         styles.nextButton,
-                                        { backgroundColor: 'black' }, // Enable only if at least 1 option selected
                                     ]}
                                     onPress={nextStep}
                                 // disabled={formData.exerciseExclusions.length === 0}
@@ -435,7 +436,7 @@ const OnboardingModal = ({ isVisible, onClose, navigation }) => {
                                             styles.nextButton,
                                             {
                                                 backgroundColor:
-                                                    formData.five_k_mins && formData.five_k_secs ? 'black' : '#ccc',
+                                                    formData.five_k_mins && formData.five_k_secs ? Colours.buttonColour : '#ccc',
                                             },
                                         ]}
                                         onPress={
@@ -589,6 +590,7 @@ const styles = StyleSheet.create({
         padding: 20,
         fontWeight: '500',
         fontSize: 16,
+        color: Colours.secondaryColour,
     },
     exerciseIconBox: {
         borderWidth: 1,
@@ -631,6 +633,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         marginTop: 20,
         width: '100%',
+
     },
     exerciseOption: {
         width: '47.5%',
@@ -648,14 +651,14 @@ const styles = StyleSheet.create({
     },
 
     nextButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 20,
         marginBottom: 70,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 5,
@@ -693,7 +696,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     skipButton: {
-        backgroundColor: '#EFE8FF',
+        backgroundColor: Colours.primaryBackground,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 20,
@@ -707,22 +710,27 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     finalStep: {
-        backgroundColor: '#FFDCDD',
+        backgroundColor: Colours.buttonColour,
         height: '100%',
         flexDirection: 'column',
         justifyContent: 'flex-end',
     },
     finalContent: {
         padding: 20,
+        color: Colours.secondaryColour
+
     },
     congratsText: {
         fontSize: 50,
         fontWeight: 700,
         marginBottom: 20,
+        color: Colours.secondaryColour
     },
     subText: {
         fontSize: 20,
         marginBottom: 20,
+        color: Colours.secondaryColour
+
     },
 
 });

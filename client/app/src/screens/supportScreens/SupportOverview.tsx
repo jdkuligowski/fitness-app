@@ -90,7 +90,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: '#E0DCF6' }
+                                    { backgroundColor: Colours.secondaryColour }
                                 ]}>
                                 <Ionicons name="chatbox-ellipses-outline" color={'black'} size={20} />
                             </View>
@@ -109,7 +109,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: '#D6F7F4' }
+                                    { backgroundColor: Colours.secondaryColour }
                                 ]}>
                                 <Ionicons name="videocam-outline" color={'black'} size={20} />
                             </View>
@@ -126,7 +126,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: '#FFE0E1' }
+                                    { backgroundColor: Colours.secondaryColour }
                                 ]}>
                                 <Ionicons name="help-circle-outline" color={'black'} size={20} />
                             </View>
@@ -143,7 +143,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: '#F8FAE4' }
+                                    { backgroundColor: Colours.secondaryColour }
                                 ]}>
                                 <Ionicons name="cog-outline" color={'black'} size={20} />
                             </View>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
         marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         borderWidth: 1,
     },
     initialsText: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
         color: 'white',
     },
     profileButton: {
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.secondaryColour,
         width: 50,
         height: 50,
         borderRadius: 10,

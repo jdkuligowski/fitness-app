@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   colorStrip: {
     width: 30,
     borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 30,
+    borderBottomLeftRadius: 28,
 
   },
   cardContent: {

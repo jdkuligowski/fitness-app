@@ -3,6 +3,7 @@ import React, { useContext } from 'react';
 import { View, Text, Modal, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { NotificationsContext } from '../../context/NotificationsContext'
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Colours } from '../../components/styles';
 
 export default function NotificationsModal({ visible, onClose }) {
     const { notifications, clearNotifications, confirmClearNotifications } = useContext(NotificationsContext);
@@ -63,7 +64,7 @@ export default function NotificationsModal({ visible, onClose }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFE0E1',
+        backgroundColor: Colours.primaryBackground,
         paddingTop: 70,
         // marginBottom: 60,
     },

@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
         marginRight: 15,
     },
     selectedOptionText: {
-        backgroundColor: '#DEF3F4',
+        backgroundColor: Colours.buttonColour,
     },
     labelText: {
         fontSize: 18,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,

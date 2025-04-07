@@ -592,16 +592,16 @@ export default function WorkoutScreen({ route }) {
     useEffect(() => {
         // If we've already generated, skip
         if (hasGeneratedOnce.current) {
-          return;
+            return;
         }
-      
+
         if (
-          filteredWorkoutData.length > 0 &&
-          conditioningData.length > 0 &&
-          workoutData.length > 0
+            filteredWorkoutData.length > 0 &&
+            conditioningData.length > 0 &&
+            workoutData.length > 0
         ) {
-          generateWorkoutPlans();
-          hasGeneratedOnce.current = true;
+            generateWorkoutPlans();
+            hasGeneratedOnce.current = true;
         }
     }, [filteredWorkoutData, conditioningData, workoutData]);
 
@@ -766,6 +766,12 @@ export default function WorkoutScreen({ route }) {
                             <>
                                 <View style={styles.workoutCard}>
                                     <View style={styles.workoutOverview}>
+                                        <View
+                                            style={[
+                                                styles.colorStrip,
+                                                { backgroundColor: Colours.gymColour },
+                                            ]}
+                                        />
                                         <View style={styles.overviewBox}>
                                             <View style={styles.overviewHeader}>
                                                 <View>
@@ -785,7 +791,7 @@ export default function WorkoutScreen({ route }) {
                                             <View style={styles.workoutSummaryArray}>
                                                 {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                                                 <Text style={styles.workoutSummaryButton}>Strength session</Text>
-                                                <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text>
+                                                {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
                                             </View>
                                             <View style={styles.trainerDetails}>
                                                 <Image
@@ -825,7 +831,7 @@ export default function WorkoutScreen({ route }) {
                                                                         <TouchableOpacity onPress={() => {
                                                                             setSelectedMovement(movementFilter);
                                                                         }}>
-                                                                            <Ionicons name="play-circle" size={24} color="black" />
+                                                                            <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                                         </TouchableOpacity>
                                                                     </View>
                                                                 );
@@ -858,11 +864,14 @@ export default function WorkoutScreen({ route }) {
                                                                             Alert.alert("No video found", "This movement doesn't have an associated video.");
                                                                         }
                                                                     }}>
-                                                                        <Ionicons name="play-circle" size={24} color="black" />
+                                                                        <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                                     </TouchableOpacity>
                                                                 </View>
+
                                                             );
                                                         })}
+                                                        <View style={styles.dividerLine}></View>
+
                                                     </>
                                                 )}
                                             </View>
@@ -970,7 +979,7 @@ const styles = StyleSheet.create({
 
     },
     workoutSummaryButton: {
-        backgroundColor: '#F5EAB7',
+        backgroundColor: 'white',
         borderWidth: 1,
         borderRadius: 10,
         paddingLeft: 10,
@@ -990,12 +999,15 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
         paddingTop: 10,
+        flexDirection: 'row',
+
     },
     overviewBox: {
-        width: '100%',
+        width: '90%',
         padding: 10,
-        backgroundColor: '#EFE8FF',
-        borderRadius: 20,
+        backgroundColor: Colours.primaryBackground,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -1003,6 +1015,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    colorStrip: {
+        width: 30,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 18,
+
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -1041,7 +1059,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#F3F1FF',
+        backgroundColor: Colours.secondaryColour,
 
     },
     workoutInfoTile: {
@@ -1137,7 +1155,7 @@ const styles = StyleSheet.create({
     },
     movementValue: {
         fontSize: 16,
-        color: '#6456B1',
+        color: 'black',
         fontWeight: "500",
         lineHeight: 24,
         // width: '30%',
@@ -1161,7 +1179,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,

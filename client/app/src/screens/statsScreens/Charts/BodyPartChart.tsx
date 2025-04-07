@@ -1,3 +1,4 @@
+import { Colours } from '@/app/src/components/styles';
 import React from 'react';
 import { View, Text } from 'react-native';
 import { VictoryChart, VictoryBar, VictoryAxis } from 'victory-native';
@@ -81,7 +82,7 @@ export default function BodyPartBarChart({ dataObject }) {
           style={{
             data: {
               // either a single color:
-              fill: '#DBCDFD'
+              fill: Colours.gymColour,
 
               // or if you want color per body part:
             //   fill: ({ datum }) => {

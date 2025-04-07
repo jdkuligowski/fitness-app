@@ -173,25 +173,32 @@ export default function SuggestedMobilityWorkouts({ route }) {
     const renderWorkoutItem = ({ item }) => (
         <View style={styles.workoutCard}>
             <View style={styles.workoutOverview}>
+                <View
+                    style={[
+                        styles.colorStrip,
+                        { backgroundColor: Colours.mobilityColour },
+                    ]}
+                />
                 <View style={styles.overviewBox}>
                     <View style={styles.overviewHeader}>
                         <View>
-                            <Text style={styles.workoutTitle}>{item.workout_name}</Text>
+                            <Text style={styles.workoutTitle}>{selectedWorkout} session</Text>
                             <View style={styles.workoutOverviewTime}>
                                 <Ionicons name="time-outline" size={24} color="black" />
-                                <Text style={styles.timeText}>{item.duration} mins</Text>
+                                <Text style={styles.timeText}>{selectedTime} mins</Text>
                             </View>
                         </View>
                         <TouchableOpacity
                             style={styles.profileButton}
-                            onPress={() => setCurrentWorkout(item)}
+                            onPress={() => showModalForWorkout(item)} // Set modal for current workout
                         >
                             <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.workoutSummaryArray}>
+                        {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                         <Text style={styles.workoutSummaryButton}>Mobility</Text>
-                        <Text style={styles.workoutSummaryButton}>{item.number_of_movements} movements</Text>
+                        {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
                     </View>
                     <View style={styles.trainerDetails}>
                         <Image
@@ -244,7 +251,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
                                     })
                                 }}
                             >
-                                <Ionicons name="play-circle" size={24} color="black" />
+                                <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                             </TouchableOpacity>
                         </View>
                     );
@@ -402,7 +409,7 @@ const styles = StyleSheet.create({
 
     },
     workoutSummaryButton: {
-        backgroundColor: '#F5EAB7',
+        backgroundColor: 'white',
         borderWidth: 1,
         borderRadius: 10,
         paddingLeft: 10,
@@ -422,12 +429,15 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
         paddingTop: 10,
+        flexDirection: 'row',
+
     },
     overviewBox: {
-        width: '100%',
+        width: '90%',
         padding: 10,
-        backgroundColor: '#FFDDDE',
-        borderRadius: 20,
+        backgroundColor: Colours.primaryBackground,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -435,6 +445,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    colorStrip: {
+        width: 30,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 18,
+
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -473,8 +489,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#FFEEEF',
-
+        backgroundColor: Colours.secondaryColour,
     },
     workoutInfoTile: {
         paddingLeft: 10,
@@ -534,6 +549,7 @@ const styles = StyleSheet.create({
         color: "black",
         fontSize: 16,
         fontWeight: "600",
+        marginTop: 10,
 
     },
     movementText: {
@@ -598,7 +614,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,

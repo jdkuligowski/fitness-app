@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     homeSearchIcon: {
-        backgroundColor: '#BDD1FF', // Background color for the icon
+        backgroundColor: Colours.buttonColour, // Background color for the icon
         padding: 10,
         borderRadius: 10, // Rounded corners
         marginRight: 10, // Space between icon and input

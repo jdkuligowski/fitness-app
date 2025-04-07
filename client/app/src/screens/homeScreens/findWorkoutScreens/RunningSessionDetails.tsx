@@ -368,37 +368,37 @@ export default function SuggestedRunningWorkouts({ route }) {
             return (
                 <View style={styles.workoutCard}>
                     <View style={styles.workoutOverview}>
+                        <View
+                            style={[
+                                styles.colorStrip,
+                                { backgroundColor: Colours.runningColour },
+                            ]}
+                        />
                         <View style={styles.overviewBox}>
                             <View style={styles.overviewHeader}>
                                 <View>
-                                    <Text style={styles.workoutTitle}>Easy Run</Text>
+                                    <Text style={styles.workoutTitle}>Easy run</Text>
                                     <View style={styles.workoutOverviewTime}>
                                         <Ionicons name="time-outline" size={24} color="black" />
-                                        <Text style={styles.timeText}>
-                                            {selectedTime} mins total
-                                        </Text>
+                                        <Text style={styles.timeText}>{selectedTime} mins</Text>
                                     </View>
                                 </View>
                                 <TouchableOpacity
                                     style={styles.profileButton}
-                                    onPress={() => showModalForWorkout(item)}
+                                    onPress={() => showModalForWorkout(item)} // Set modal for current workout
                                 >
                                     <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                                 </TouchableOpacity>
                             </View>
-
-                            {/* Simple stats */}
                             <View style={styles.workoutSummaryArray}>
-                                <Text style={styles.workoutSummaryButton}>Easy</Text>
-                                <Text style={styles.workoutSummaryButton}>
-                                    No intervals
-                                </Text>
+                                {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
+                                <Text style={styles.workoutSummaryButton}>Running session</Text>
+                                {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
                             </View>
-
                             <View style={styles.trainerDetails}>
                                 <Image
                                     style={styles.trainerImage}
-                                    source={require("../../../../../assets/images/gus_image.jpeg")}
+                                    source={require('../../../../../assets/images/gus_image.jpeg')}
                                 />
                                 <View style={styles.trainerDetailsBox}>
                                     <Text style={styles.trainerName}>Gus Barton</Text>
@@ -450,36 +450,37 @@ export default function SuggestedRunningWorkouts({ route }) {
             <View style={styles.workoutCard}>
                 {/* ...all your existing code for a normal workout card... */}
                 <View style={styles.workoutOverview}>
+                    <View
+                        style={[
+                            styles.colorStrip,
+                            { backgroundColor: Colours.runningColour },
+                        ]}
+                    />
                     <View style={styles.overviewBox}>
                         <View style={styles.overviewHeader}>
                             <View>
-                                <Text style={styles.workoutTitle}>
-                                    {item.session_type} Workout
-                                </Text>
+                                <Text style={styles.workoutTitle}>{selectedWorkout} session</Text>
                                 <View style={styles.workoutOverviewTime}>
                                     <Ionicons name="time-outline" size={24} color="black" />
-                                    <Text style={styles.timeText}>
-                                        Approx. {Math.round(calculateWorkoutDuration(item))} mins
-                                    </Text>
+                                    <Text style={styles.timeText}>{selectedTime} mins</Text>
                                 </View>
                             </View>
                             <TouchableOpacity
                                 style={styles.profileButton}
-                                onPress={() => showModalForWorkout(item)}
+                                onPress={() => showModalForWorkout(item)} // Set modal for current workout
                             >
                                 <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
                             </TouchableOpacity>
                         </View>
-
                         <View style={styles.workoutSummaryArray}>
-                            <Text style={styles.workoutSummaryButton}>{item.session_type}</Text>
+                            {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
                             <Text style={styles.workoutSummaryButton}>Running session</Text>
+                            {/* <Text style={styles.workoutSummaryButton}>{workoutPlans.length} sections</Text> */}
                         </View>
-
                         <View style={styles.trainerDetails}>
                             <Image
                                 style={styles.trainerImage}
-                                source={require("../../../../../assets/images/gus_image.jpeg")}
+                                source={require('../../../../../assets/images/gus_image.jpeg')}
                             />
                             <View style={styles.trainerDetailsBox}>
                                 <Text style={styles.trainerName}>Gus Barton</Text>
@@ -731,7 +732,7 @@ const styles = StyleSheet.create({
 
     },
     workoutSummaryButton: {
-        backgroundColor: '#F5EAB7',
+        backgroundColor: Colours.secondaryColour,
         borderWidth: 1,
         borderRadius: 10,
         paddingLeft: 10,
@@ -751,12 +752,15 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
         paddingTop: 10,
+        flexDirection: 'row',
+
     },
     overviewBox: {
-        width: '100%',
+        width: '90%',
         padding: 10,
-        backgroundColor: '#D2E4EA',
-        borderRadius: 20,
+        backgroundColor: Colours.primaryBackground,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -764,6 +768,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    colorStrip: {
+        width: 30,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 18,
+
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -802,7 +812,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#E4EAEC',
+        backgroundColor: Colours.secondaryColour,
 
     },
     workoutInfoTile: {
@@ -890,7 +900,7 @@ const styles = StyleSheet.create({
     },
     intervalTimeContainer: {
         marginLeft: 5,
-        backgroundColor: '#D2E4EA',
+        backgroundColor: Colours.runningColour,
         borderRadius: 5,
         padding: 3,
     },
@@ -932,7 +942,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,
