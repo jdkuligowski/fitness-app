@@ -175,7 +175,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F6F3DC" />
+      {/* <StatusBar barStyle="dark-content" backgroundColor="#F6F3DC" /> */}
       <TouchableWithoutFeedback onPress={handleOutsidePress}>
 
         {/* Overall Containier */}
@@ -255,35 +255,35 @@ export default function HomeScreen() {
             >
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Gym', { userData })}>
-                  <Ionicons name="barbell-outline" size={26} color="#897AD3" />
+                  <Ionicons name="barbell-outline" size={26} color={Colours.gymColour} />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Strength</Text>
               </View>
 
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Running', { userData })}>
-                  <Ionicons name="heart-outline" size={26} color="#D2E4EA" />
+                  <Ionicons name="heart-outline" size={26} color={Colours.runningColour} />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Running</Text>
               </View>
 
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hyrox', { userData })}>
-                  <Ionicons name="alarm-outline" size={26} color="#AACBA5" />
+                  <Ionicons name="alarm-outline" size={26} color={Colours.hyroxColour} />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hyrox</Text>
               </View>
 
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Hiit')}>
-                  <Ionicons name="flash-outline" size={26} color="#ECE847" />
+                  <Ionicons name="flash-outline" size={26} color={Colours.hiitColour} />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Hiit</Text>
               </View>
 
               <View style={styles.activity}>
                 <TouchableOpacity style={styles.activityButton} onPress={() => navigation.navigate('Mobility')}>
-                  <Ionicons name="body-outline" size={26} color="#E87EA1" />
+                  <Ionicons name="body-outline" size={26} color={Colours.mobilityColour} />
                 </TouchableOpacity>
                 <Text style={styles.activityText}>Mobility</Text>
               </View>
@@ -302,7 +302,7 @@ export default function HomeScreen() {
                     screen: 'TrainingOverview'
                   })}
                 >
-                  <Text>View all</Text>
+                  <Text style={styles.buttonText}>View all</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView
@@ -310,62 +310,76 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.popularWorkouts}
               >
-                {upcomingWorkouts.map((workout) => (
-                  <TouchableOpacity
-                    key={workout.id}
-                    style={[
-                      styles.popularWorkout,
-                      {
-                        backgroundColor:
-                          workout.activity_type === 'Gym'
-                            ? '#EFE8FF'
-                            : workout.activity_type === 'Running'
-                              ? '#D2E4EA'
-                              : workout.activity_type === 'Mobility'
-                                ? '#FFEEEF'
-                                : workout.activity_type === 'Hiit'
-                                  ? '#FFFFEF'
-                                : workout.activity_type === 'Hyrox'
-                                  ? '#E7F4E5'
-                                  : 'black',
-                      },
-                    ]}
-                    onPress={() =>
-                      navigation.navigate('Training', {
-                        screen: 'TrainingDetails',
-                        params: {
-                          workoutId: workout.id,
-                          activityType: workout.activity_type
-                        }
-                      })
-                    }
-                    activeOpacity={0.7} // Makes the touch more visible
-                  >
-                    <View style={styles.topRow}>
-                      <Text style={styles.workoutTitle}>{workout.name}</Text>
-                      {/* <Text style={styles.workoutDescription}>{workout.description}</Text> */}
+                {upcomingWorkouts.map((workout) => {
 
-                    </View>
+                  const colorForWorkout =
+                    workout.activity_type === 'Gym'
+                      ? Colours.gymColour
+                      : workout.activity_type === 'Running'
+                        ? Colours.runningColour
+                        : workout.activity_type === 'Mobility'
+                          ? Colours.mobilityColour
+                          : workout.activity_type === 'Hiit'
+                            ? Colours.hiitColour
+                            : workout.activity_type === 'Hyrox'
+                              ? Colours.hyroxColour
+                              : 'white';
 
-                    <View style={styles.middleRow}>
-                      <Ionicons name="time-outline" size={20} color="black" />
-                      <Text style={styles.workoutTime}>
-                        {workout?.duration ? `${workout.duration} mins` : 'N/A'}
-                      </Text>
-                      <Text style={styles.workoutAbility}>
-                        {workout?.scheduled_date ? formatWorkoutDate(workout.scheduled_date) : 'No Date'}
-                      </Text>
-                    </View>
+                  return (
+                    <TouchableOpacity
+                      key={workout.id}
+                      style={styles.cardContainer}
+                      onPress={() =>
+                        navigation.navigate('Training', {
+                          screen: 'TrainingDetails',
+                          params: {
+                            workoutId: workout.id,
+                            activityType: workout.activity_type
+                          }
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
+                      {/* Left strip of color */}
+                      <View style={[styles.colorStrip, { backgroundColor: colorForWorkout }]} />
 
-                    <View style={styles.bottomRow}>
-                      <Image
-                        style={styles.trainerImage}
-                        source={workout.trainerImage ? { uri: workout.trainerImage } : require('../../../../assets/images/gus_image.jpeg')}
-                      />
-                      <Text style={styles.trainerName}>Trainer: {workout.trainerName || 'Gus Barton'}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                      {/* Main white area */}
+                      <View style={styles.cardContent}>
+                        {/* Top Row */}
+                        <View style={styles.topRow}>
+                          <Text style={styles.workoutTitle}>{workout.name}</Text>
+                        </View>
+
+                        {/* Middle Row */}
+                        <View style={styles.middleRow}>
+                          <Ionicons name="time-outline" size={20} color="black" />
+                          <Text style={styles.workoutTime}>
+                            {workout?.duration ? `${workout.duration} mins` : 'N/A'}
+                          </Text>
+                          <Text style={styles.workoutAbility}>
+                            {workout?.scheduled_date ? formatWorkoutDate(workout.scheduled_date) : 'No Date'}
+                          </Text>
+                        </View>
+
+                        {/* Bottom Row */}
+                        <View style={styles.bottomRow}>
+                          <Image
+                            style={styles.trainerImage}
+                            source={
+                              workout.trainerImage
+                                ? { uri: workout.trainerImage }
+                                : require('../../../../assets/images/gus_image.jpeg')
+                            }
+                          />
+                          <Text style={styles.trainerName}>
+                            Trainer: {workout.trainerName || 'Gus Barton'}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+
 
               </ScrollView>
               {/* )} */}
@@ -397,39 +411,51 @@ export default function HomeScreen() {
               {suggestedWorkouts.map((workout) => (
                 <TouchableOpacity
                   key={workout.id}
-                  style={[
-                    styles.popularWorkout,
-                    { backgroundColor: '#EFE8FF' },
-                  ]}
+                  style={styles.cardContainer}
                   onPress={() =>
                     navigation.navigate('SuggestedGymDetails', {
                       workout: workout
                     })
                   }
-                  activeOpacity={0.7} // Makes the touch more visible
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.topRow}>
-                    <Text style={styles.workoutTitle}>{workout.workout_name}</Text>
-                    <Text style={styles.workoutDescription}>{workout.description}</Text>
-                  </View>
+                  {/* LEFT COLOR STRIP */}
+                  <View style={[styles.colorStrip, { backgroundColor: Colours.gymColour }]} />
 
-                  <View style={styles.middleRow}>
-                    <Ionicons name="time-outline" size={20} color="black" />
-                    <Text style={styles.workoutTime}>
-                      {workout?.number_of_sections ? `${workout.number_of_sections} sections` : 'N/A'}
-                    </Text>
-                    <Text style={styles.workoutAbility}>{workout.body_area || 'Full Body'}</Text>
-                  </View>
-                  <View style={styles.bottomRow}>
-                    <Image
-                      style={styles.trainerImage}
-                      source={workout.trainerImage ? { uri: workout.trainerImage } : require('../../../../assets/images/gus_image.jpeg')}
-                    />
-                    <Text style={styles.trainerName}>Trainer: {workout.trainerName || 'Gus Barton'}</Text>
+                  {/* MAIN WHITE AREA */}
+                  <View style={styles.cardContent}>
+                    <View style={styles.topRow}>
+                      <Text style={styles.workoutTitle}>{workout.workout_name}</Text>
+                      <Text style={styles.workoutDescription}>{workout.description}</Text>
+                    </View>
+
+                    <View style={styles.middleRow}>
+                      <Ionicons name="time-outline" size={20} color="black" />
+                      <Text style={styles.workoutTime}>
+                        {workout?.duration ? `${workout.duration} mins` : ''}
+                      </Text>
+                      <Text style={styles.workoutAbility}>
+                        {workout.body_area || 'Full Body'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.bottomRow}>
+                      <Image
+                        style={styles.trainerImage}
+                        source={
+                          workout.trainerImage
+                            ? { uri: workout.trainerImage }
+                            : require('../../../../assets/images/gus_image.jpeg')
+                        }
+                      />
+                      <Text style={styles.trainerName}>
+                        Trainer: {workout.trainerName || 'Gus Barton'}
+                      </Text>
+                    </View>
                   </View>
                 </TouchableOpacity>
-
               ))}
+
             </ScrollView>
           </View>
 
@@ -503,7 +529,7 @@ const styles = StyleSheet.create({
     marginRight: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFE0E1',
+    backgroundColor: Colours.secondaryColour,
     borderWidth: 1,
   },
   initialsText: {
@@ -527,7 +553,7 @@ const styles = StyleSheet.create({
 
   },
   profileButton: {
-    backgroundColor: '#FFE0E1',
+    backgroundColor: Colours.secondaryColour,
     width: 50,
     height: 50,
     borderRadius: 10,
@@ -606,7 +632,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   blockButton: {
-    backgroundColor: '#F6F3DC',
+    backgroundColor: Colours.buttonColour,
     borderWidth: 1,
     borderColor: 'black',
     paddingLeft: 15,
@@ -640,6 +666,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
+  buttonText: {
+    color: 'white',
+  },
   popularWorkouts: {
     marginTop: 20,
     flexDirection: 'row',
@@ -669,7 +698,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   workoutTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     width: '90%',
   },
@@ -705,5 +734,34 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
   },
+  cardContainer: {
+    width: 250,
+    height: 200,
+    marginRight: 20,
+    flexDirection: 'row',
+
+    borderWidth: 1,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderColor: '#000',
+    borderRadius: 30,
+
+    backgroundColor: '#FFF',
+  },
+  colorStrip: {
+    width: 30,
+    borderTopLeftRadius: 30,
+    borderBottomLeftRadius: 30,
+
+  },
+  cardContent: {
+    flex: 1,
+    paddingLeft: 10,
+    padding: 20,
+    justifyContent: 'space-between',
+
+  },
+
+
 
 });

@@ -11,7 +11,7 @@ import TrainingOverview from '../screens/homeScreens/trainingScreens/trainingOve
 import TrainingStackNavigator from './TrainingStackNavigator'; // Import the new stack navigator
 import SupportStackNavigator from './SupportStackNavigator';
 import StatsStackNavigator from './StatsStackNavigator';
-
+import { Colours } from '../components/styles';
 
 const Tab = createBottomTabNavigator();
 
@@ -52,7 +52,7 @@ export default function MainTabNavigator() {
                   focused && styles.iconBackground,
                 ]}
               >
-                <Ionicons name={iconName} size={20} color={focused ? '#5B37B7' : 'black'} />
+                <Ionicons name={iconName} size={20} color={focused ? 'white' : 'black'} />
               </View>
             );
           },
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   iconBackground: {
-    backgroundColor: '#DFD7F3', // Background color for selected icon
+    backgroundColor: Colours.buttonColour , // Background color for selected icon
   },
   tabLabel: {
     fontSize: 12,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   focusedLabel: {
-    color: '#5B37B7', // Text color for the active tab
+    color: Colours.buttonColour, // Text color for the active tab
     fontWeight: 'bold',
   },
 });

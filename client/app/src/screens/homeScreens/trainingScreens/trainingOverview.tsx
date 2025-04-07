@@ -362,87 +362,99 @@ export default function TrainingOverview() {
                         </View>
                         <View style={styles.workoutList}>
                             {dailyWorkouts.length > 0 ? (
-                                dailyWorkouts.map((item, index) => (
-                                    <TouchableOpacity
-                                        key={item.id || index}
-                                        style={styles.workoutOverview}
-                                        onPress={() =>
-                                            navigation.navigate('TrainingDetails', { workoutId: item.id, activityType: item.activity_type })
-                                        }
-                                    >
-                                        <View
-                                            style={[
-                                                styles.overviewBox,
-                                                {
-                                                    backgroundColor:
-                                                        item.activity_type === 'Gym'
-                                                            ? '#EFE8FF'
-                                                            : item.activity_type === 'Running'
-                                                                ? '#D2E4EA'
-                                                                : item.activity_type === 'Mobility'
-                                                                    ? '#FFDDDE'
-                                                                    : item.activity_type === 'Hiit'
-                                                                        ? '#FFFFEF'
-                                                                        : item.activity_type === 'Hyrox'
-                                                                            ? '#E7F4E5'
-                                                                            : 'black'
-                                                },
-                                            ]}
-                                        >
-                                            <View style={styles.overviewHeader}>
-                                                <View>
-                                                    <Text style={styles.workoutTitle}>{item.name}</Text>
-                                                </View>
-                                                <TouchableOpacity
-                                                    style={styles.profileButton}
-                                                    onPress={() => showModalForWorkout(item)}
-                                                >
-                                                    <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
-                                                </TouchableOpacity>
-                                            </View>
-                                            <View style={styles.workoutOverviewTime}>
-                                                <Ionicons name="time-outline" size={24} color="black" />
-                                                <Text style={styles.timeText}>{item.duration} mins</Text>
-                                            </View>
-                                            <View style={styles.workoutSummaryArray}>
-                                                {/* <Text style={styles.workoutSummaryButton}>Intermediate</Text> */}
-                                                <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
-                                                {/* <Text style={styles.workoutSummaryButton}> sections</Text> */}
-                                            </View>
+                                dailyWorkouts.map((item, index) => {
+                                    const colorForWorkout =
+                                        item.activity_type === 'Gym'
+                                            ? Colours.gymColour
+                                            : item.activity_type === 'Running'
+                                                ? Colours.runningColour
+                                                : item.activity_type === 'Mobility'
+                                                    ? Colours.mobilityColour
+                                                    : item.activity_type === 'Hiit'
+                                                        ? Colours.hiitColour
+                                                        : item.activity_type === 'Hyrox'
+                                                            ? Colours.hyroxColour
+                                                            : 'white';
 
-                                            <View style={styles.bottomSection}>
-                                                <View style={styles.trainerDetails}>
-                                                    <Image
-                                                        style={styles.trainerImage}
-                                                        source={require('../../../../../assets/images/gus_image.jpeg')} />
-                                                    <View style={styles.trainerDetailsBox}>
-                                                        <Text style={styles.trainerName}>Gus Barton</Text>
-                                                        <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id || index}
+                                            style={styles.dailyCardOuterContainer}
+                                            onPress={() =>
+                                                navigation.navigate('TrainingDetails', {
+                                                    workoutId: item.id,
+                                                    activityType: item.activity_type,
+                                                })
+                                            }
+                                        >
+                                            {/* LEFT COLOR STRIP */}
+                                            <View style={[styles.dailyColorStrip, { backgroundColor: colorForWorkout }]} />
+
+                                            {/* MAIN CONTENT AREA (white) */}
+                                            <View style={styles.dailyCardContent}>
+                                                {/* EXACT same child UI as your old “overviewBox” contents, but no longer colored */}
+                                                <View style={styles.overviewHeader}>
+                                                    <View>
+                                                        <Text style={styles.workoutTitle}>{item.name}</Text>
                                                     </View>
+                                                    <TouchableOpacity
+                                                        style={styles.profileButton}
+                                                        onPress={() => showModalForWorkout(item)}
+                                                    >
+                                                        <Ionicons name="ellipsis-vertical-outline" color={'black'} size={24} />
+                                                    </TouchableOpacity>
                                                 </View>
-                                                {item.status === "Scheduled" ?
-                                                    <View style={[styles.status, { backgroundColor: 'white' },]}>
-                                                        <Ionicons name="play-skip-forward-outline" color={'black'} size={12} />
-                                                        <Text style={styles.statusDetail}>Not started</Text>
-                                                    </View>
-                                                    : item.status === "Completed" ?
-                                                        <View style={[styles.status, { backgroundColor: '#B2C93C' },]}>
-                                                            <Ionicons name="checkmark-outline" color={'white'} size={14} />
-                                                            <Text style={[styles.statusDetail, { color: 'white' },]}>Completed</Text>
+
+                                                <View style={styles.workoutOverviewTime}>
+                                                    <Ionicons name="time-outline" size={24} color="black" />
+                                                    <Text style={styles.timeText}>{item.duration} mins</Text>
+                                                </View>
+
+                                                <View style={styles.workoutSummaryArray}>
+                                                    <Text style={styles.workoutSummaryButton}>{item.activity_type}</Text>
+                                                    {/* e.g. you could show more tags here */}
+                                                </View>
+
+                                                <View style={styles.bottomSection}>
+                                                    <View style={styles.trainerDetails}>
+                                                        <Image
+                                                            style={styles.trainerImage}
+                                                            source={require('../../../../../assets/images/gus_image.jpeg')}
+                                                        />
+                                                        <View style={styles.trainerDetailsBox}>
+                                                            <Text style={styles.trainerName}>Gus Barton</Text>
+                                                            <Text style={styles.trainerTitle}>Head Trainer at Burst</Text>
                                                         </View>
-                                                        :
-                                                        <View style={[styles.status, { backgroundColor: '#EFDC73' },]}>
+                                                    </View>
+
+                                                    {/* Status boxes (Scheduled / Completed / In progress) */}
+                                                    {item.status === "Scheduled" ? (
+                                                        <View style={[styles.status, { backgroundColor: 'white' }]}>
+                                                            <Ionicons name="play-skip-forward-outline" color={'black'} size={12} />
+                                                            <Text style={styles.statusDetail}>Not started</Text>
+                                                        </View>
+                                                    ) : item.status === "Completed" ? (
+                                                        <View style={[styles.status, { backgroundColor: '#B2C93C' }]}>
+                                                            <Ionicons name="checkmark-outline" color={'white'} size={14} />
+                                                            <Text style={[styles.statusDetail, { color: 'white' }]}>Completed</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <View style={[styles.status, { backgroundColor: '#EFDC73' }]}>
                                                             <Ionicons name="refresh-outline" color={'black'} size={14} />
                                                             <Text style={styles.statusDetail}>In progress</Text>
                                                         </View>
-                                                }
+                                                    )}
+                                                </View>
                                             </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))
+                                        </TouchableOpacity>
+                                    );
+                                })
                             ) : (
-                                <Text style={styles.noWorkouts}>You don&apos;t have any workouts saved for this day yet</Text>
+                                <Text style={styles.noWorkouts}>
+                                    You don't have any workouts saved for this day yet
+                                </Text>
                             )}
+
                         </View>
                     </>
                 )}
@@ -724,13 +736,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     activeDailyButton: {
-        backgroundColor: '#DFD7F3', // Daily active color
+        backgroundColor: Colours.buttonColour, 
     },
     activeWeeklyButton: {
-        backgroundColor: '#D6F7F4', // Weekly active color
+        backgroundColor: Colours.buttonColour, 
     },
     activeSavedButton: {
-        backgroundColor: '#FFF4F4', // Saved active color
+        backgroundColor: Colours.buttonColour, 
     },
     inactiveButton: {
         backgroundColor: 'white', // Inactive button background color
@@ -742,7 +754,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     activeText: {
-        color: 'black', // Active text color
+        color: 'white', // Active text color
     },
     inactiveText: {
         color: '#8E8E8E', // Inactive text color
@@ -808,11 +820,48 @@ const styles = StyleSheet.create({
     selectedDateText: {
         color: "black",
     },
+
+
     workoutList: {
         marginLeft: 20,
         marginRight: 20,
         paddingBottom: 100,
     },
+    dailyCardOuterContainer: {
+        // The overall box
+        marginBottom: 20,
+        width: '100%',
+        height: 175,
+
+        // same border logic as “overviewBox”
+        borderRadius: 20,
+        borderWidth: 1,
+        borderRightWidth: 5,
+        borderBottomWidth: 5,
+
+        // So we can place color strip on left + content on right
+        flexDirection: 'row',
+        overflow: 'hidden', // ensures corners are clipped
+    },
+
+    dailyColorStrip: {
+        width: 30,  // e.g. 10 px wide
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 17,
+    },
+
+    dailyCardContent: {
+        // White background for the main content
+        flex: 1,
+        backgroundColor: '#FFF',
+        padding: 15,
+        paddingLeft: 10,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
+        justifyContent: 'space-between',
+    },
+
+
     workoutOverview: {
         marginBottom: 20,
     },
