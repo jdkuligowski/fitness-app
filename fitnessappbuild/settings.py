@@ -251,17 +251,19 @@ CELERY_BEAT_SCHEDULE = {
     # Notification release
     "send-every-hour": {
         "task": "notifications.tasks.send_due_notifications",
-        "schedule": 3600.0,  # every 60 seconds
+        "schedule": 3600.0,  # every 1 hours 
     },
     # Leaderboard calucation
     "update-leaderboards-daily": {
         "task": "leaderboard.tasks.update_leaderboards",
-        "schedule": crontab(hour=2, minute=0),  
+        "schedule": 60.0,  # every 60 secs 
+        # "schedule": crontab(hour=2, minute=0),  
     },
     # User stats calculation
         'update-user-stats-nightly': {
         'task': 'user_stats.tasks.update_all_user_stats',
-        'schedule': crontab(hour=3, minute=0),  # 3:00 AM daily
+        "schedule": 60.0,  # every 60 secs 
+        # 'schedule': crontab(hour=3, minute=0),  # 3:00 AM daily
     },
 }
 

@@ -862,11 +862,7 @@ export default function WorkoutScreen({ route }) {
                                                                         <Text style={styles.movementDetail}>{movement}</Text>
                                                                     </View>
                                                                     <TouchableOpacity onPress={() => {
-                                                                        if (movementFilter) {
-                                                                            setSelectedMovement(movementFilter);
-                                                                        } else {
-                                                                            Alert.alert("No video found", "This movement doesn't have an associated video.");
-                                                                        }
+                                                                        setSelectedMovement(movementFilter);
                                                                     }}>
                                                                         <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                                                     </TouchableOpacity>
@@ -1165,6 +1161,7 @@ const styles = StyleSheet.create({
     movementDetail: {
         fontSize: 16,
         color: 'black', // Example color for movement details
+        width: '90%',
     },
     movementDescription: {
         fontSize: 16,

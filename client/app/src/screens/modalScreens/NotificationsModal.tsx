@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colours.primaryBackground,
         paddingTop: 70,
+        paddingBottom: 30,
         // marginBottom: 60,
     },
     header: {
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     clearButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         padding: 5,
         borderRadius: 10,
         width: 70,
@@ -98,11 +99,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     notificationItem: {
-        backgroundColor: '#f9f9f9',
+        backgroundColor: Colours.secondaryColour,
         paddingVertical: 10,
         paddingHorizontal: 12,
         borderRadius: 8,
-        marginBottom: 8,
+        marginBottom: 10,
+        borderLeftWidth: 1,
+        borderTopWidth: 1,
+        borderRightWidth: 4,
+        borderBottomWidth: 4,
     },
     title: {
         fontWeight: '600',

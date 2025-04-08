@@ -27,7 +27,7 @@ export default function LandingPage() {
                         <TouchableOpacity
                             style={styles.continueButton}
                             onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.continueButtonText}>Sign up</Text>
+                            <Text style={styles.continueButtonText}>Register</Text>
                             <View style={styles.buttonArrow}>
                                 <Ionicons name="arrow-forward" size={24} color="white" />
                             </View>
@@ -35,7 +35,7 @@ export default function LandingPage() {
                         <TouchableOpacity
                             style={styles.loginButton}
                             onPress={() => navigation.navigate('Login')}>
-                            <Text style={styles.registerText}>I already have an account</Text>
+                            <Text style={styles.registerText}>Login</Text>
                             <View style={styles.registerArrow}>
                                 <Ionicons name="arrow-forward" size={24} color="black" />
                             </View>
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
         height: 300,
         width: '90%',
         marginLeft: '5%',
-        backgroundColor: Colours.buttonColour,
+        backgroundColor: Colours.secondaryColour,
         borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 4,
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingLeft: 20,
         paddingRight: 20,
-        color: Colours.secondaryColour,
+        color: Colours.buttonColour,
     },
     buttonContainer: {
         width: '100%',
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
         padding: 5,
         borderRadius: 20,
         alignItems: 'center',
+        borderWidth: 1,
     },
     buttonArrow: {
         backgroundColor: Colours.buttonColour,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
         fontWeight: 600,
     },
     loginButton: {
-        backgroundColor: 'transparent',
+        backgroundColor: Colours.buttonColour,
         flexDirection: 'row',
         width: '100%',
         padding: 5,

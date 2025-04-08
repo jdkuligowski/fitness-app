@@ -1,4 +1,3 @@
-// theme.js
 export const Colours = {
   // primaryBackground: '#F5F5F5',
   // primaryBackground: '#F3F3FF', // existing design colour
@@ -10,7 +9,6 @@ export const Colours = {
   primaryBackground: '#F2F1ED',
   primaryHeader:'#161925',
   secondaryColour: '#FFFFFF',
-  // buttonColour: '#60935D',
   buttonColour: '#909B7B',
   runningColour: '#F2D28E',
   gymColour: '#A796A0',

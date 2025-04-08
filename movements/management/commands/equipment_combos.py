@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # 1) Specify or fetch the path to your CSV file
-        csv_path = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Equipment list final.csv"
+        csv_path = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - Equipment list final (1).csv"
         
         # 2) Open the CSV & read rows
         with open(csv_path, "r", encoding="utf-8") as f:
