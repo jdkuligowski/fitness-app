@@ -10,10 +10,11 @@ export const Colours = {
   primaryBackground: '#F2F1ED',
   primaryHeader:'#161925',
   secondaryColour: '#FFFFFF',
+  // buttonColour: '#60935D',
   buttonColour: '#909B7B',
   runningColour: '#F2D28E',
   gymColour: '#A796A0',
-  hiitColour: '#1B1B1B',
+  hiitColour: '#947D6F',
   mobilityColour: '#C2D7EA',
   hyroxColour: '#CA6B45',
 

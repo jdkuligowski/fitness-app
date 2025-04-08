@@ -388,7 +388,7 @@ export default function GymSession({ route }) {
             ) : ''}
           </View>
 
-          {selectedWorkout && activeFilterSet ?
+          {selectedWorkout && activeFilterSet && selectedFinish ?
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.submitButton}

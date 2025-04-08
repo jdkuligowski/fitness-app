@@ -130,11 +130,11 @@ const strengthRules40 = {
                 filters: [
                     [
                         { key: "advanced_movements", value: "Build 2", operator: "contains" },
-                        { key: "movement", value: "Pull H Unilateral", operator: "contains" },
+                        { key: "primary_body_part", value: "Chest", operator: "contains" },
                     ],
                     [
                         { key: "advanced_movements", value: "Build 2", operator: "contains" },
-                        { key: "primary_body_part", value: "Chest", operator: "contains" },
+                        { key: "movement", value: "Pull H Unilateral", operator: "contains" },
                     ]
                 ],
             },

@@ -947,10 +947,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     overviewBox: {
-        width: '90%',
+        width: '94%',
         padding: 10,
         backgroundColor: Colours.primaryBackground,
-        borderRadius: 20,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -960,10 +961,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     colorStrip: {
-        width: 30,
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 18,
-
+        width: 20,
+        borderTopLeftRadius: 100,
+        borderBottomLeftRadius: 100,
     },
     workoutOverviewTime: {
         flexDirection: 'row',

@@ -42,7 +42,6 @@ const strengthRules60 = {
                         { key: "movement", value: "Hinge Unilateral", operator: "contains" },
                     ],
                     [
-                        // { key: "movement_type", value: ["Accessory, Metcon"], operator: "contains" },
                         { key: "primary_body_part", value: "Core", operator: "contains" },
                     ],
                 ],
@@ -116,7 +115,6 @@ const strengthRules60 = {
                         { key: "movement", value: "Squat Unilateral", operator: "contains" },
                     ],
                     [
-                        // { key: "movement_type", value: ["Accessory, Metcon"], operator: "contains" },
                         { key: "primary_body_part", value: "Core", operator: "contains" },
                     ],
                 ],
@@ -332,7 +330,6 @@ const strengthRules60 = {
                         { key: "movement", value: "Hinge Unilateral", operator: "contains" },
                     ],
                     [
-                        // { key: "movement_type", value: ["Accessory, Metcon"], operator: "contains" },
                         { key: "primary_body_part", value: "Core", operator: "contains" },
                     ],
                 ],

@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -7,       // tweak these if you want it further or inside
     left: -7,
-    backgroundColor: 'red',
+    backgroundColor: Colours.buttonColour,
     width: 25,
     height: 25,
     borderRadius: 15,    // full circle
@@ -749,14 +749,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   colorStrip: {
-    width: 30,
-    borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 28,
+    width: 25,
+    borderTopLeftRadius: 100,
+    borderBottomLeftRadius: 100,
 
   },
   cardContent: {
     flex: 1,
-    paddingLeft: 10,
+    paddingLeft: 20,
     padding: 20,
     justifyContent: 'space-between',
 

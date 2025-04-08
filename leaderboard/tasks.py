@@ -40,6 +40,8 @@ def update_leaderboards():
     # 2) Compute ranks for each category
     _update_ranks()
 
+
+
 def _update_ranks():
     """
     Sort by total_score, weekly_score, monthly_score and assign ranks.

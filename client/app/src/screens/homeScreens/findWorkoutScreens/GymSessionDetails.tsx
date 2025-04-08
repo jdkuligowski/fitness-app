@@ -495,6 +495,8 @@ export default function WorkoutScreen({ route }) {
 
     // Generate multiple workout plans
     const generateWorkoutPlans = async () => {
+        setIsBouncerLoading(true);
+
         const candidatePlans = [];
         for (let i = 0; i < 10; i++) {
             const plan = generateWorkoutPlan();
@@ -546,29 +548,31 @@ export default function WorkoutScreen({ route }) {
             } catch (error) {
                 console.warn("Failed to send no-plan email:", error);
             }
-        } else if (validPlans.length > 0) {
-            try {
-                const storePayload = {
-                    selectedWorkout,
-                    selectedTime,
-                    complexity,
-                    selectedFinish,
-                    equipmentFilter,
-                    candidatePlans: validPlans, // only store the valid ones
-                    userEmail
-                };
-                // Make a POST to your new endpoint
-                const resp = await axios.post(
-                    `${ENV.API_URL}/api/movement_workout_tracking/store-plans/`,
-                    storePayload
-                );
-                console.log("Plans stored successfully:", resp.data);
-            } catch (error) {
-                console.warn("Failed to store workout plans:", error);
-            }
+            // } else if (validPlans.length > 0) {
+            //     try {
+            //         const storePayload = {
+            //             selectedWorkout,
+            //             selectedTime,
+            //             complexity,
+            //             selectedFinish,
+            //             equipmentFilter,
+            //             candidatePlans: validPlans, // only store the valid ones
+            //             userEmail
+            //         };
+            //         // Make a POST to your new endpoint
+            //         const resp = await axios.post(
+            //             `${ENV.API_URL}/api/movement_workout_tracking/store-plans/`,
+            //             storePayload
+            //         );
+            //         console.log("Plans stored successfully:", resp.data);
+            //     } catch (error) {
+            //         console.warn("Failed to store workout plans:", error);
+            //     }
         }
         setWorkoutPlans(validPlans);
         console.log(`Found ${validPlans.length} valid plans (out of 10).`);
+        setIsBouncerLoading(false);
+
     };
 
 
@@ -605,14 +609,14 @@ export default function WorkoutScreen({ route }) {
         }
     }, [filteredWorkoutData, conditioningData, workoutData]);
 
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#E87EA1" />
-                <Text>Loading workout plans...</Text>
-            </View>
-        );
-    }
+    // if (isLoading) {
+    //     return (
+    //         <View style={styles.loadingContainer}>
+    //             <ActivityIndicator size="large" color="#E87EA1" />
+    //             <Text>Loading workout plans...</Text>
+    //         </View>
+    //     );
+    // }
 
 
 
@@ -1003,7 +1007,7 @@ const styles = StyleSheet.create({
 
     },
     overviewBox: {
-        width: '90%',
+        width: '94%',
         padding: 10,
         backgroundColor: Colours.primaryBackground,
         borderTopRightRadius: 20,
@@ -1017,10 +1021,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     colorStrip: {
-        width: 30,
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 18,
-
+        width: 20,
+        borderTopLeftRadius: 100,
+        borderBottomLeftRadius: 100,
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -1060,7 +1063,6 @@ const styles = StyleSheet.create({
         marginRight: 20,
         borderRadius: 20,
         backgroundColor: Colours.secondaryColour,
-
     },
     workoutInfoTile: {
         paddingLeft: 10,

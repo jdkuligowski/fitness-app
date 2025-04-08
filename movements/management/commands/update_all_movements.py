@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from movements.models import Movement
 from django.db import IntegrityError
 
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (19).csv"  
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (21).csv"  
 
 class Command(BaseCommand):
     help = "Update existing movements and insert new movements from CSV while preserving offline database IDs"
@@ -36,6 +36,8 @@ class Command(BaseCommand):
         movement.exercise = row.get("exercise", movement.exercise)
         movement.complexity = row.get("complexity", movement.complexity)
         movement.movement_type = row.get("movement_type", movement.movement_type)
+        movement.inter_movements = row.get("inter_movements", movement.inter_movements)
+        movement.advanced_movements = row.get("advanced_movements", movement.advanced_movements)
         movement.primary_body_part = row.get("primary_body_part", movement.primary_body_part)
         movement.high_level_equipment = row.get("high_level_equipment", movement.high_level_equipment)
         movement.detail_equipment = row.get("detail_equipment", movement.detail_equipment)
@@ -57,6 +59,8 @@ class Command(BaseCommand):
                 exercise=row.get("exercise", ""),
                 complexity=row.get("complexity", None),
                 movement_type=row.get("movement_type", ""),
+                inter_movements=row.get("inter_movements", ""),
+                advanced_movements=row.get("advanced_movements", ""),
                 primary_body_part=row.get("primary_body_part", ""),
                 high_level_equipment=row.get("high_level_equipment", ""),
                 detail_equipment=row.get("detail_equipment", ""),

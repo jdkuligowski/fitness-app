@@ -208,6 +208,12 @@ export default function SuggestedWorkoutSummary({ route }) {
     const renderWorkoutItem = ({ item }) => (
         <View style={styles.workoutCard}>
             <View style={styles.workoutOverview}>
+                <View
+                    style={[
+                        styles.colorStrip,
+                        { backgroundColor: Colours.gymColour },
+                    ]}
+                />
                 <View style={styles.overviewBox}>
                     <View style={styles.overviewHeader}>
                         <View>
@@ -226,7 +232,6 @@ export default function SuggestedWorkoutSummary({ route }) {
                     </View>
                     <View style={styles.workoutSummaryArray}>
                         <Text style={styles.workoutSummaryButton}>Strength</Text>
-                        <Text style={styles.workoutSummaryButton}>{workout.number_of_sections || 0} sections</Text>
                     </View>
                     <View style={styles.trainerDetails}>
                         <Image
@@ -263,7 +268,7 @@ export default function SuggestedWorkoutSummary({ route }) {
                                             setSelectedMovement({ ...movement, portrait_video_url: videoUrl });
                                         }}
                                     >
-                                        <Ionicons name="play-circle" size={24} color="black" />
+                                        <Ionicons name="play-circle" size={24} color={Colours.buttonColour} />
                                     </TouchableOpacity>
                                 </View>
                             );
@@ -386,7 +391,7 @@ const styles = StyleSheet.create({
 
     },
     workoutSummaryButton: {
-        backgroundColor: '#F5EAB7',
+        backgroundColor: 'white',
         borderWidth: 1,
         borderRadius: 10,
         paddingLeft: 10,
@@ -406,12 +411,15 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
         paddingTop: 10,
+        flexDirection: 'row',
+
     },
     overviewBox: {
-        width: '100%',
+        width: '94%',
         padding: 10,
-        backgroundColor: '#EFE8FF',
-        borderRadius: 20,
+        backgroundColor: Colours.primaryBackground,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
         justifyContent: 'space-between',
         height: 175,
     },
@@ -419,6 +427,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    colorStrip: {
+        width: 20,
+        borderTopLeftRadius: 100,
+        borderBottomLeftRadius: 100,
     },
     workoutOverviewTime: {
         flexDirection: 'row',
@@ -457,8 +470,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
         marginRight: 20,
         borderRadius: 20,
-        backgroundColor: '#F3F1FF',
-
+        backgroundColor: Colours.secondaryColour,
     },
     workoutInfoTile: {
         paddingLeft: 10,
@@ -558,7 +570,7 @@ const styles = StyleSheet.create({
     },
     movementValue: {
         fontSize: 16,
-        color: '#6456B1',
+        color: Colours.primaryHeader,
         fontWeight: "500",
         lineHeight: 24,
         // width: '30%',
@@ -582,7 +594,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     submitButton: {
-        backgroundColor: 'black',
+        backgroundColor: Colours.buttonColour,
         width: '90%',
         height: 50,
         borderRadius: 30,
