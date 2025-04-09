@@ -56,6 +56,7 @@ export default function MobilityWorkout({ route, navigation }) {
 
             // Prepare the payload
             const payload = {
+                scheduled_date: workout.scheduled_date,
                 rpe: logData.session_rpe || null, // Update RPE
                 comments: logData.session_comments || null, // Update comments
             };

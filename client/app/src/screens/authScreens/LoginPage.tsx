@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderColor: '#A9A9C7',
         borderWidth: 1,
-        padding: 12,
+        padding: 14,
         borderRadius: 16,
     },
     passwordWrapper: {

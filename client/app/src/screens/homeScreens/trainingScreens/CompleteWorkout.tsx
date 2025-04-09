@@ -82,8 +82,8 @@ export default function CompleteWorkout({ route, navigation }) {
                         ? movement.workout_sets
                         : [
                             { set_number: 1, reps: null, weight: null },
-                            { set_number: 2, reps: null, weight: null },
-                            { set_number: 3, reps: null, weight: null },
+                            // { set_number: 2, reps: null, weight: null },
+                            // { set_number: 3, reps: null, weight: null },
                         ];
                     initialSummaryDetails[movement.id] = {
                         movement_difficulty: movement.movement_difficulty ?? 0,
@@ -116,18 +116,28 @@ export default function CompleteWorkout({ route, navigation }) {
     };
 
     const handleAddSet = (movementId) => {
-        setMovementLogs((prevLogs) => ({
-            ...prevLogs,
-            [movementId]: [
-                ...prevLogs[movementId],
-                {
-                    set_number: prevLogs[movementId].length + 1,
-                    reps: 0,
-                    weight: 0,
-                },
-            ],
-        }));
+        setMovementLogs((prevLogs) => {
+            // 1) Grab the current sets for this movement
+            const currentSets = prevLogs[movementId];
+
+            // 2) Get the last set's reps/weight
+            const lastSet = currentSets[currentSets.length - 1];
+
+            // 3) Duplicate its values (or empty if lastSet is empty)
+            const newSet = {
+                set_number: currentSets.length + 1,
+                reps: lastSet.reps,       // copy the last set’s reps
+                weight: lastSet.weight,   // copy the last set’s weight
+            };
+
+            // 4) Return the updated logs
+            return {
+                ...prevLogs,
+                [movementId]: [...currentSets, newSet],
+            };
+        });
     };
+
 
     const handleRemoveSet = (movementId, setIndex) => {
         setMovementLogs((prevLogs) => {
@@ -189,11 +199,36 @@ export default function CompleteWorkout({ route, navigation }) {
         }));
     };
 
+    const formatHistoryDate = (rawDateString) => {
+        const date = new Date(rawDateString);
+
+        // Define "today" and "yesterday"
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Helper to check if two dates have the same year/month/day
+        const isSameDay = (d1, d2) =>
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+
+        // Return "Today", "Yesterday", or a formatted string
+        if (isSameDay(date, today)) {
+            return 'Today';
+        } else if (isSameDay(date, yesterday)) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+
 
     const saveWorkout = async () => {
         setIsBouncerLoading(true);
 
         const payload = {
+            scheduled_date: workout.scheduled_date,
             sections: workout.workout_sections.map((section) => {
                 if (section.section_name === "Conditioning" && section.conditioning_elements.length > 0) {
                     // Include conditioning-specific details
@@ -256,6 +291,7 @@ export default function CompleteWorkout({ route, navigation }) {
         setIsBouncerLoading(true);
 
         const payload = {
+            scheduled_date: workout.scheduled_date,
             sections: workout.workout_sections.map((section) => ({
                 section_id: section.id,
                 movements: section.section_movement_details.map((movement) => ({
@@ -308,269 +344,56 @@ export default function CompleteWorkout({ route, navigation }) {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" backgroundColor="#F6F3DC" />
-            <View style={styles.scrollContainer}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.topSection}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('TrainingOverview')}>
-                            <Ionicons name="arrow-back" size={24} color="black" />
-                        </TouchableOpacity>
-                        <View style={styles.headerTextBlock}>
-                            <Text style={styles.headingText}>{workout?.name}</Text>
-                            <View style={styles.workoutOverviewTime}>
-                                <Ionicons name="time-outline" size={24} color="black" />
-                                <Text style={styles.timeText}>{workout?.duration} mins</Text>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={10} // Adjust if you have a top header
+
+            >
+                <View style={styles.scrollContainer}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.topSection}>
+                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('TrainingOverview')}>
+                                <Ionicons name="arrow-back" size={24} color="black" />
+                            </TouchableOpacity>
+                            <View style={styles.headerTextBlock}>
+                                <Text style={styles.headingText}>{workout?.name}</Text>
+                                <View style={styles.workoutOverviewTime}>
+                                    <Ionicons name="time-outline" size={24} color="black" />
+                                    <Text style={styles.timeText}>{workout?.duration} mins</Text>
+                                </View>
                             </View>
                         </View>
                     </View>
-                </View>
 
-                {/* Horizontal FlatList for Sections */}
-                <FlatList
-                    ref={flatListRef}
-                    data={workout.workout_sections}
-                    horizontal
-                    pagingEnabled
-                    keyExtractor={(item, index) => index.toString()}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item, index }) => (
-                        <View style={[styles.stageContainer, { width: SCREEN_WIDTH }]}>
-                            {/* Section Title */}
-                            <View style={styles.workoutTitleBox}>
-                                <Text style={styles.stageTitle}>{item.section_name}</Text>
-                                <View style={styles.line} />
-                            </View>
+                    {/* Horizontal FlatList for Sections */}
+                    <FlatList
+                        ref={flatListRef}
+                        data={workout.workout_sections}
+                        horizontal
+                        pagingEnabled
+                        keyExtractor={(item, index) => index.toString()}
+                        showsHorizontalScrollIndicator={false}
+                        keyboardDismissMode="on-drag"
+                        keyboardShouldPersistTaps="always" // Allow taps to pass through to FlatList
+                        onScrollBeginDrag={() => Keyboard.dismiss()} // <-- Add this
+                        renderItem={({ item, index }) => (
+                            <View style={[styles.stageContainer, { width: SCREEN_WIDTH }]}>
+                                {/* Section Title */}
+                                <View style={styles.workoutTitleBox}>
+                                    <Text style={styles.stageTitle}>{item.section_name}</Text>
+                                    <View style={styles.line} />
+                                </View>
 
-                            {item.section_name === "Conditioning" ? (
-                                <>
-                                    <View style={styles.conditioningContainer}>
-                                        <View style={styles.tabs}>
-                                            {['Summary', 'Log', 'History'].map((tab) => {
-                                                const tabColors = {
-                                                    'Summary': Colours.buttonColour, 
-                                                    'Log': Colours.buttonColour, 
-                                                    'History': Colours.buttonColour,
-                                                };
-
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={tab}
-                                                        style={[
-                                                            styles.tab,
-                                                            { backgroundColor: activeTab === tab ? tabColors[tab] : '#FFFFFF' }, // White if inactive, color if active
-                                                        ]}
-                                                        onPress={() => setActiveTab(tab)}
-                                                    >
-                                                        <Text
-                                                            style={[
-                                                                styles.tabText,
-                                                                activeTab === tab && styles.activeTabText, // Apply active text style only to active tab
-                                                            ]}
-                                                        >
-                                                            {tab}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
-                                        </View>
-                                        <View style={styles.tabContent}>
-                                            {activeTab === "Summary" && (
-                                                <View style={styles.screenContainer}>
-                                                    <View style={styles.sectionContainer}>
-
-                                                        {/* 1) Show the general structure, similar to HIIT's <Text style={styles.summaryDetail}>{session.structure}</Text> */}
-                                                        <Text style={styles.summaryDetail}>
-                                                            {item.conditioning_elements?.[0]?.conditioning_overview?.notes || "No structure/notes provided"}
-                                                        </Text>
-
-                                                        {/* 2) A single blockContainer that lists the “movements” (similar to HIIT blocks) */}
-                                                        <View style={styles.blockContainer}>
-                                                            {/* If you want a “block name” like HIIT’s block_name: rep_scheme */}
-                                                            <Text style={styles.sectionTitle}>
-                                                                {item.conditioning_elements?.[0]?.conditioning_overview?.name || "Conditioning Block"}
-                                                            </Text>
-
-                                                            {/* 3) Movements list, similar to HIIT’s block.hiit_movements */}
-                                                            {item.section_movement_details?.map((movementDetail, i) => {
-                                                                // movementDetail.movements is your actual movement object
-                                                                const movement = movementDetail.movements || {};
-                                                                const movementName = movement.exercise || "No exercise name";
-                                                                const condDetail = item.conditioning_elements?.[0]?.conditioning_overview?.conditioning_details?.find(
-                                                                    (cd) => cd.movement_order === movementDetail.movement_order
-                                                                );
-
-                                                                const detail = condDetail?.detail; 
-
-                                                                console.log('Movement: ', JSON.stringify(item, null, 2))
-                                                                return (
-                                                                    <View key={i} style={styles.movementRow}>
-                                                                        <View style={styles.movementLeft}>
-                                                                            <Text>
-                                                                                {/* Index label + movement name */}
-                                                                                <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
-                                                                                <Text style={styles.movementDetail}>{`${detail} `}</Text>
-                                                                                <Text style={styles.movementDetail}>{movementName}</Text>
-                                                                            </Text>
-                                                                        </View>
-
-                                                                        {/* 4) Play button (except for “Rest”) */}
-                                                                        {movementName.toLowerCase() === "rest" ? null : (
-                                                                            <TouchableOpacity
-                                                                                onPress={() => {
-                                                                                    setSelectedMovement({
-                                                                                        ...movement,
-                                                                                        portrait_video_url: movement.portrait_video_url,
-                                                                                    });
-                                                                                }}
-                                                                            >
-                                                                                <Ionicons name="play-circle" size={24} color="black" />
-                                                                            </TouchableOpacity>
-                                                                        )}
-                                                                    </View>
-                                                                );
-                                                            })}
-
-                                                            {/* 5) Divider line at the end of the block, like in HIIT */}
-                                                            <View style={styles.subDividerLine}></View>
-                                                        </View>
-                                                    </View>
-                                                </View>
-                                            )}
-
-                                            {activeTab === 'Log' && (
-                                                <>
-                                                    <View style={styles.logContent}>
-                                                        {item.conditioning_elements.map((conditioning) => (
-                                                            <>
-                                                                <View key={conditioning.id} style={styles.commentBlock}>
-                                                                    {/* Comments */}
-                                                                    <Text style={styles.exerciseLabel}>Comments</Text>
-                                                                    <TextInput
-                                                                        style={styles.commentInput}
-                                                                        value={conditioningDetails[conditioning.id]?.comments || ''}
-                                                                        onChangeText={(value) => handleConditioningChange(conditioning.id, 'comments', value)}
-                                                                        placeholder="Brutal conditioning..." />
-                                                                </View>
-                                                                <View style={styles.commentBlock}>
-                                                                    <View style={styles.RPEBlock}>
-                                                                        <Text style={styles.exerciseLabel}>RPE: {conditioningDetails[conditioning.id]?.rpe || 0}</Text>
-                                                                        <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
-                                                                    </View>
-                                                                    <Slider
-                                                                        style={styles.slider}
-                                                                        minimumValue={0}
-                                                                        maximumValue={10}
-                                                                        step={1}
-                                                                        minimumTrackTintColor="#D6F7F4"
-                                                                        value={conditioningDetails[conditioning.id]?.rpe || 0}
-                                                                        onValueChange={(value) => handleConditioningChange(conditioning.id, 'rpe', value)} />
-                                                                </View>
-                                                            </>
-                                                        ))}
-                                                        <TouchableOpacity style={styles.saveButton} onPress={() => saveWorkout()}>
-                                                            <Text style={styles.saveButtonText}>Save details</Text>
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                </>
-                                            )}
-                                            {activeTab === 'History' && (
-                                                <View style={styles.historyContent}>
-                                                    <Text style={styles.exerciseLabel}>Conditioning History</Text>
-                                                    {conditioningHistory && Object.keys(conditioningHistory).length > 0 ? (
-                                                        Object.entries(conditioningHistory).map(([overviewId, historyArray]) => (
-                                                            <View key={overviewId}>
-                                                                {/* If you want a separate header for each overview ID, do it here */}
-                                                                {/* e.g. <Text style={styles.exerciseLabel}>Conditioning Overview {overviewId} History</Text> */}
-
-                                                                {historyArray.length > 0 ? (
-                                                                    historyArray.map((dateGroup, index) => (
-                                                                        <View key={index} style={styles.historyItem}>
-                                                                            {/* Date */}
-                                                                            <View style={styles.dateBox}>
-                                                                                <Text style={styles.historyDate}>
-                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', {
-                                                                                        month: 'short',
-                                                                                        day: 'numeric',
-                                                                                    })}
-                                                                                </Text>
-                                                                                <View style={styles.divider}></View>
-                                                                            </View>
-
-                                                                            {/* Comments + RPE */}
-                                                                            <View style={styles.allScoresContainer}>
-                                                                                {/* We'll treat "entries" as the "sets container" area */}
-                                                                                <View style={styles.setsContainer}>
-                                                                                    {dateGroup.entries && dateGroup.entries.map((entry, eIndex) => (
-                                                                                        <View key={eIndex} style={styles.commentItem}>
-                                                                                            {/* Just display the comments text */}
-                                                                                            <Text style={styles.commentText}>{entry.comments}</Text>
-                                                                                        </View>
-                                                                                    ))}
-                                                                                </View>
-
-                                                                                {/* If you still want RPE gauge on the right */}
-                                                                                {dateGroup.entries && dateGroup.entries.length > 0 && (
-                                                                                    // Example: take the first entry's RPE if that's your main measure
-                                                                                    dateGroup.entries[0].rpe ? (
-                                                                                        <View style={styles.scoreContainer}>
-                                                                                            <RPEGauge score={dateGroup.entries[0].rpe} />
-                                                                                        </View>
-                                                                                    ) : null
-                                                                                )}
-                                                                            </View>
-                                                                        </View>
-                                                                    ))
-                                                                ) : (
-                                                                    <Text style={styles.noHistoryText}>No conditioning history available</Text>
-                                                                )}
-                                                            </View>
-                                                        ))
-                                                    ) : (
-                                                        <Text style={styles.noHistoryText}>No conditioning history available</Text>
-                                                    )}
-                                                </View>
-                                            )}
-
-                                        </View>
-                                    </View>
-                                    <View style={styles.navigationContainer}>
-                                        <TouchableOpacity
-                                            style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
-                                            onPress={handlePrevious}
-                                            disabled={currentStage === 0}
-                                        >
-                                            <Ionicons name="arrow-back" size={24} color="white" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
-                                            <Text style={styles.finishButtonText}>Finish Workout</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.navButton,
-                                                currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
-                                            ]}
-                                            onPress={handleNext}
-                                            disabled={currentStage === workout.workout_sections.length - 1}
-                                        >
-                                            <Ionicons name="arrow-forward" size={24} color="white" />
-                                        </TouchableOpacity>
-                                    </View>
-                                </>
-                            ) : (
-                                < ScrollView
-                                    contentContainerStyle={styles.movementScrollContainer}
-                                    showsVerticalScrollIndicator={false}
-                                >
-                                    {item.section_movement_details.map((movement, movementIndex) => (
-                                        <View key={movementIndex} style={styles.movementContainer}>
-                                            {/* Movement Subtitle */}
-                                            <Text style={styles.movementSubtitle}>{movement.movements.exercise}</Text>
-
+                                {item.section_name === "Conditioning" ? (
+                                    <>
+                                        <View style={styles.conditioningContainer}>
                                             <View style={styles.tabs}>
                                                 {['Summary', 'Log', 'History'].map((tab) => {
                                                     const tabColors = {
-                                                        'Summary': Colours.buttonColour, 
-                                                        'Log': Colours.buttonColour, 
+                                                        'Summary': Colours.buttonColour,
+                                                        'Log': Colours.buttonColour,
                                                         'History': Colours.buttonColour,
                                                     };
 
@@ -592,52 +415,273 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                 {tab}
                                                             </Text>
                                                         </TouchableOpacity>
-                                                    )
+                                                    );
                                                 })}
                                             </View>
+                                            <View style={styles.tabContent}>
+                                                {activeTab === "Summary" && (
+                                                    <View style={styles.screenContainer}>
+                                                        <View style={styles.sectionContainer}>
 
-                                            {/* Dynamic Tab Content */}
-                                            {activeTab === 'Summary' && (
-                                                <View style={styles.tabContent}>
-                                                    {/* Thumbnail Button */}
-                                                    <TouchableOpacity
-                                                        style={styles.thumbnailContainer}
-                                                        onPress={() => setSelectedMovement(movement.movements)}
-                                                    >
-                                                        {/* Thumbnail */}
-                                                        <Image
-                                                            style={styles.thumbnailImage}
-                                                            source={{ uri: movement.movements.landscape_thumbnail }}
-                                                        />
+                                                            {/* 1) Show the general structure, similar to HIIT's <Text style={styles.summaryDetail}>{session.structure}</Text> */}
+                                                            <Text style={styles.summaryDetail}>
+                                                                {item.conditioning_elements?.[0]?.conditioning_overview?.notes || "No structure/notes provided"}
+                                                            </Text>
 
-                                                        {/* Play Icon Overlay */}
-                                                        <View style={styles.playIconOverlay}>
-                                                            <Ionicons name="play-circle" size={48} color="white" />
+                                                            {/* 2) A single blockContainer that lists the “movements” (similar to HIIT blocks) */}
+                                                            <View style={styles.blockContainer}>
+                                                                {/* If you want a “block name” like HIIT’s block_name: rep_scheme */}
+                                                                <Text style={styles.sectionTitle}>
+                                                                    {item.conditioning_elements?.[0]?.conditioning_overview?.name || "Conditioning Block"}
+                                                                </Text>
+
+                                                                {/* 3) Movements list, similar to HIIT’s block.hiit_movements */}
+                                                                {item.section_movement_details?.map((movementDetail, i) => {
+                                                                    // movementDetail.movements is your actual movement object
+                                                                    const movement = movementDetail.movements || {};
+                                                                    const movementName = movement.exercise || "No exercise name";
+                                                                    const condDetail = item.conditioning_elements?.[0]?.conditioning_overview?.conditioning_details?.find(
+                                                                        (cd) => cd.movement_order === movementDetail.movement_order
+                                                                    );
+
+                                                                    const detail = condDetail?.detail;
+
+                                                                    console.log('Movement: ', JSON.stringify(item, null, 2))
+                                                                    return (
+                                                                        <View key={i} style={styles.movementRow}>
+                                                                            <View style={styles.movementLeft}>
+                                                                                <Text>
+                                                                                    {/* Index label + movement name */}
+                                                                                    <Text style={styles.movementLabel}>{`${i + 1}: `}</Text>
+                                                                                    <Text style={styles.movementDetail}>{`${detail} `}</Text>
+                                                                                    <Text style={styles.movementDetail}>{movementName}</Text>
+                                                                                </Text>
+                                                                            </View>
+
+                                                                            {/* 4) Play button (except for “Rest”) */}
+                                                                            {movementName.toLowerCase() === "rest" ? null : (
+                                                                                <TouchableOpacity
+                                                                                    onPress={() => {
+                                                                                        setSelectedMovement({
+                                                                                            ...movement,
+                                                                                            portrait_video_url: movement.portrait_video_url,
+                                                                                        });
+                                                                                    }}
+                                                                                >
+                                                                                    <Ionicons name="play-circle" size={24} color="black" />
+                                                                                </TouchableOpacity>
+                                                                            )}
+                                                                        </View>
+                                                                    );
+                                                                })}
+
+                                                                {/* 5) Divider line at the end of the block, like in HIIT */}
+                                                                <View style={styles.subDividerLine}></View>
+                                                            </View>
                                                         </View>
-                                                    </TouchableOpacity>
+                                                    </View>
+                                                )}
 
-                                                    {/* Modal for Full-Screen Video */}
-                                                    {selectedMovement?.id === movement.movements.id && (
-                                                        <VideoModal
-                                                            visible={!!selectedMovement}
-                                                            movement={selectedMovement}
-                                                            onClose={() => setSelectedMovement(null)}
-                                                        />
-                                                    )}
-                                                    <Text style={styles.movementName}>{movement.movements.exercise}</Text>
+                                                {activeTab === 'Log' && (
+                                                    <>
+                                                        <View style={styles.logContent}>
+                                                            {item.conditioning_elements.map((conditioning) => (
+                                                                <>
+                                                                    <View key={conditioning.id} style={styles.commentBlock}>
+                                                                        {/* Comments */}
+                                                                        <Text style={styles.exerciseLabel}>Comments</Text>
+                                                                        <TextInput
+                                                                            style={styles.commentInput}
+                                                                            value={conditioningDetails[conditioning.id]?.comments || ''}
+                                                                            onChangeText={(value) => handleConditioningChange(conditioning.id, 'comments', value)}
+                                                                            placeholder="Brutal conditioning..." />
+                                                                    </View>
+                                                                    <View style={styles.commentBlock}>
+                                                                        <View style={styles.RPEBlock}>
+                                                                            <Text style={styles.exerciseLabel}>RPE: {conditioningDetails[conditioning.id]?.rpe || 0}</Text>
+                                                                            <Ionicons name="information-circle-outline" size={24} color="black" style={{ marginBottom: 10 }} onPress={() => setRpeModalVisible(true)} />
+                                                                        </View>
+                                                                        <Slider
+                                                                            style={styles.slider}
+                                                                            minimumValue={0}
+                                                                            maximumValue={10}
+                                                                            step={1}
+                                                                            minimumTrackTintColor="#D6F7F4"
+                                                                            value={conditioningDetails[conditioning.id]?.rpe || 0}
+                                                                            onValueChange={(value) => handleConditioningChange(conditioning.id, 'rpe', value)} />
+                                                                    </View>
+                                                                </>
+                                                            ))}
+                                                            <TouchableOpacity style={styles.saveButton} onPress={() => saveWorkout()}>
+                                                                <Text style={styles.saveButtonText}>Save details</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </>
+                                                )}
+                                                {activeTab === 'History' && (
+                                                    <View style={styles.historyContent}>
+                                                        <Text style={styles.exerciseLabel}>Conditioning History</Text>
+                                                        {conditioningHistory && Object.keys(conditioningHistory).length > 0 ? (
+                                                            Object.entries(conditioningHistory).map(([overviewId, historyArray]) => (
+                                                                <View key={overviewId}>
+                                                                    {/* If you want a separate header for each overview ID, do it here */}
+                                                                    {/* e.g. <Text style={styles.exerciseLabel}>Conditioning Overview {overviewId} History</Text> */}
 
+                                                                    {historyArray.length > 0 ? (
+                                                                        historyArray.map((dateGroup, index) => (
+                                                                            <View key={index} style={styles.historyItem}>
+                                                                                {/* Date */}
+                                                                                <View style={styles.dateBox}>
+                                                                                    <Text style={styles.historyDate}>
+                                                                                        {formatHistoryDate(dateGroup.completed_date)}
+                                                                                    </Text>
+                                                                                    <View style={styles.divider}></View>
+                                                                                </View>
+
+                                                                                {/* Comments + RPE */}
+                                                                                <View style={styles.allScoresContainer}>
+                                                                                    {/* We'll treat "entries" as the "sets container" area */}
+                                                                                    <View style={styles.setsContainer}>
+                                                                                        {dateGroup.entries && dateGroup.entries.map((entry, eIndex) => (
+                                                                                            <View key={eIndex} style={styles.commentItem}>
+                                                                                                {/* Just display the comments text */}
+                                                                                                <Text style={styles.commentTitleText}>Comments: </Text>
+                                                                                                <Text style={styles.commentText}>{entry.comments}</Text>
+                                                                                            </View>
+                                                                                        ))}
+                                                                                    </View>
+
+                                                                                    {/* If you still want RPE gauge on the right */}
+                                                                                    {dateGroup.entries && dateGroup.entries.length > 0 && (
+                                                                                        // Example: take the first entry's RPE if that's your main measure
+                                                                                        dateGroup.entries[0].rpe ? (
+                                                                                            <View style={styles.scoreContainer}>
+                                                                                                <RPEGauge score={dateGroup.entries[0].rpe} />
+                                                                                            </View>
+                                                                                        ) : null
+                                                                                    )}
+                                                                                </View>
+
+                                                                            </View>
+                                                                        ))
+                                                                    ) : (
+                                                                        <Text style={styles.noHistoryText}>No conditioning history available</Text>
+                                                                    )}
+                                                                </View>
+                                                            ))
+                                                        ) : (
+                                                            <Text style={styles.noHistoryText}>No conditioning history available</Text>
+                                                        )}
+                                                    </View>
+                                                )}
+
+                                            </View>
+                                        </View>
+                                        <View style={styles.navigationContainer}>
+                                            <TouchableOpacity
+                                                style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
+                                                onPress={handlePrevious}
+                                                disabled={currentStage === 0}
+                                            >
+                                                <Ionicons name="arrow-back" size={24} color="white" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
+                                                <Text style={styles.finishButtonText}>Finish Workout</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.navButton,
+                                                    currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
+                                                ]}
+                                                onPress={handleNext}
+                                                disabled={currentStage === workout.workout_sections.length - 1}
+                                            >
+                                                <Ionicons name="arrow-forward" size={24} color="white" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
+                                ) : (
+                                    < ScrollView
+                                        contentContainerStyle={styles.movementScrollContainer}
+                                        showsVerticalScrollIndicator={false}
+                                    >
+                                        {item.section_movement_details.map((movement, movementIndex) => (
+                                            <View key={movementIndex} style={styles.movementContainer}>
+                                                {/* Movement Subtitle */}
+                                                <Text style={styles.movementSubtitle}>{movement.movements.exercise}</Text>
+
+                                                <View style={styles.tabs}>
+                                                    {['Summary', 'Log', 'History'].map((tab) => {
+                                                        const tabColors = {
+                                                            'Summary': Colours.buttonColour,
+                                                            'Log': Colours.buttonColour,
+                                                            'History': Colours.buttonColour,
+                                                        };
+
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={tab}
+                                                                style={[
+                                                                    styles.tab,
+                                                                    { backgroundColor: activeTab === tab ? tabColors[tab] : '#FFFFFF' }, // White if inactive, color if active
+                                                                ]}
+                                                                onPress={() => setActiveTab(tab)}
+                                                            >
+                                                                <Text
+                                                                    style={[
+                                                                        styles.tabText,
+                                                                        activeTab === tab && styles.activeTabText, // Apply active text style only to active tab
+                                                                    ]}
+                                                                >
+                                                                    {tab}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        )
+                                                    })}
                                                 </View>
-                                            )}
 
-                                            {activeTab === 'Log' && (
-                                                <KeyboardAwareScrollView
-                                                    contentContainerStyle={styles.scrollContent}
-                                                    enableOnAndroid={true} // Ensure keyboard avoidance works on Android
-                                                    extraScrollHeight={100} // Adjust to provide extra space when the keyboard appears
-                                                >
+                                                {/* Dynamic Tab Content */}
+                                                {activeTab === 'Summary' && (
+                                                    <View style={styles.tabContent}>
+                                                        {/* Thumbnail Button */}
+                                                        <TouchableOpacity
+                                                            style={styles.thumbnailContainer}
+                                                            onPress={() => setSelectedMovement(movement.movements)}
+                                                        >
+                                                            {/* Thumbnail */}
+                                                            <Image
+                                                                style={styles.thumbnailImage}
+                                                                source={{ uri: movement.movements.landscape_thumbnail }}
+                                                            />
+
+                                                            {/* Play Icon Overlay */}
+                                                            <View style={styles.playIconOverlay}>
+                                                                <Ionicons name="play-circle" size={48} color="white" />
+                                                            </View>
+                                                        </TouchableOpacity>
+
+                                                        {/* Modal for Full-Screen Video */}
+                                                        {selectedMovement?.id === movement.movements.id && (
+                                                            <VideoModal
+                                                                visible={!!selectedMovement}
+                                                                movement={selectedMovement}
+                                                                onClose={() => setSelectedMovement(null)}
+                                                            />
+                                                        )}
+                                                        <Text style={styles.movementName}>{movement.movements.exercise}</Text>
+
+                                                    </View>
+                                                )}
+
+                                                {activeTab === 'Log' && (
+                                                    // <KeyboardAvoidingView
+                                                    //     // style={{ flexGrow: 1 }}
+                                                    //     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                                                    //     keyboardVerticalOffset={50} // Adjust if you have a header
+                                                    // >
                                                     <View style={styles.tabContent}>
                                                         <View style={styles.logContent}>
-                                                            {item.section_name !== 'Warmup' && (
+                                                            {item.section_name !== 'Warm up A' && (
                                                                 <View style={styles.logContentHeader}>
                                                                     <Text style={styles.exerciseLabel}>Set details</Text>
                                                                     {/* Hide the add set button for warmup */}
@@ -650,7 +694,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                 </View>
                                                             )}
                                                             {/* Hide set details for warmup section */}
-                                                            {item.section_name !== 'Warmup' && movementLogs[movement.id]?.map((set, setIndex) => (
+                                                            {item.section_name !== 'Warm up A' && movementLogs[movement.id]?.map((set, setIndex) => (
                                                                 <View key={setIndex} style={styles.setRow}>
                                                                     <Text style={styles.setNumber}>{setIndex + 1}</Text>
                                                                     <View style={styles.weightInput}>
@@ -725,132 +769,142 @@ export default function CompleteWorkout({ route, navigation }) {
                                                             </TouchableOpacity>
                                                         </View>
                                                     </View>
-                                                </KeyboardAwareScrollView>
-                                            )}
+                                                    // </KeyboardAvoidingView>
+                                                )}
 
-                                            {activeTab === 'History' && (
-                                                <View style={styles.tabContent}>
-                                                    <View style={styles.historyContent}>
-                                                        <Text style={styles.exerciseLabel}>
-                                                            {movement.movements.exercise} history
-                                                        </Text>
+                                                {activeTab === 'History' && (
+                                                    <View style={styles.tabContent}>
+                                                        <View style={styles.historyContent}>
+                                                            <Text style={styles.exerciseLabel}>
+                                                                {movement.movements.exercise} history
+                                                            </Text>
 
-                                                        {/* Get history for the current exercise ID */}
-                                                        {movementHistory && movementHistory[movement.movements.id] ? (
-                                                            movementHistory[movement.movements.id].length > 0 ? (
-                                                                movementHistory[movement.movements.id]
-                                                                    .filter(dateGroup =>
-                                                                        dateGroup.sets.length > 0 && // Ensure the date has sets
-                                                                        dateGroup.sets.some(set => set.reps !== 0 && set.weight !== 0) // Ensure at least one set has valid data
-                                                                    )
-                                                                    .map((dateGroup, index) => (
-                                                                        <View key={index} style={styles.historyItem}>
-                                                                            {/* Date */}
-                                                                            <View style={styles.dateBox}>
-                                                                                <Text style={styles.historyDate}>
-                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                                                </Text>
-                                                                                <View style={styles.divider}></View>
-                                                                            </View>
-
-                                                                            {/* Sets and Movement Difficulty */}
-                                                                            <View style={styles.allScoresContainer}>
-                                                                                {/* Sets */}
-                                                                                <View style={styles.setsContainer}>
-                                                                                    {dateGroup.sets
-                                                                                        .filter(set => set.reps > 0 && set.weight > 0) // Only show sets with valid values
-                                                                                        .sort((a, b) => a.set_number - b.set_number) // Sort sets in ascending order by set_number
-                                                                                        .map((set, setIndex) => (
-                                                                                            <View key={setIndex} style={styles.setItem}>
-                                                                                                <Text style={styles.setSubNumber}>{set.set_number}</Text>
-                                                                                                {set.weight !== null && set.weight !== undefined ? (
-                                                                                                    <>
-                                                                                                        <Text style={styles.setValue}>{set.weight}</Text>
-                                                                                                        <Text style={styles.setMetric}>KG</Text>
-                                                                                                    </>
-                                                                                                ) : null}
-                                                                                                <Text style={styles.setCross}>x</Text>
-                                                                                                {set.reps !== null && set.reps !== undefined ? (
-                                                                                                    <>
-                                                                                                        <Text style={styles.setValue}>{set.reps}</Text>
-                                                                                                        <Text style={styles.setMetric}>Reps</Text>
-                                                                                                    </>
-                                                                                                ) : null}
-                                                                                            </View>
-                                                                                        ))}
+                                                            {/* Get history for the current exercise ID */}
+                                                            {movementHistory && movementHistory[movement.movements.id] ? (
+                                                                movementHistory[movement.movements.id].length > 0 ? (
+                                                                    movementHistory[movement.movements.id]
+                                                                        .filter(dateGroup =>
+                                                                            dateGroup.sets.length > 0 && // Ensure the date has sets
+                                                                            dateGroup.sets.some(set => set.reps !== 0 && set.weight !== 0) // Ensure at least one set has valid data
+                                                                        )
+                                                                        .map((dateGroup, index) => (
+                                                                            <View key={index} style={styles.historyItem}>
+                                                                                {/* Date */}
+                                                                                <View style={styles.dateBox}>
+                                                                                    <Text style={styles.historyDate}>
+                                                                                        {formatHistoryDate(dateGroup.completed_date)}
+                                                                                    </Text>
+                                                                                    <View style={styles.divider}></View>
                                                                                 </View>
 
-                                                                                {/* Movement Difficulty */}
-                                                                                {dateGroup.movement_difficulty !== 0 && dateGroup.movement_difficulty !== 0 ? (
-                                                                                    <View style={styles.scoreContainer}>
-                                                                                        <RPEGauge score={dateGroup.movement_difficulty} />
+                                                                                {/* Sets and Movement Difficulty */}
+                                                                                <View style={styles.allScoresContainer}>
+                                                                                    {/* Sets */}
+                                                                                    <View style={styles.setsContainer}>
+                                                                                        {dateGroup.sets
+                                                                                            .filter(set => set.reps > 0 && set.weight > 0) // Only show sets with valid values
+                                                                                            .sort((a, b) => a.set_number - b.set_number) // Sort sets in ascending order by set_number
+                                                                                            .map((set, setIndex) => (
+                                                                                                <View key={setIndex} style={styles.setItem}>
+                                                                                                    <Text style={styles.setSubNumber}>{set.set_number}</Text>
+                                                                                                    {set.weight !== null && set.weight !== undefined ? (
+                                                                                                        <>
+                                                                                                            <Text style={styles.setValue}>{set.weight}</Text>
+                                                                                                            <Text style={styles.setMetric}>KG</Text>
+                                                                                                        </>
+                                                                                                    ) : null}
+                                                                                                    <Text style={styles.setCross}>x</Text>
+                                                                                                    {set.reps !== null && set.reps !== undefined ? (
+                                                                                                        <>
+                                                                                                            <Text style={styles.setValue}>{set.reps}</Text>
+                                                                                                            <Text style={styles.setMetric}>Reps</Text>
+                                                                                                        </>
+                                                                                                    ) : null}
+                                                                                                </View>
+                                                                                            ))}
                                                                                     </View>
-                                                                                ) : null}
+
+                                                                                    {/* Movement Difficulty */}
+                                                                                    {dateGroup.movement_difficulty !== 0 && dateGroup.movement_difficulty !== 0 ? (
+                                                                                        <View style={styles.scoreContainer}>
+                                                                                            <RPEGauge score={dateGroup.movement_difficulty} />
+                                                                                        </View>
+                                                                                    ) : null}
+                                                                                </View>
+                                                                                {dateGroup.movement_comment &&
+                                                                                    <View style={styles.setsContainer}>
+                                                                                        <View style={styles.commentItem}>
+                                                                                            {/* Just display the comments text */}
+                                                                                            <Text style={styles.commentTitleText}>Comments: </Text>
+                                                                                            <Text style={styles.commentText}>{dateGroup.movement_comment}</Text>
+                                                                                        </View>
+                                                                                    </View>
+                                                                                }
                                                                             </View>
-                                                                        </View>
-                                                                    ))
+                                                                        ))
+                                                                ) : (
+                                                                    <Text style={styles.noHistoryText}>No history available</Text>
+                                                                )
                                                             ) : (
-                                                                <Text style={styles.noHistoryText}>No history available</Text>
-                                                            )
-                                                        ) : (
-                                                            <Text style={styles.noHistoryText}>No actual history available</Text>
-                                                        )}
+                                                                <Text style={styles.noHistoryText}>No actual history available</Text>
+                                                            )}
+                                                        </View>
                                                     </View>
-                                                </View>
-                                            )}
+                                                )}
 
 
 
 
+                                            </View>
+                                        ))}
+                                        <View />
+                                        {/* Navigation Buttons */}
+                                        <View style={styles.navigationContainer}>
+                                            <TouchableOpacity
+                                                style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
+                                                onPress={handlePrevious}
+                                                disabled={currentStage === 0}
+                                            >
+                                                <Ionicons name="arrow-back" size={24} color="white" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
+                                                <Text style={styles.finishButtonText}>Finish Workout</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.navButton,
+                                                    currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
+                                                ]}
+                                                onPress={handleNext}
+                                                disabled={currentStage === workout.workout_sections.length - 1}
+                                            >
+                                                <Ionicons name="arrow-forward" size={24} color="white" />
+                                            </TouchableOpacity>
                                         </View>
-                                    ))}
-                                    <View />
-                                    {/* Navigation Buttons */}
-                                    <View style={styles.navigationContainer}>
-                                        <TouchableOpacity
-                                            style={[styles.navButton, currentStage === 0 && styles.disabledButton]}
-                                            onPress={handlePrevious}
-                                            disabled={currentStage === 0}
-                                        >
-                                            <Ionicons name="arrow-back" size={24} color="white" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.finishButton} onPress={() => completeWorkout()}>
-                                            <Text style={styles.finishButtonText}>Finish Workout</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.navButton,
-                                                currentStage === workout.workout_sections.length - 1 && styles.disabledButton,
-                                            ]}
-                                            onPress={handleNext}
-                                            disabled={currentStage === workout.workout_sections.length - 1}
-                                        >
-                                            <Ionicons name="arrow-forward" size={24} color="white" />
-                                        </TouchableOpacity>
-                                    </View>
-                                </ScrollView>
-                            )}
-                        </View>
+                                    </ScrollView>
+                                )}
+                            </View>
 
-                    )}
-                    onMomentumScrollEnd={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                        setCurrentStage(index);
-                        Keyboard.dismiss(); // Dismiss the keyboard when swiping
-                    }}
-                />
-                <RPEInfoModal
-                    visible={rpeModalVisible}
-                    onClose={() => setRpeModalVisible(false)}
-                />
-                {selectedMovement && (
-                    <VideoModal
-                        visible={!!selectedMovement}
-                        movement={selectedMovement}
-                        onClose={() => setSelectedMovement(null)}
+                        )}
+                        onMomentumScrollEnd={(e) => {
+                            const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                            setCurrentStage(index);
+                            Keyboard.dismiss(); // Dismiss the keyboard when swiping
+                        }}
                     />
-                )}
-            </View>
+                    <RPEInfoModal
+                        visible={rpeModalVisible}
+                        onClose={() => setRpeModalVisible(false)}
+                    />
+                    {selectedMovement && (
+                        <VideoModal
+                            visible={!!selectedMovement}
+                            movement={selectedMovement}
+                            onClose={() => setSelectedMovement(null)}
+                        />
+                    )}
+                </View>
+            </KeyboardAvoidingView>
         </SafeAreaView >
 
     );
@@ -1062,6 +1116,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    scrollContent: {
+        flex: 1,
+    },
     logContent: {
         padding: 20,
     },
@@ -1214,7 +1271,7 @@ const styles = StyleSheet.create({
     commentItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        // justifyContent: 'space-between',
         width: '78%',
         marginBottom: 10,
         fontWeight: '700',
@@ -1236,6 +1293,10 @@ const styles = StyleSheet.create({
     },
     commentText: {
         fontWeight: 400,
+        fontSize: 14,
+    },
+    commentTitleText: {
+        fontWeight: 600,
         fontSize: 14,
     },
     setMetric: {

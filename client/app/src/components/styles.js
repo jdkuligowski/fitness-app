@@ -15,6 +15,5 @@ export const Colours = {
   hiitColour: '#947D6F',
   mobilityColour: '#C2D7EA',
   hyroxColour: '#CA6B45',
-
 };
 

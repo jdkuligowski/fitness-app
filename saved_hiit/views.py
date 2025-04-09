@@ -31,8 +31,9 @@ class CompleteHIITWorkoutAPIView(APIView):
 
             # 2) Retrieve and update workout (activity_type='Hiit')
             workout = Workout.objects.get(id=workout_id, owner=user, activity_type="Hiit")
-            workout.status = "Completed"
-            workout.completed_date = now().date()
+            scheduled_date = request.data.get('scheduled_date')
+            workout.status = 'Completed'
+            workout.completed_date = scheduled_date if scheduled_date else now().date()
             workout.save()
 
             # 3) Award points for workout completion (50 points, only if not awarded before)

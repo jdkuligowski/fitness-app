@@ -62,6 +62,31 @@ export default function RunningWorkout({ route, navigation }) {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
+    const formatHistoryDate = (rawDateString) => {
+        const date = new Date(rawDateString);
+
+        // Define "today" and "yesterday"
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Helper to check if two dates have the same year/month/day
+        const isSameDay = (d1, d2) =>
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+
+        // Return "Today", "Yesterday", or a formatted string
+        if (isSameDay(date, today)) {
+            return 'Today';
+        } else if (isSameDay(date, yesterday)) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+
+
     const updateRunningWorkout = async () => {
 
         try {
@@ -72,6 +97,7 @@ export default function RunningWorkout({ route, navigation }) {
 
             // Prepare the payload
             const payload = {
+                scheduled_date: workout.scheduled_date,
                 rpe: logData.session_rpe || null, // Only update RPE if provided
                 comments: logData.session_comments || null, // Only update comments if provided
                 intervals: logData.intervals.map((interval) => ({
@@ -143,8 +169,8 @@ export default function RunningWorkout({ route, navigation }) {
                 <View style={styles.tabs}>
                     {['Summary', 'Log', 'History'].map((tab) => {
                         const tabColors = {
-                            'Summary': Colours.buttonColour, 
-                            'Log': Colours.buttonColour, 
+                            'Summary': Colours.buttonColour,
+                            'Log': Colours.buttonColour,
                             'History': Colours.buttonColour,
                         };
 
@@ -467,10 +493,7 @@ export default function RunningWorkout({ route, navigation }) {
                                                     {/* Display the session's date */}
                                                     <View style={styles.dateBox}>
                                                         <Text style={styles.historyDate}>
-                                                            {new Date(workout.completed_date || session.created_at).toLocaleDateString('en-US', {
-                                                                month: 'short',
-                                                                day: 'numeric',
-                                                            })}
+                                                            {formatHistoryDate(session.completed_date)}
                                                         </Text>
                                                         <View style={styles.divider}></View>
                                                     </View>

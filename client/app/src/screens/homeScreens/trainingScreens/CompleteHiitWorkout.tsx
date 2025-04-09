@@ -109,6 +109,7 @@ export default function HiitWorkout({ route, navigation }) {
 
             // Prepare the payload
             const payload = {
+                scheduled_date: workout.scheduled_date,
                 rpe: logData.session_rpe || null, // Update RPE
                 comments: logData.session_comments || null, // Update comments
             };
@@ -142,6 +143,31 @@ export default function HiitWorkout({ route, navigation }) {
             alert("Error updating workout. Please check your connection or try again later.");
         }
     };
+
+    const formatHistoryDate = (rawDateString) => {
+        const date = new Date(rawDateString);
+
+        // Define "today" and "yesterday"
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Helper to check if two dates have the same year/month/day
+        const isSameDay = (d1, d2) =>
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+
+        // Return "Today", "Yesterday", or a formatted string
+        if (isSameDay(date, today)) {
+            return 'Today';
+        } else if (isSameDay(date, yesterday)) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -186,8 +212,8 @@ export default function HiitWorkout({ route, navigation }) {
                 <View style={styles.tabs}>
                     {['Summary', 'Log', 'History'].map((tab) => {
                         const tabColors = {
-                            'Summary': Colours.buttonColour, 
-                            'Log': Colours.buttonColour, 
+                            'Summary': Colours.buttonColour,
+                            'Log': Colours.buttonColour,
                             'History': Colours.buttonColour,
                         };
 
@@ -308,9 +334,20 @@ export default function HiitWorkout({ route, navigation }) {
                             {completeWorkouts && completeWorkouts.length > 0 ? (
                                 completeWorkouts.map((prevWorkout, index) => (
                                     <View key={index} style={styles.historyItem}>
-                                        <Text>{new Date(prevWorkout.completed_date).toLocaleDateString()}</Text>
-                                        <Text>RPE: {prevWorkout.hiit_sessions[0]?.rpe || "N/A"}</Text>
-                                        <Text>Comments: {prevWorkout.hiit_sessions[0]?.comments || "No comments"}</Text>
+                                        <View style={styles.dateBox}>
+                                            <Text style={styles.historyDate}>
+                                                {formatHistoryDate(prevWorkout.completed_date)}
+                                            </Text>
+                                            <View style={styles.divider}></View>
+                                        </View>
+                                        <View style={styles.allScoresContainer}>
+                                            <Text>Comments: {prevWorkout.hiit_sessions[0]?.comments || "No comments"}</Text>
+                                            {prevWorkout.hiit_sessions[0]?.rpe &&
+                                                <View style={styles.scoreContainer}>
+                                                    <RPEGauge score={prevWorkout.hiit_sessions[0]?.rpe} />
+                                                </View>
+                                            }
+                                        </View>
                                     </View>
                                 ))
                             ) : (

@@ -30,10 +30,10 @@ class CompleteMobilityWorkoutAPIView(APIView):
 
             # Retrieve and update workout
             workout = Workout.objects.get(id=workout_id, owner=user, activity_type="Mobility")
-            workout.status = "Completed"
-            workout.completed_date = now().date()
+            scheduled_date = request.data.get('scheduled_date')
+            workout.status = 'Completed'
+            workout.completed_date = scheduled_date if scheduled_date else now().date()
             workout.save()
-
             # Award points for workout completion
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type="Workout Completion").exists():

@@ -205,8 +205,9 @@ class CompleteRunningWorkoutAPIView(APIView):
 
             # 2️⃣ --- Update Workout Status (must be activity_type='Running') ---
             workout = Workout.objects.get(id=workout_id, owner=user, activity_type="Running")
+            scheduled_date = request.data.get('scheduled_date')
             workout.status = 'Completed'
-            workout.completed_date = now().date()
+            workout.completed_date = scheduled_date if scheduled_date else now().date()
             workout.save()
 
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---

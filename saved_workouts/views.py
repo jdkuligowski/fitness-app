@@ -853,6 +853,7 @@ class GetSingleWorkoutView(APIView):
                         "workout_id": w.id,
                         "completed_date": w.completed_date,
                         "movement_difficulty": workout_sets[0].section_movement.movement_difficulty if workout_sets else None,
+                        "movement_comment": workout_sets[0].section_movement.movement_comment if workout_sets else None,
                         "sets": sets_data
                     })
 
@@ -1026,6 +1027,7 @@ class GetSingleHyroxWorkout(APIView):
                         "workout_id": w.id,
                         "completed_date": w.completed_date,
                         "movement_difficulty": workout_sets[0].section_movement.movement_difficulty if workout_sets else None,
+                        "movement_comment": workout_sets[0].section_movement.movement_comment if workout_sets else None,
                         "sets": sets_data
                     })
 
@@ -1472,8 +1474,10 @@ class CompleteWorkoutAPIView(APIView):
 
             # 2️⃣ --- Update Workout Status ---
             workout = Workout.objects.get(id=workout_id, owner=user)
+            scheduled_date = request.data.get('scheduled_date')
+
             workout.status = 'Completed'
-            workout.completed_date = now().date()
+            workout.completed_date = scheduled_date if scheduled_date else now().date()
             workout.save()
 
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---
@@ -1620,8 +1624,9 @@ class CompleteHyroxAPIView(APIView):
 
             # 2️⃣ --- Update Workout Status ---
             workout = Workout.objects.get(id=workout_id, owner=user)
+            scheduled_date = request.data.get('scheduled_date')
             workout.status = 'Completed'
-            workout.completed_date = now().date()
+            workout.completed_date = scheduled_date if scheduled_date else now().date()
             workout.save()
 
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---

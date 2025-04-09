@@ -145,8 +145,8 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                         ? movement.workout_sets
                         : [
                             { set_number: 1, reps: null, weight: null },
-                            { set_number: 2, reps: null, weight: null },
-                            { set_number: 3, reps: null, weight: null },
+                            // { set_number: 2, reps: null, weight: null },
+                            // { set_number: 3, reps: null, weight: null },
                         ];
                     initialSummaryDetails[movement.id] = {
                         movement_difficulty: movement.movement_difficulty ?? 0,
@@ -179,17 +179,26 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
     };
 
     const handleAddSet = (movementId) => {
-        setMovementLogs((prevLogs) => ({
-            ...prevLogs,
-            [movementId]: [
-                ...prevLogs[movementId],
-                {
-                    set_number: prevLogs[movementId].length + 1,
-                    reps: 0,
-                    weight: 0,
-                },
-            ],
-        }));
+        setMovementLogs((prevLogs) => {
+            // 1) Grab the current sets for this movement
+            const currentSets = prevLogs[movementId];
+
+            // 2) Get the last set's reps/weight
+            const lastSet = currentSets[currentSets.length - 1];
+
+            // 3) Duplicate its values (or empty if lastSet is empty)
+            const newSet = {
+                set_number: currentSets.length + 1,
+                reps: lastSet.reps,       // copy the last set’s reps
+                weight: lastSet.weight,   // copy the last set’s weight
+            };
+
+            // 4) Return the updated logs
+            return {
+                ...prevLogs,
+                [movementId]: [...currentSets, newSet],
+            };
+        });
     };
 
     const handleRemoveSet = (movementId, setIndex) => {
@@ -251,6 +260,30 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
             },
         }));
     };
+
+    const formatHistoryDate = (rawDateString) => {
+        const date = new Date(rawDateString);
+
+        // Define "today" and "yesterday"
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Helper to check if two dates have the same year/month/day
+        const isSameDay = (d1, d2) =>
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+
+        // Return "Today", "Yesterday", or a formatted string
+        if (isSameDay(date, today)) {
+            return 'Today';
+        } else if (isSameDay(date, yesterday)) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
 
 
     const saveWorkout = async () => {
@@ -321,6 +354,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
         setIsBouncerLoading(true);
 
         const payload = {
+            scheduled_date: workout.scheduled_date,
             sections: workout.workout_sections.map((section) => ({
                 section_id: section.id,
                 movements: section.section_movement_details.map((movement) => ({
@@ -414,8 +448,8 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                         <View style={styles.tabs}>
                                             {['Summary', 'Log', 'History'].map((tab) => {
                                                 const tabColors = {
-                                                    'Summary': Colours.buttonColour, 
-                                                    'Log': Colours.buttonColour, 
+                                                    'Summary': Colours.buttonColour,
+                                                    'Log': Colours.buttonColour,
                                                     'History': Colours.buttonColour,
                                                 };
 
@@ -555,10 +589,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                                             {/* Date */}
                                                                             <View style={styles.dateBox}>
                                                                                 <Text style={styles.historyDate}>
-                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', {
-                                                                                        month: 'short',
-                                                                                        day: 'numeric',
-                                                                                    })}
+                                                                                    {formatHistoryDate(dateGroup.completed_date)}
                                                                                 </Text>
                                                                                 <View style={styles.divider}></View>
                                                                             </View>
@@ -636,8 +667,8 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                             <View style={styles.tabs}>
                                                 {['Summary', 'Log', 'History'].map((tab) => {
                                                     const tabColors = {
-                                                        'Summary': Colours.buttonColour, 
-                                                        'Log': Colours.buttonColour, 
+                                                        'Summary': Colours.buttonColour,
+                                                        'Log': Colours.buttonColour,
                                                         'History': Colours.buttonColour,
                                                     };
 
@@ -821,7 +852,7 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                                             {/* Date */}
                                                                             <View style={styles.dateBox}>
                                                                                 <Text style={styles.historyDate}>
-                                                                                    {new Date(dateGroup.completed_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                                    {formatHistoryDate(dateGroup.completed_date)}
                                                                                 </Text>
                                                                                 <View style={styles.divider}></View>
                                                                             </View>
@@ -860,6 +891,15 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                                                     </View>
                                                                                 ) : null}
                                                                             </View>
+                                                                            {dateGroup.movement_comment &&
+                                                                                <View style={styles.setsContainer}>
+                                                                                    <View style={styles.commentItem}>
+                                                                                        {/* Just display the comments text */}
+                                                                                        <Text style={styles.commentTitleText}>Comments: </Text>
+                                                                                        <Text style={styles.commentText}>{dateGroup.movement_comment}</Text>
+                                                                                    </View>
+                                                                                </View>
+                                                                            }
                                                                         </View>
                                                                     ))
                                                             ) : (
@@ -1305,7 +1345,7 @@ const styles = StyleSheet.create({
     commentItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        // justifyContent: 'space-between',
         width: '78%',
         marginBottom: 10,
         fontWeight: '700',
@@ -1326,6 +1366,10 @@ const styles = StyleSheet.create({
     },
     commentText: {
         fontWeight: 400,
+        fontSize: 14,
+    },
+    commentTitleText: {
+        fontWeight: 600,
         fontSize: 14,
     },
     setMetric: {
