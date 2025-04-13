@@ -1030,10 +1030,11 @@ const styles = StyleSheet.create({
         // alignItems: 'center',
     },
     movementSubtitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '600',
         marginVertical: 10,
         color: 'rgba(0, 0, 0, 0.6)',
+        // textAlign: 'center',
     },
     tabs: {
         flexDirection: 'row',

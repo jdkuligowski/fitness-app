@@ -8,7 +8,7 @@ const tenMinBlocks = [
     {
         movements: [
             { key: "movement", value: "Push", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
         ]
     },
     {
@@ -38,7 +38,7 @@ const fifteenMinBlocks = [
     {
         movements: [
             { key: "movement", value: "Push", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "movement", value: "Lunge", operator: "contains" },
         ]
     },
@@ -72,7 +72,7 @@ const twentyMinBlocks = [
     {
         movements: [
             { key: "movement", value: "Push", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
             { key: "movement", value: "Lunge", operator: "contains" },
         ]

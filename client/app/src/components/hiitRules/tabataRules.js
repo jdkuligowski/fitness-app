@@ -13,14 +13,14 @@ const tabataWorkouts = [
         movements: [
             { key: "primary_body_part", value: "Lunge", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "movement", value: "Pull H", operator: "contains" },
         ]
     },
     {
         type: "Tabata (20/10)",
         movements: [
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "movement", value: "Lunge", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
             { key: "movement", value: "Conditioning", operator: "contains" },
@@ -29,9 +29,9 @@ const tabataWorkouts = [
     {
         type: "Tabata (20/10)",
         movements: [
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "movement", value: "Push V", operator: "contains" },
-            { key: "movement_type", value: "Metcon", operator: "contains" },
+            { key: "advanced_movements", value: "Accessory", operator: "contains" },
             { key: "primary_body_part", value: "Core", operator: "contains" },
         ]
     },

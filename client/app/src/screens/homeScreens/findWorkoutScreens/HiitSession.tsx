@@ -306,7 +306,7 @@ export default function HiitSession() {
                         ) : ''}
                     </View>
 
-                    {selectedWorkout ?
+                    {selectedWorkout && activeFilterSet ?
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
                                 style={styles.submitButton}
