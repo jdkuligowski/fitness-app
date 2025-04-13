@@ -724,8 +724,43 @@ export default function CompleteHyroxWorkout({ route, navigation }) {
                                                         />
                                                     )}
 
-                                                    <Text style={styles.movementName}>{movement.movements.exercise}</Text>
+                                                    {/* Section instructions */}
+                                                    <View style={styles.summarySections}>
+                                                        {/* <Text style={styles.movementName}>{`${item.section_name}: ${movement.movements.exercise}`}</Text> */}
+                                                        {item.section_name === "Warm Up A" ?
+                                                            <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
+                                                            item.section_type === "superset" ?
+                                                                <Text style={styles.sectionSubTitle}>{`Complete ${item.section_name} as a superset with no rest between exercises.`}</Text> :
+                                                                item.section_type === "single" ?
+                                                                    <Text style={styles.sectionSubTitle}>{`${item.section_name} is a single exercise. Focus on maximising your performance with this movement.`}</Text> :
+                                                                    ''}
 
+                                                    </View>
+                                                    {/* Movement instructions */}
+                                                    <View style={styles.summarySections}>
+                                                        {item.section_name === "Warm Up A" ?
+                                                            '' :
+                                                            <Text style={styles.movementName}>Movement instructions</Text>
+                                                        }
+                                                        {item.section_name === "Warm Up B" && movement.movements.movement_hold_cue === "Movement" ?
+                                                            <Text style={styles.sectionSubTitle}>Complete 2 sets of 5-8 reps at RPE 5-6</Text> :
+                                                            item.section_name === "Warm Up B" && movement.movements.movement_hold_cue === "Hold" ?
+                                                                <Text style={styles.sectionSubTitle}>Complete 2 sets for 20-40 seconds</Text> :
+                                                                item.section_name === "Strong 1" || item.section_name === "Strong 2" ?
+                                                                    <Text style={styles.sectionSubTitle}>Complete 3 sets of 5-8 reps at RPE 8</Text> :
+                                                                    (item.section_name === "Build 1" || item.section_name === "Build 2") && movement.movements.movement_hold_cue === "Movement" ?
+                                                                        <Text style={styles.sectionSubTitle}>Complete 3 sets of 8-12 reps at RPE 8-9</Text> :
+                                                                        (item.section_name === "Build 1" || item.section_name === "Build 2") && movement.movements.movement_hold_cue === "Hold" ?
+                                                                            <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds</Text> :
+                                                                            (item.section_name === "Pump 1" || item.section_name === "Pump 2") && movement.movements.movement_hold_cue === "Movement" ?
+                                                                                <Text style={styles.sectionSubTitle}>Complete 2-3 sets of 12-20 reps at RPE 9</Text> :
+                                                                                (item.section_name === "Pump 1" || item.section_name === "Pump 2") && movement.movements.movement_hold_cue === "Hold" ?
+                                                                                    <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds</Text> :
+                                                                                    ''}
+
+                                                    </View>
+
+                                                    {/* Coaching cues */}
                                                 </View>
                                             )}
 
@@ -1140,6 +1175,17 @@ const styles = StyleSheet.create({
         transform: [{ translateX: -24 }, { translateY: -24 }],
         zIndex: 9999,
     },
+    movementName: {
+        marginHorizontal: 20,
+        fontWeight: '600',
+    },
+    sectionSubTitle: {
+        marginTop: 5,
+        marginHorizontal: 20,
+    },
+    summarySections: {
+        marginBottom: 10,
+    },
     carouselContainer: {
         flexDirection: "row",
         justifyContent: "center",
@@ -1155,9 +1201,6 @@ const styles = StyleSheet.create({
     },
     activeDot: {
         backgroundColor: "black",
-    },
-    movementName: {
-        marginLeft: 20,
     },
     exerciseDescription: {
         fontSize: 16,

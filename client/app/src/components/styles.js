@@ -9,7 +9,9 @@ export const Colours = {
   primaryBackground: '#F2F1ED',
   primaryHeader:'#161925',
   secondaryColour: '#FFFFFF',
-  buttonColour: '#909B7B',
+  // buttonColour: '#26532B', // deep green colour
+  buttonColour: '#909B7B', // moss green from Umer
+  // buttonColour: '#77966D', //asparagus green
   runningColour: '#F2D28E',
   gymColour: '#A796A0',
   hiitColour: '#947D6F',

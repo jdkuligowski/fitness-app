@@ -143,7 +143,7 @@ const min50Workouts = {
                     ],
                     [
                         { key: "advanced_movements", value: "Pump 1", operator: "contains" },
-                        { key: "primary_body_part", value: "Hanstring", operator: "contains" },
+                        { key: "primary_body_part", value: "Hamstring", operator: "contains" },
                     ],
                 ],
             },
