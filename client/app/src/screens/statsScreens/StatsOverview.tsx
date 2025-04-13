@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
     View, Text, StyleSheet, Image, TouchableOpacity, StatusBar, SafeAreaView, Modal,
     TextInput, Keyboard, TouchableWithoutFeedback, ScrollView, Alert, FlatList, Dimensions, RefreshControl,
@@ -17,6 +17,9 @@ import RPEGauge from '../../components/RPEGauge';
 import { Colours } from '../../components/styles';
 import ActivityTypePieChart from './Charts/ActivityPieChart';
 import BodyPartBarChart from './Charts/BodyPartChart';
+import NotificationsModal from '../modalScreens/NotificationsModal';
+import { NotificationsContext } from '../../context/NotificationsContext'
+
 
 export default function StatsOverview() {
     const navigation = useNavigation();
@@ -25,6 +28,10 @@ export default function StatsOverview() {
     const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
     const [userData, setUserData] = useState('')
     const [activeAggregatePeriod, setActiveAggregatePeriod] = useState('monthly');
+    const [notificationsVisible, setNotificationsVisible] = useState(false);
+    const { notifications } = useContext(NotificationsContext);
+  
+    const notificationCount = notifications.length; // or filter if needed
 
     const PERIOD_TABS = [
         { id: 'weekly', label: 'last 7 days' },
@@ -208,8 +215,16 @@ export default function StatsOverview() {
                                 <Text style={styles.subHeadingText}>Stats</Text>
                             </View>
                         </View>
-                        <TouchableOpacity style={styles.profileButton}>
+                        <TouchableOpacity
+                            style={styles.profileButton}
+                            onPress={() => setNotificationsVisible(true)}
+                        >
                             <Ionicons name="notifications-outline" color={'black'} size={20} />
+                            {notificationCount > 0 && (
+                                <View style={styles.badgeContainer}>
+                                    <Text style={styles.badgeText}>{notificationCount}</Text>
+                                </View>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -270,8 +285,8 @@ export default function StatsOverview() {
                         // You can define a map of background colors keyed by ID:
                         const tabColors = {
                             weekly: Colours.buttonColour,
-                            monthly:  Colours.buttonColour,
-                            yearly:  Colours.buttonColour,
+                            monthly: Colours.buttonColour,
+                            yearly: Colours.buttonColour,
                         };
 
                         return (
@@ -334,6 +349,10 @@ export default function StatsOverview() {
 
 
             </ScrollView>
+            <NotificationsModal
+                visible={notificationsVisible}
+                onClose={() => setNotificationsVisible(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -593,5 +612,24 @@ const styles = StyleSheet.create({
         fontSize: 26,
         fontWeight: '700',
         marginRight: 20,
-    }
+    },
+    badgeContainer: {
+        position: 'absolute',
+        bottom: -7,
+        left: -7,
+        backgroundColor: Colours.buttonColour,
+        width: 25,
+        height: 25,
+        borderRadius: 15,    // full circle
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FFF',
+    },
+    badgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+
+    },
 })

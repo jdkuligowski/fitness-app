@@ -67,9 +67,9 @@ export default function EditPreferencesScreen({ navigation, route }) {
       // Parse non_negotiable_dislikes as a comma-separated string => array
       const existingExclusions = userData.non_negotiable_dislikes
         ? userData.non_negotiable_dislikes
-            .split(',')
-            .map((ex) => ex.trim())
-            .filter(Boolean)
+          .split(',')
+          .map((ex) => ex.trim())
+          .filter(Boolean)
         : [];
 
       setFormData({
@@ -184,7 +184,12 @@ export default function EditPreferencesScreen({ navigation, route }) {
                         ]}
                         onPress={() => handleGoalSelect(goal)}
                       >
-                        <Text style={styles.selectableBoxText}>{goal}</Text>
+                        <Text
+                          style={[
+                            styles.selectableBoxText,
+                            isSelected ? styles.boxSelectedText : styles.boxUnselectedText,
+                          ]}
+                        >{goal}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -218,7 +223,12 @@ export default function EditPreferencesScreen({ navigation, route }) {
                         ]}
                         onPress={() => handleExclusionToggle(item)}
                       >
-                        <Text style={styles.selectableBoxText}>{item}</Text>
+                        <Text
+                          style={[
+                            styles.selectableBoxText,
+                            isSelected ? styles.boxSelectedText : styles.boxUnselectedText,
+                          ]}
+                        >{item}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -335,9 +345,9 @@ const styles = StyleSheet.create({
     width: 130,
   },
   boxSelected: {
-    backgroundColor: '#F3F3FF',
+    backgroundColor: Colours.buttonColour,
     borderColor: 'black',
-    borderRightWidth: 4, 
+    borderRightWidth: 4,
     borderBottomWidth: 4,
     borderWidth: 1,
   },
@@ -345,8 +355,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderColor: '#A9A9C7',
   },
-  selectableBoxText: {
-    color: '#000',
+  // selectableBoxText: {
+  //   color: Colours.secondaryColour,
+  // },
+  boxSelectedText: {
+    color: Colours.secondaryColour,
+  },
+  boxUnselectedText: {
+    color: 'black',
   },
 
   // Frequency + 5K Time
@@ -374,7 +390,7 @@ const styles = StyleSheet.create({
 
   // Save button
   saveButton: {
-    backgroundColor: 'black',
+    backgroundColor: Colours.buttonColour,
     borderRadius: 30,
     paddingVertical: 12,
     alignItems: 'center',

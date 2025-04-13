@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
 
     dailyColorStrip: {
         width: 20,
-        borderTopLeftRadius: 100,
+        borderTopLeftRadius: 20,
         borderBottomLeftRadius: 15,
     },
 

@@ -257,13 +257,13 @@ export default function WorkoutSummary({ route, navigation }) {
                                     {section.section_name === "Warm up A" ?
                                         <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
                                         section.section_name === "Warm up B" ?
-                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 8-12 reps in each</Text> :
+                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 5-8 reps in each</Text> :
                                             section.section_name === "Strong 1" || section.section_name === "Strong 2" ?
-                                                <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 5-8 reps</Text> :
+                                                <Text style={styles.sectionSubTitle}>Complete 3 sets of 5-8 reps</Text> :
                                                 section.section_name === "Build 1" || section.section_name === "Build 2" ?
-                                                    <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 8-12 reps with no rest between movements</Text> :
+                                                    <Text style={styles.sectionSubTitle}>Complete 3 sets of 8-12 reps with no rest between movements</Text> :
                                                     section.section_name === "Pump 1" || section.section_name === "Pump 2" ?
-                                                        <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 12-15 reps with no rest between movements</Text> :
+                                                        <Text style={styles.sectionSubTitle}>Complete 2-3 sets of 12-20 reps with no rest between movements</Text> :
                                                         section.section_name === "Conditioning" ?
                                                             <Text style={styles.sectionSubTitle}>{section.conditioning_elements[0].conditioning_overview.notes}</Text> :
                                                             ''}
@@ -302,13 +302,13 @@ export default function WorkoutSummary({ route, navigation }) {
                                     {section.section_name === "Warm Up A" ?
                                         <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
                                         section.section_name === "Warm Up B" ?
-                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 8-12 reps in each</Text> :
+                                            <Text style={styles.sectionSubTitle}>Complete 2 sets with 5-8 reps in each</Text> :
                                             section.section_name === "Strong 1" || section.section_name === "Strong 2" ?
-                                                <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 5-8 reps</Text> :
+                                                <Text style={styles.sectionSubTitle}>Complete 3 sets of 5-8 reps</Text> :
                                                 section.section_name === "Build 1" || section.section_name === "Build 2" ?
-                                                    <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 8-12 reps with no rest between movements</Text> :
+                                                    <Text style={styles.sectionSubTitle}>Complete 3 sets of 8-12 reps with no rest between movements</Text> :
                                                     section.section_name === "Pump 1" || section.section_name === "Pump 2" ?
-                                                        <Text style={styles.sectionSubTitle}>Complete 3-4 sets of 12-15 reps with no rest between movements</Text> :
+                                                        <Text style={styles.sectionSubTitle}>Complete 2-3 sets of 12-20 reps with no rest between movements</Text> :
                                                         section.section_name === "Conditioning" ?
                                                             <Text style={styles.sectionSubTitle}>{section.conditioning_elements[0].conditioning_overview.notes}</Text> :
                                                             ''}

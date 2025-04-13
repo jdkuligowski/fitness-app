@@ -166,7 +166,7 @@ export default function ProfileOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: Colours.secondaryColour }
+                                    { backgroundColor: Colours.primaryBackground }
                                 ]}>
                                 <Ionicons name="person-outline" color={'black'} size={20} />
                             </View>
@@ -183,7 +183,7 @@ export default function ProfileOverview() {
                         <View
                             style={[
                                 styles.supportIconContainer,
-                                { backgroundColor: Colours.secondaryColour }
+                                { backgroundColor: Colours.primaryBackground }
                             ]}>
                             <Ionicons name="id-card-outline" color={'black'} size={20} />
                         </View>
@@ -201,7 +201,7 @@ export default function ProfileOverview() {
                     activeOpacity={0.7} // 🔥 Provides feedback on press
                 >
                     <View style={styles.supportLeft}>
-                        <View style={[styles.supportIconContainer, { backgroundColor: Colours.secondaryColour }]}>
+                        <View style={[styles.supportIconContainer, { backgroundColor: Colours.primaryBackground }]}>
                             <Ionicons name="log-out-outline" color={'black'} size={20} />
                         </View>
                         <Text style={styles.supportText}>Logout</Text>

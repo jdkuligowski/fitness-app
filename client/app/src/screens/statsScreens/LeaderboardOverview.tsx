@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    Image,
-    StyleSheet,
-    FlatList,
-    SafeAreaView,
-    ActivityIndicator,
-    TouchableOpacity,
-    Dimensions,
-    ScrollView
-} from 'react-native';
+import { View, Text, Image, StyleSheet, FlatList, SafeAreaView, ActivityIndicator, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import ENV from '../../../../env';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colours } from '../../components/styles';
-
 const { width } = Dimensions.get('window');
+
 
 export default function LeaderboardScreen() {
     const navigation = useNavigation();
@@ -264,7 +253,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colours.secondaryColour,
+        backgroundColor: Colours.buttonColour,
         borderWidth: 1,
     },
     profilePlaceholder: {
@@ -274,12 +263,16 @@ const styles = StyleSheet.create({
         // marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colours.secondaryColour,
+        backgroundColor: Colours.buttonColour,
         borderWidth: 1,
     },
     initialsText: {
         fontSize: 18,
         fontWeight: 600,
+        color: Colours.secondaryColour,
+    },
+    profilePlaceholderText: {
+        color: Colours.secondaryColour,
     },
     leaderboardTitle: {
         fontSize: 16,
@@ -304,6 +297,7 @@ const styles = StyleSheet.create({
     },
     leaderboardInitialsText: {
         fontSize: 16,
+        color: Colours.secondaryColour,
     },
     nameText: {
         fontSize: 12,

@@ -104,11 +104,11 @@ export default function AccountOverview({ route }) {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-
+{/* 
                             <View style={styles.additionalActions}>
                                 <TouchableOpacity style={styles.row}>
                                     <View style={styles.rowLeft}>
-                                        <View style={styles.iconContainer}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.primaryBackground }]}>
                                             <Ionicons name="lock-closed-outline" color={'black'} size={20} />
                                         </View>
                                         <Text style={styles.actionTitle}>Change password</Text>
@@ -119,14 +119,14 @@ export default function AccountOverview({ route }) {
 
                                 <TouchableOpacity style={styles.row}>
                                     <View style={styles.rowLeft}>
-                                        <View style={[styles.iconContainer, { backgroundColor: Colours.secondaryColour }]}>
+                                        <View style={[styles.iconContainer, { backgroundColor: Colours.primaryBackground }]}>
                                             <Ionicons name="lock-closed-outline" color={'black'} size={20} />
                                         </View>
                                         <Text style={styles.actionTitle}>Delete account</Text>
                                     </View>
                                     <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
                                 </TouchableOpacity>
-                            </View>
+                            </View> */}
                         </View>
                     </ScrollView>
                 </TouchableWithoutFeedback>
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
 
     safeArea: {
         flex: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     profilePageContainer: {
         flexGrow: 1,
-        backgroundColor: Colours.primaryBackground, 
+        backgroundColor: Colours.primaryBackground,
     },
     header: {
         padding: 20,

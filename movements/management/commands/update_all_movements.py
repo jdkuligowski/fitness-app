@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from movements.models import Movement
 from django.db import IntegrityError
 
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (21).csv"  
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (22).csv"  
 
 class Command(BaseCommand):
     help = "Update existing movements and insert new movements from CSV while preserving offline database IDs"
@@ -34,15 +34,13 @@ class Command(BaseCommand):
         movement.body_area = row.get("body_area", movement.body_area)
         movement.movement = row.get("movement", movement.movement)
         movement.exercise = row.get("exercise", movement.exercise)
-        movement.complexity = row.get("complexity", movement.complexity)
-        movement.movement_type = row.get("movement_type", movement.movement_type)
         movement.inter_movements = row.get("inter_movements", movement.inter_movements)
         movement.advanced_movements = row.get("advanced_movements", movement.advanced_movements)
         movement.primary_body_part = row.get("primary_body_part", movement.primary_body_part)
-        movement.high_level_equipment = row.get("high_level_equipment", movement.high_level_equipment)
-        movement.detail_equipment = row.get("detail_equipment", movement.detail_equipment)
+        movement.movement_hold_cue = row.get("movement_hold_cue", movement.movement_hold_cue)
+        movement.coaching_cue1 = row.get("coaching_cue1", movement.coaching_cue1)
+        movement.coaching_cue2 = row.get("coaching_cue2", movement.coaching_cue2)
         movement.hiit_flag = row.get("hiit_flag", movement.hiit_flag)
-        movement.pump_flag = row.get("pump_flag", movement.pump_flag)
         movement.landscape_video_url = row.get("landscape_video_url", movement.landscape_video_url)
         movement.portrait_video_url = row.get("portrait_video_url", movement.portrait_video_url)
         movement.landscape_thumbnail = row.get("landscape_thumbnail", movement.landscape_thumbnail)
@@ -57,15 +55,14 @@ class Command(BaseCommand):
                 body_area=row.get("body_area", ""),
                 movement=row.get("movement", ""),
                 exercise=row.get("exercise", ""),
-                complexity=row.get("complexity", None),
                 movement_type=row.get("movement_type", ""),
                 inter_movements=row.get("inter_movements", ""),
                 advanced_movements=row.get("advanced_movements", ""),
                 primary_body_part=row.get("primary_body_part", ""),
-                high_level_equipment=row.get("high_level_equipment", ""),
-                detail_equipment=row.get("detail_equipment", ""),
                 hiit_flag=row.get("hiit_flag", None),
-                pump_flag=row.get("pump_flag", None),
+                movement_hold_cue=row.get("movement_hold_cue", ""),
+                coaching_cue1=row.get("coaching_cue1", ""),
+                coaching_cue2=row.get("coaching_cue2", ""),
                 landscape_video_url=row.get("landscape_video_url", ""),
                 portrait_video_url=row.get("portrait_video_url", ""),
                 landscape_thumbnail=row.get("landscape_thumbnail", ""),

@@ -739,29 +739,24 @@ const styles = StyleSheet.create({
     height: 200,
     marginRight: 20,
     flexDirection: 'row',
-
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
     borderRightWidth: 4,
     borderBottomWidth: 4,
-    borderColor: '#000',
-    borderRadius: 30,
-
+    borderColor: 'black',
+    borderRadius: 20,
     backgroundColor: '#FFF',
+    overflow: 'hidden',
   },
   colorStrip: {
-    width: 25,
-    borderTopLeftRadius: 100,
-    borderBottomLeftRadius: 100,
-
+    width: 20,
+    borderTopLeftRadius: 19,
+    borderBottomLeftRadius: 15,
   },
   cardContent: {
     flex: 1,
     paddingLeft: 20,
     padding: 20,
     justifyContent: 'space-between',
-
   },
-
-
-
 });

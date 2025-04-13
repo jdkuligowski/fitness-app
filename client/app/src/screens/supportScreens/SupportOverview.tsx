@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
     View, Text, StyleSheet, Image, TouchableOpacity, StatusBar, SafeAreaView, Modal,
     TextInput, Keyboard, TouchableWithoutFeedback, ScrollView, Alert, FlatList, Dimensions, RefreshControl
@@ -13,10 +13,17 @@ import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env'
 import { Colours } from '../../components/styles'
+import NotificationsModal from '../modalScreens/NotificationsModal';
+import { NotificationsContext } from '../../context/NotificationsContext'
+
+
 
 export default function SupportOverview() {
     const [userData, setUserData] = useState('')
     const navigation = useNavigation();
+    const [notificationsVisible, setNotificationsVisible] = useState(false);
+    const { notifications } = useContext(NotificationsContext);
+    const notificationCount = notifications.length; // or filter if needed
 
     // fetch user data function
     const getUser = async () => {
@@ -76,8 +83,16 @@ export default function SupportOverview() {
                                 <Text style={styles.subHeadingText}>Support</Text>
                             </View>
                         </View>
-                        <TouchableOpacity style={styles.profileButton}>
+                        <TouchableOpacity
+                            style={styles.profileButton}
+                            onPress={() => setNotificationsVisible(true)}
+                        >
                             <Ionicons name="notifications-outline" color={'black'} size={20} />
+                            {notificationCount > 0 && (
+                                <View style={styles.badgeContainer}>
+                                    <Text style={styles.badgeText}>{notificationCount}</Text>
+                                </View>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -90,7 +105,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: Colours.secondaryColour }
+                                    { backgroundColor: Colours.primaryBackground }
                                 ]}>
                                 <Ionicons name="chatbox-ellipses-outline" color={'black'} size={20} />
                             </View>
@@ -109,7 +124,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: Colours.secondaryColour }
+                                    { backgroundColor: Colours.primaryBackground }
                                 ]}>
                                 <Ionicons name="videocam-outline" color={'black'} size={20} />
                             </View>
@@ -118,15 +133,15 @@ export default function SupportOverview() {
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
 
                     </TouchableOpacity>
-                    <View style={styles.divider}></View>
+                    {/* <View style={styles.divider}></View> */}
 
-                    <TouchableOpacity style={styles.supportRow}>
+                    {/* <TouchableOpacity style={styles.supportRow}>
 
                         <View style={styles.supportLeft}>
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: Colours.secondaryColour }
+                                    { backgroundColor: Colours.primaryBackground }
                                 ]}>
                                 <Ionicons name="help-circle-outline" color={'black'} size={20} />
                             </View>
@@ -143,7 +158,7 @@ export default function SupportOverview() {
                             <View
                                 style={[
                                     styles.supportIconContainer,
-                                    { backgroundColor: Colours.secondaryColour }
+                                    { backgroundColor: Colours.primaryBackground }
                                 ]}>
                                 <Ionicons name="cog-outline" color={'black'} size={20} />
                             </View>
@@ -151,9 +166,13 @@ export default function SupportOverview() {
                         </View>
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
 
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
             </View>
+            <NotificationsModal
+                visible={notificationsVisible}
+                onClose={() => setNotificationsVisible(false)}
+            />
         </SafeAreaView>
 
     )
@@ -284,4 +303,26 @@ const styles = StyleSheet.create({
         width: 230,
         marginLeft: 60,
     },
+    badgeContainer: {
+        // Position absolutely at bottom-left
+        position: 'absolute',
+        bottom: -7,       // tweak these if you want it further or inside
+        left: -7,
+        backgroundColor: Colours.buttonColour,
+        width: 25,
+        height: 25,
+        borderRadius: 15,    // full circle
+        justifyContent: 'center',
+        alignItems: 'center',
+        // Optionally add a small border to match your style
+        borderWidth: 1,
+        borderColor: '#FFF',
+      },
+      badgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        // padding: 2, 
+    
+      },
 })
