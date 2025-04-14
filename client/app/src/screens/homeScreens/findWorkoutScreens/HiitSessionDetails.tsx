@@ -744,7 +744,7 @@ export default function HiitScreen({ route }) {
                                                 <Text style={styles.workoutTitle}>{item.type} session</Text>
                                                 <View style={styles.workoutOverviewTime}>
                                                     <Ionicons name="time-outline" size={24} color="black" />
-                                                    <Text style={styles.timeText}>{selectedTime} mins</Text>
+                                                    <Text style={styles.timeText}>{item.duration} mins</Text>
                                                 </View>
                                             </View>
                                             <TouchableOpacity

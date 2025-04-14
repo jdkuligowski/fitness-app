@@ -240,7 +240,7 @@ export default function HiitSession() {
                                         selectedWorkout === option && styles.selectedOptionText,
                                     ]}
                                     ></View>
-                                    <Text>{option}</Text>
+                                    <Text style={styles.actualOptionText}>{option}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 20,
-        paddingRight: 5, 
+        paddingRight: 5,
     },
     sessionBlock: {
         flexDirection: 'row',
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     },
     optionButton: {
         width: '48%',
-        paddingVertical: 15,
+        padding: 15,
         borderWidth: 1,
         borderColor: '#B0B0B0',
         borderRadius: 10,
@@ -480,7 +480,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         flexDirection: 'row',
         justifyContent: 'flex-start',
-        padding: 20,
     },
     selectedOption: {
         backgroundColor: 'white',
@@ -496,7 +495,11 @@ const styles = StyleSheet.create({
         height: 30,
         borderRadius: 15,
         borderWidth: 1,
-        marginRight: 15,
+        marginRight: 10,
+    },
+    actualOptionText: {
+        fontSize: 13,
+        width: '70%',
     },
     selectedOptionText: {
         backgroundColor: Colours.buttonColour,

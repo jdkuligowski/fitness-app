@@ -462,7 +462,7 @@ export default function SuggestedRunningWorkouts({ route }) {
                                 <Text style={styles.workoutTitle}>{selectedWorkout} session</Text>
                                 <View style={styles.workoutOverviewTime}>
                                     <Ionicons name="time-outline" size={24} color="black" />
-                                    <Text style={styles.timeText}>{selectedTime} mins</Text>
+                                    <Text style={styles.timeText}>{calculateWorkoutDuration(item).toFixed(0)} mins</Text>
                                 </View>
                             </View>
                             <TouchableOpacity

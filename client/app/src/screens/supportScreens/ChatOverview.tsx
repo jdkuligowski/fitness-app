@@ -177,7 +177,7 @@ const ChatOverviewScreen = ({ route }) => {
                         >
                             <Ionicons name="arrow-back" size={24} color="black" />
                         </TouchableOpacity>
-                        <Text style={styles.headingText}>Chat with us</Text>
+                        <Text style={styles.headingText}>Chat with the community</Text>
                     </View>
 
                     {/* Chat Window */}

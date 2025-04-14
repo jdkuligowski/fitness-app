@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     },
     tab: {
         paddingVertical: 8,
-        paddingHorizontal: 15,
+        paddingHorizontal: 0,
         borderRadius: 10,
         backgroundColor: 'white',
         width: '30%',
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
 
     },
     activeTabText: {
-        fontWeight: 'bold',
+        fontWeight: 600,
         color: Colours.secondaryColour,
     },
 

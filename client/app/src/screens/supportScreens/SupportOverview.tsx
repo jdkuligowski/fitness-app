@@ -109,7 +109,7 @@ export default function SupportOverview() {
                                 ]}>
                                 <Ionicons name="chatbox-ellipses-outline" color={'black'} size={20} />
                             </View>
-                            <Text style={styles.supportText}>Chat with us</Text>
+                            <Text style={styles.supportText}>Chat with the community</Text>
                         </View>
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
 

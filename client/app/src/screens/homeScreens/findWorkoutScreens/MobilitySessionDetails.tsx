@@ -45,7 +45,9 @@ export default function SuggestedMobilityWorkouts({ route }) {
         const loadData = async () => {
             try {
                 setIsLoading(true);
-                await fetchWorkoutData(); // Load movement data
+                const freshMovementData = await fetchWorkoutData();
+                // now we definitely have the correct movement data
+                setMovementData(freshMovementData);
                 const response = await axios.get(`${ENV.API_URL}/api/mobility_workouts/all/`);
 
                 // Filter workouts based on selectedTime and selectedWorkout
@@ -66,8 +68,9 @@ export default function SuggestedMobilityWorkouts({ route }) {
                     }));
 
                 setMobilityWorkouts(filteredWorkouts);
-                setMovementData(workoutData); // Ensure movements are saved
+                // setMovementData(workoutData); // Ensure movements are saved
                 console.log('Filtered Workouts:', filteredWorkouts);
+                // console.log('Movement data:', workoutData);
                 setIsLoading(false);
             } catch (error) {
                 console.error("Error loading data:", error);
@@ -247,7 +250,7 @@ export default function SuggestedMobilityWorkouts({ route }) {
                                 onPress={() => {
                                     setSelectedMovement({
                                         ...movement,
-                                        video_url: matchedMovement.portrait_video_url,
+                                        video_url: matchedMovement?.portrait_video_url ?? "",
                                     })
                                 }}
                             >
@@ -293,15 +296,17 @@ export default function SuggestedMobilityWorkouts({ route }) {
                     </View>
                 </View>
 
-                <FlatList
-                    ref={flatListRef}
-                    data={mobilityWorkouts}
-                    horizontal
-                    pagingEnabled
-                    keyExtractor={(item) => item.id.toString()}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={renderWorkoutItem}
-                />
+                {mobilityWorkouts &&
+                    <FlatList
+                        ref={flatListRef}
+                        data={mobilityWorkouts}
+                        horizontal
+                        pagingEnabled
+                        keyExtractor={(item) => item.id.toString()}
+                        showsHorizontalScrollIndicator={false}
+                        renderItem={renderWorkoutItem}
+                    />
+                }
 
                 {currentWorkout && (
                     <Modal

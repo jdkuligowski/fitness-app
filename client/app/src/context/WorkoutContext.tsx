@@ -24,7 +24,8 @@ export const WorkoutProvider = ({ children }) => {
 
       setWorkoutData(response.data);
       console.log("Workout data updated in state.");
-      
+      return response.data;
+
     } catch (error) {
       console.error("Error fetching workout data:");
       console.error("Error message:", error.message);

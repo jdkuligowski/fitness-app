@@ -682,13 +682,13 @@ export default function CompleteWorkout({ route, navigation }) {
                                                         </View>
                                                         {/* Movement instructions */}
                                                         <View style={styles.summarySections}>
-                                                            {item.section_name === "Warm up A" ?
+                                                            {(item.section_name === "Warm up A" || item.section_name === "Warm Up A") ?
                                                                 '' :
                                                                 <Text style={styles.movementName}>Movement instructions</Text>
                                                             }
-                                                            {item.section_name === "Warm up B" && movement.movements.movement_hold_cue === "Movement" ?
+                                                            {(item.section_name === "Warm up B" || item.section_name === "Warm Up B") && movement.movements.movement_hold_cue === "Movement" ?
                                                                 <Text style={styles.sectionSubTitle}>Complete 2 sets of 5-8 reps at RPE 5-6</Text> :
-                                                                item.section_name === "Warm up B" && movement.movements.movement_hold_cue === "Hold" ?
+                                                                (item.section_name === "Warm up B" || item.section_name === "Warm Up B") && movement.movements.movement_hold_cue === "Hold" ?
                                                                     <Text style={styles.sectionSubTitle}>Complete 2 sets for 20-40 seconds</Text> :
                                                                     item.section_name === "Strong 1" || item.section_name === "Strong 2" ?
                                                                         <Text style={styles.sectionSubTitle}>Complete 3 sets of 5-8 reps at RPE 8</Text> :
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
     },
     tab: {
         paddingVertical: 8,
-        paddingHorizontal: 15,
+        paddingHorizontal: 0,
         borderRadius: 10,
         backgroundColor: 'white',
         width: '30%',
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
 
     },
     activeTabText: {
-        fontWeight: 'bold',
+        fontWeight: 600,
         color: Colours.secondaryColour,
     },
     tabContent: {
