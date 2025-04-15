@@ -1,11 +1,11 @@
+# movement_summary_stats/serializers.py
 from rest_framework import serializers
-from ..models import StrengthSet
+from ..models import MovementSummary
 from movements.serializers.common import MovementSerializer
 
-
-class StrengthSetSerializer(serializers.ModelSerializer):
+class MovementSummarySerializer(serializers.ModelSerializer):
     movement = MovementSerializer(read_only=True)
 
     class Meta:
-        model = StrengthSet
+        model = MovementSummary
         fields = '__all__'

@@ -259,14 +259,16 @@ export default function CompleteWorkout({ route, navigation }) {
         };
 
         console.log('Payload:', JSON.stringify(payload, null, 2)); // Log payload for debugging
+        const userId = await AsyncStorage.getItem('userId');
 
         try {
-            const response = await fetch(`${ENV.API_URL}/api/workout_sections/save-workout-details/`, {
+            const response = await fetch(`${ENV.API_URL}/api/workout_sections/save-workout-details/?user_id=${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload),
+                
             });
 
             if (!response.ok) {

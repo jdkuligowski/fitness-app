@@ -30,7 +30,7 @@ export default function StatsOverview() {
     const [activeAggregatePeriod, setActiveAggregatePeriod] = useState('monthly');
     const [notificationsVisible, setNotificationsVisible] = useState(false);
     const { notifications } = useContext(NotificationsContext);
-  
+
     const notificationCount = notifications.length; // or filter if needed
 
     const PERIOD_TABS = [
@@ -346,6 +346,17 @@ export default function StatsOverview() {
                     </View>
                 </View>
 
+                {/* <TouchableOpacity
+                    style={styles.leaderboardOverviewContainer}
+                    onPress={() => {
+                        navigation.navigate('MovementStats');
+
+                    }}
+                >
+                    <Text>Movement stats</Text>
+
+                </TouchableOpacity> */}
+
 
 
             </ScrollView>
@@ -591,7 +602,7 @@ const styles = StyleSheet.create({
         width: '30%',
     },
     activeTab: {
-        backgroundColor: '#DFD7F3',
+        backgroundColor: Colours.buttonColour,
     },
     tabText: {
         fontSize: 14,

@@ -23,7 +23,8 @@ class SaveWorkoutAPIView(APIView):
 
     def put(self, request):
         logger.info('Received data for saving workout')
-        
+        user_id = request.query_params.get('user_id')
+
         try:
             sections_data = request.data.get('sections', [])
             scheduled_date = request.data.get('scheduled_date')
@@ -185,6 +186,7 @@ class SaveWorkoutAPIView(APIView):
                 StrengthSet.objects.bulk_create(new_strength_sets)
             if strength_sets_to_update:
                 StrengthSet.objects.bulk_update(strength_sets_to_update, ['reps', 'weight', 'rpe', 'load'])
+                
             recalc_movement_summaries.delay(user_id)
 
 

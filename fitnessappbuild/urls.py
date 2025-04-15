@@ -39,4 +39,5 @@ urlpatterns = [
     path('api/leaderboard/', include('leaderboard.urls')),
     path('api/stats/', include('user_stats.urls')),
     path('api/movement_workout_tracking/', include('movement_workout_tracking.urls')),
+    path('api/movement_summary_stats/', include('movement_summary_stats.urls')),
 ]

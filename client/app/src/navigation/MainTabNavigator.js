@@ -25,7 +25,7 @@ export default function MainTabNavigator() {
         // Hide tab bar if on WorkoutDetails screen
         const isTabBarHidden = ['WorkoutDetails', 'TrainingDetails', 'CompleteWorkout', 'ChatOverview', 'VideoOverview', 'RunningSessionDetails', 
           'MobilitySessionDetails', 'CompleteRunningWorkout', 'CompleteMobilityWorkout', 'HiitSessionDetails', 'CompleteHiitWorkout', 
-          'SuggestedGymDetails', 'LeaderboardOverview', 'HyroxSessionDetails', 'CompleteHyroxWorkout'].includes(routeName);
+          'SuggestedGymDetails', 'LeaderboardOverview', 'HyroxSessionDetails', 'CompleteHyroxWorkout', 'MovementStats'].includes(routeName);
 
         return {
           tabBarIcon: ({ focused, color, size }) => {
