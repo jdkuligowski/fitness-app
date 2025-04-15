@@ -1138,7 +1138,7 @@ const styles = StyleSheet.create({
     movementLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '85%',
+        width: '90%',
     },
     movementTextBlock: {
         flexDirection: 'row',
@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
     movementDetail: {
         fontSize: 16,
         color: 'black', // Example color for movement details
-        width: '90%',
+        maxWidth: '85%',
     },
     movementDescription: {
         fontSize: 16,

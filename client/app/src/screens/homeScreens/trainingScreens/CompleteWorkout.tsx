@@ -705,6 +705,34 @@ export default function CompleteWorkout({ route, navigation }) {
                                                         </View>
 
                                                         {/* Coaching cues */}
+                                                        {movement?.movements?.coaching_cue1 && (
+                                                            <View style={styles.summarySections}>
+                                                                {/* Show heading unless it's a "Warm up A" section */}
+                                                                {(item.section_name === "Warm up A" || item.section_name === "Warm Up A")
+                                                                    ? null
+                                                                    : <Text style={styles.movementName}>Coaching cues</Text>
+                                                                }
+
+                                                                {/* We'll collect the cues in an array to map over */}
+                                                                <View style={styles.bulletList}>
+                                                                    {/* Cue 1 */}
+                                                                    {!!movement.movements.coaching_cue1 && (
+                                                                        <View style={styles.bulletRow}>
+                                                                            <Text style={styles.bullet}>•</Text>
+                                                                            <Text style={styles.bulletListItem}>{movement.movements.coaching_cue2}</Text>
+                                                                        </View>
+                                                                    )}
+                                                                    {/* Cue 2 */}
+                                                                    {!!movement.movements.coaching_cue2 && (
+                                                                        <View style={styles.bulletRow}>
+                                                                            <Text style={styles.bullet}>•</Text>
+                                                                            <Text style={styles.bulletListItem}>{movement.movements.coaching_cue2}</Text>
+                                                                        </View>
+                                                                    )}
+                                                                    {/* ...Add more if needed */}
+                                                                </View>
+                                                            </View>
+                                                        )}
 
                                                     </View>
                                                 )}
@@ -1126,6 +1154,23 @@ const styles = StyleSheet.create({
     },
     summarySections: {
         marginBottom: 10,
+    },
+    bulletList: {
+        marginTop: 5,
+        marginHorizontal: 20,
+    },
+    bulletRow: {
+        flexDirection: 'row',
+    },
+    bullet: {
+        fontSize: 14,
+        marginLeft: 5,
+    },
+    bulletListItem: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginLeft: 5,
+        marginBottom: 2,
     },
     exerciseDescription: {
         fontSize: 16,
