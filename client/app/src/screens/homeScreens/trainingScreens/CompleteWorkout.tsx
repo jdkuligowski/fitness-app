@@ -719,7 +719,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                     {!!movement.movements.coaching_cue1 && (
                                                                         <View style={styles.bulletRow}>
                                                                             <Text style={styles.bullet}>•</Text>
-                                                                            <Text style={styles.bulletListItem}>{movement.movements.coaching_cue2}</Text>
+                                                                            <Text style={styles.bulletListItem}>{movement.movements.coaching_cue1}</Text>
                                                                         </View>
                                                                     )}
                                                                     {/* Cue 2 */}
