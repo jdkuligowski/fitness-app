@@ -237,7 +237,7 @@ const strengthRules40 = {
                     ],
                     [
                         { key: "advanced_movements", value: "Build 2", operator: "contains" },
-                        { key: "movement", value: "Hinge Bilateral", operator: "contains" },
+                        { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                 ],
             },
@@ -290,7 +290,7 @@ const strengthRules40 = {
                     ],
                     [
                         { key: "advanced_movements", value: "Build 2", operator: "contains" },
-                        { key: "movement", value: "Hinge Unilateral", operator: "contains" },
+                        { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                 ],
             },

@@ -291,6 +291,17 @@ export default function HomeScreen() {
 
           </View>
 
+          {/* <View style={styles.categoryBlock}>
+            <View style={styles.blockHeader}>
+              <Text style={styles.blockText}>Create your own workout</Text>
+
+            </View>
+            <TouchableOpacity style={styles.workoutCreation}>
+              <Text style={styles.workoutCreationText}>Build a workout</Text>
+            </TouchableOpacity>
+          </View> */}
+
+
           {/* Second block: Popular workouts */}
           {upcomingWorkouts && upcomingWorkouts.length > 0 ?
             <View style={styles.categoryBlock}>
@@ -567,17 +578,15 @@ const styles = StyleSheet.create({
 
   },
   badgeContainer: {
-    // Position absolutely at bottom-left
     position: 'absolute',
-    bottom: -7,       // tweak these if you want it further or inside
+    bottom: -7,
     left: -7,
     backgroundColor: Colours.buttonColour,
     width: 25,
     height: 25,
-    borderRadius: 15,    // full circle
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    // Optionally add a small border to match your style
     borderWidth: 1,
     borderColor: '#FFF',
   },
@@ -585,8 +594,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 10,
     fontWeight: 'bold',
-    // padding: 2, 
-
   },
   overlayBox: {
     marginTop: -45,
@@ -758,5 +765,20 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     padding: 20,
     justifyContent: 'space-between',
+  },
+  workoutCreation: {
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderColor: 'black',
+    width: '90%',
+    height: 75,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 20,
+    backgroundColor: Colours.secondaryColour,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

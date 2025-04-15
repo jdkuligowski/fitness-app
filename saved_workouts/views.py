@@ -9,6 +9,7 @@ from datetime import date, time, datetime, timedelta
 from .models import Workout
 from workout_sections.models import Section
 from movements.models import Movement
+from strength_records.models import StrengthSet
 from workout_section_movement.models import SectionMovement
 from .serializers.populated import PopulatedWorkoutSerializer
 from .serializers.common import WorkoutSerializer
@@ -39,6 +40,8 @@ from saved_hiit.models import SavedHIITWorkout
 from saved_hiit_details.models import SavedHIITDetails
 from saved_hiit_detail_movements.models import SavedHIITMovement
 from notifications.models import ScheduledNotification
+
+from movement_summary_stats.tasks import recalc_movement_summaries
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -1467,7 +1470,7 @@ class CompleteWorkoutAPIView(APIView):
         user_id = request.query_params.get('user_id')
 
         try:
-            logger.info(f"Starting completion process for workout_id: {workout_id}, user_id: {user_id}")
+            logger.info(f"Starting completion process for workout_id: %s, user_id: %s", workout_id, user_id)
 
             # 1️⃣ --- Get User Object ---
             user = User.objects.get(id=user_id)
@@ -1483,11 +1486,6 @@ class CompleteWorkoutAPIView(APIView):
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
-                # Real-time scoreboard update
-                # leaderboard.total_score += 50
-                # leaderboard.weekly_score += 50
-                # leaderboard.monthly_score += 50
-                # leaderboard.save()
 
                 ScoreLog.objects.create(
                     user=user,
@@ -1504,17 +1502,37 @@ class CompleteWorkoutAPIView(APIView):
             movements = SectionMovement.objects.filter(section__in=sections).select_related('section')
             existing_sets = Set.objects.filter(section_movement__in=movements).select_related('section_movement')
 
-            # Create mappings for fast lookup
+            # Create mappings for fast lookup of existing 'Set' objects
             existing_sets_map = {
                 (set_instance.section_movement_id, set_instance.set_number): set_instance
                 for set_instance in existing_sets
             }
 
+            movements_to_update = []
             new_sets = []
             sets_to_update = []
             conditioning_updates = []  # For bulk updating ConditioningWorkout entries
 
-            # We will track how many "strength" movements exist and how many are "fully logged"
+            # NEW: We want to avoid duplicates in StrengthSet by updating instead of always creating.
+            performed_date = scheduled_date if scheduled_date else now().date()
+            
+            # Gather existing StrengthSet rows for (this user, this workout, this date)
+            existing_strengthsets = StrengthSet.objects.filter(
+                owner=user,
+                workout=workout,
+                performed_date=performed_date
+            ).select_related('movement')
+
+            # Key = (movement_id, set_number), Value = StrengthSet instance
+            existing_strengthsets_map = {
+                (sset.movement_id, sset.set_number): sset
+                for sset in existing_strengthsets
+            }
+
+            new_strength_sets = []
+            strength_sets_to_update = []
+
+            # We'll track how many "strength" movements exist and how many are "fully logged"
             strength_keywords = ["strong", "build", "pump"]  # case-insensitive
             strength_movements_count = 0
             strength_fully_logged_count = 0
@@ -1538,6 +1556,11 @@ class CompleteWorkoutAPIView(APIView):
                     if not movement:
                         continue
 
+                    # Optionally update the movement difficulty/comment
+                    movement.movement_difficulty = movement_data.get('movement_difficulty', movement.movement_difficulty)
+                    movement.movement_comment = movement_data.get('movement_comments', movement.movement_comment)
+                    movements_to_update.append(movement)
+
                     # Determine if this movement belongs to a "strength" section
                     section_obj = movement.section  # from .select_related('section')
                     section_name_lower = section_obj.section_name.lower() if section_obj.section_name else ""
@@ -1552,14 +1575,13 @@ class CompleteWorkoutAPIView(APIView):
                         weight = set_data.get('weight') or 0
                         set_number = set_data.get('set_number')
 
+                        # Update or create the standard 'Set'
                         existing_set = existing_sets_map.get((movement_id, set_number))
                         if existing_set:
-                            # Update existing set
                             existing_set.reps = reps
                             existing_set.weight = weight
                             sets_to_update.append(existing_set)
                         else:
-                            # Create new set
                             new_sets.append(
                                 Set(
                                     section_movement=movement,
@@ -1573,14 +1595,48 @@ class CompleteWorkoutAPIView(APIView):
                         if reps > 0 and weight > 0:
                             movement_has_valid_set = True
 
+                        # NEW: Avoid duplicates for StrengthSet
+                        if is_strength_section and movement.movements:
+                            key = (movement.movements.id, set_number)
+                            existing_strength_set = existing_strengthsets_map.get(key)
+
+                            # If you'd like to tie RPE to movement_difficulty (or from set_data), do so:
+                            derived_rpe = movement_data.get('movement_difficulty', movement.movement_difficulty)
+
+                            load_value = (weight or 0) * (reps or 0)  # Manually calculate total load
+
+                            if existing_strength_set:
+                                # Overwrite existing
+                                existing_strength_set.reps = reps
+                                existing_strength_set.weight = weight
+                                existing_strength_set.rpe = derived_rpe
+                                existing_strength_set.load = load_value
+                                strength_sets_to_update.append(existing_strength_set)
+                            else:
+                                # Create new StrengthSet
+                                new_sset = StrengthSet(
+                                    owner=user,
+                                    movement=movement.movements,  # "movement.movements" is your actual Movement instance
+                                    workout=workout,
+                                    performed_date=performed_date,
+                                    set_number=set_number,
+                                    reps=reps,
+                                    weight=weight,
+                                    rpe=derived_rpe,
+                                    load=load_value
+                                )
+                                new_strength_sets.append(new_sset)
+
                     # If this is a "strength" section's movement
                     if is_strength_section:
-                        # Count total strength movements
                         strength_movements_count += 1
                         if movement_has_valid_set:
                             strength_fully_logged_count += 1
 
             # Save sets and conditioning updates
+            if movements_to_update:
+                SectionMovement.objects.bulk_update(movements_to_update, ['movement_difficulty', 'movement_comment'])
+            
             if new_sets:
                 Set.objects.bulk_create(new_sets)
             if sets_to_update:
@@ -1588,29 +1644,34 @@ class CompleteWorkoutAPIView(APIView):
             if conditioning_updates:
                 ConditioningWorkout.objects.bulk_update(conditioning_updates, ['comments', 'rpe'])
 
-            # 5️⃣ --- NEW: Award Single +20 If ALL "Strength" Movements Are Fully Logged ---
-            # if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
-            #     # Avoid double awarding if they've completed this before
-            #     if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
-            #         # leaderboard.total_score += 20
-            #         # leaderboard.weekly_score += 20
-            #         # leaderboard.monthly_score += 20
-            #         leaderboard.save()
+            # NEW: Bulk create / update for StrengthSet
+            if new_strength_sets:
+                StrengthSet.objects.bulk_create(new_strength_sets)
+            if strength_sets_to_update:
+                StrengthSet.objects.bulk_update(strength_sets_to_update, ['reps', 'weight', 'rpe', 'load'])
 
-            #         ScoreLog.objects.create(
-            #             user=user,
-            #             score_type='Full Strength Logging',
-            #             score_value=20,
-            #             workout_id=workout.id
-            #         )
-            #         logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
+            recalc_movement_summaries.delay(user_id)
 
-            logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
+            # Award 20 points if everything is logged
+            if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
+                # Avoid double awarding if they've completed this before
+                if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
+                    leaderboard.save()
+                    ScoreLog.objects.create(
+                        user=user,
+                        score_type='Full Strength Logging',
+                        score_value=20,
+                        workout_id=workout.id
+                    )
+
+            logger.info("Workout with id %s completed successfully for user %s", workout_id, user_id)
             return Response({'message': 'Workout completed successfully!'}, status=200)
         
         except Exception as e:
-            logger.exception(f"Unexpected error in CompleteWorkoutAPIView for workout_id {workout_id}: {e}")
+            logger.exception("Unexpected error in CompleteWorkoutAPIView for workout_id %s: %s", workout_id, e)
             return Response({'error': str(e)}, status=500)
+
+
 
 class CompleteHyroxAPIView(APIView):
     def put(self, request, workout_id):
@@ -1632,12 +1693,6 @@ class CompleteHyroxAPIView(APIView):
             # 3️⃣ --- Award Points for Workout Completion (50 points) ---
             leaderboard, _ = Leaderboard.objects.get_or_create(user=user)
             if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Workout Completion').exists():
-                # Real-time scoreboard update
-                # leaderboard.total_score += 50
-                # leaderboard.weekly_score += 50
-                # leaderboard.monthly_score += 50
-                # leaderboard.save()
-
                 ScoreLog.objects.create(
                     user=user,
                     score_type='Workout Completion',
@@ -1741,18 +1796,12 @@ class CompleteHyroxAPIView(APIView):
             if strength_movements_count > 0 and (strength_fully_logged_count == strength_movements_count):
                 # Avoid double awarding if they've completed this before
                 if not ScoreLog.objects.filter(user=user, workout_id=workout.id, score_type='Full Strength Logging').exists():
-                    # leaderboard.total_score += 20
-                    # leaderboard.weekly_score += 20
-                    # leaderboard.monthly_score += 20
-                    leaderboard.save()
-
                     ScoreLog.objects.create(
                         user=user,
                         score_type='Full Strength Logging',
                         score_value=20,
                         workout_id=workout.id
                     )
-                    logger.info(f"✅ Awarded 20 points for fully logging all 'strength' movements for workout {workout_id}, user {user_id}")
 
             logger.info(f"Workout with id {workout_id} completed successfully for user {user_id}")
             return Response({'message': 'Workout completed successfully!'}, status=200)

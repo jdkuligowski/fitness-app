@@ -328,7 +328,7 @@ const strengthRules50 = {
                     ],
                     [
                         { key: "advanced_movements", value: "Build 1", operator: "contains" },
-                        { key: "movement", value: "Hinge Unilateral", operator: "contains" },
+                        { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                 ],
             },

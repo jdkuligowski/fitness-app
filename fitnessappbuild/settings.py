@@ -79,6 +79,8 @@ INSTALLED_APPS = [
     'notifications',
     'user_stats',
     'movement_workout_tracking',
+    'strength_records',
+    'movement_summary_stats',
 ]
 
 MIDDLEWARE = [

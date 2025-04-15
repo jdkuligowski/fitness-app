@@ -178,7 +178,7 @@ const strengthRules30 = {
                     ],
                     [
                         { key: "advanced_movements", value: "Build 1", operator: "contains" },
-                        { key: "movement", value: "Hinge Unilateral", operator: "contains" },
+                        { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                 ],
             },
@@ -218,7 +218,7 @@ const strengthRules30 = {
                 filters: [
                     [
                         { key: "advanced_movements", value: "Build 1", operator: "contains" },
-                        { key: "movement", value: "Hinge Bilateral", operator: "contains" },
+                        { key: "movement", value: "Hinge", operator: "contains" },
                     ],
                     [
                         { key: "advanced_movements", value: "Build 1", operator: "contains" },

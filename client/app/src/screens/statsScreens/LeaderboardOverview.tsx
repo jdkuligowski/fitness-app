@@ -24,10 +24,11 @@ export default function LeaderboardScreen() {
     const fetchLeaderboard = async () => {
         try {
             const response = await axios.get(`${ENV.API_URL}/api/leaderboard/`);
-            // "response.data" is the paginated object => { count, next, previous, results: [...] }
-            // We'll store just the array in state
-            setLeaderboardData(response.data.results);
-            console.log('leaderboard: ', response.data.results)
+            let results = response.data.results;
+            results.sort((a, b) => a.monthly_rank - b.monthly_rank);
+
+            setLeaderboardData(results);
+            // console.log('leaderboard: ', JSON.stringify(response.data.results, null, 2))
             setIsLoading(false);
         } catch (err) {
             console.error('Error fetching leaderboard:', err);

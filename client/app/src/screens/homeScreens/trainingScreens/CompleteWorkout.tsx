@@ -704,7 +704,7 @@ export default function CompleteWorkout({ route, navigation }) {
 
                                                         </View>
 
-                                                        {/* Coaching cues */}
+                                                        {/* Coaching cues section */}
                                                         {movement?.movements?.coaching_cue1 && (
                                                             <View style={styles.summarySections}>
                                                                 {/* Show heading unless it's a "Warm up A" section */}
@@ -713,7 +713,7 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                     : <Text style={styles.movementName}>Coaching cues</Text>
                                                                 }
 
-                                                                {/* We'll collect the cues in an array to map over */}
+                                                                {/* Coaching cue array */}
                                                                 <View style={styles.bulletList}>
                                                                     {/* Cue 1 */}
                                                                     {!!movement.movements.coaching_cue1 && (
@@ -729,7 +729,6 @@ export default function CompleteWorkout({ route, navigation }) {
                                                                             <Text style={styles.bulletListItem}>{movement.movements.coaching_cue2}</Text>
                                                                         </View>
                                                                     )}
-                                                                    {/* ...Add more if needed */}
                                                                 </View>
                                                             </View>
                                                         )}
