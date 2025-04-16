@@ -26,9 +26,9 @@ class StrengthSet(models.Model):
     
     performed_date = models.DateField(db_index=True, default=datetime.date.today)
     set_number = models.PositiveSmallIntegerField(null=True, blank=True)
-    reps = models.PositiveSmallIntegerField(null=True, blank=True)
-    weight = models.FloatField(null=True, blank=True)
-    rpe = models.FloatField(null=True, blank=True)
+    reps = models.PositiveSmallIntegerField(default=0)
+    weight = models.FloatField(default=0)
+    rpe = models.FloatField(default=0)
 
     # total load (weight * reps)
     load = models.FloatField(null=True, blank=True)

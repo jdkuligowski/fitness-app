@@ -8,50 +8,49 @@ import {
     ActivityIndicator,
     FlatList,
     SafeAreaView,
-    ScrollView
+    ScrollView,
+    Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import DropDownPicker from 'react-native-dropdown-picker';
-
+import { useLoader } from '@/app/src/context/LoaderContext';
 import ENV from '../../../../env';
 import { Colours } from '../../components/styles';
 import LoadChart from './Charts/ExerciseLoadChart';
-
+import BouncingLoader from '../../components/BouncingLoader'
+const screenHeight = Dimensions.get('window').height;
+const TABLE_MAX_HEIGHT = screenHeight * 0.6;
 
 
 export default function MovementStatsScreen({
     isModal = false,
-    onClose = () => { }
+    onClose = () => { },
+    lockedMovementId = null,
+    lockedMovementName = null,
+
 }) {
+    const { setIsBouncerLoading, isBouncerLoading } = useLoader(); // Access loader functions
     const navigation = useNavigation();
-
-    // Loading state
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Data from backend
     const [summaries, setSummaries] = useState([]);
     const [strengthSets, setStrengthSets] = useState([]);
-
-    // DropDownPicker states
     const [open, setOpen] = useState(false);
-    const [selectedMovementValue, setSelectedMovementValue] = useState(null);
-
-    // Search input
+    const [selectedMovementValue, setSelectedMovementValue] = useState(
+        lockedMovementId ? lockedMovementId.toString() : null
+    );
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Tabs
     const [activeTab, setActiveTab] = useState('summary');
 
     // 1. Fetch data from the server
-    async function fetchMovementStats(setIsLoading, setSummaries, setStrengthSets) {
+    async function fetchMovementStats(setSummaries, setStrengthSets) {
+        setIsBouncerLoading(true)
         try {
             const userId = await AsyncStorage.getItem('userId');
             if (!userId) {
                 console.log("No userId in storage!");
-                setIsLoading(false);
+                setIsBouncerLoading(false);
                 return;
             }
             const url = `${ENV.API_URL}/api/movement_summary_stats/?user_id=${userId}`;
@@ -60,11 +59,11 @@ export default function MovementStatsScreen({
 
             setSummaries(response.data.summaries || []);
             setStrengthSets(response.data.strength_sets || []);
-            setIsLoading(false);
+            setIsBouncerLoading(false);
 
         } catch (error) {
             console.error("Error fetching movement stats:", error);
-            setIsLoading(false);
+            setIsBouncerLoading(false);
         }
     }
 
@@ -128,7 +127,7 @@ export default function MovementStatsScreen({
     // 1) Fetch on mount
     // -----------------------
     useEffect(() => {
-        fetchMovementStats(setIsLoading, setSummaries, setStrengthSets);
+        fetchMovementStats(setSummaries, setStrengthSets);
     }, []);
 
     // 2) Filter movements by `searchTerm`
@@ -197,19 +196,23 @@ export default function MovementStatsScreen({
         }
     }
 
+    const lockedSummary = lockedMovementId
+        ? summaries.find((s) => s.movement?.id === lockedMovementId)
+        : null;
 
-    if (isLoading) {
+
+    if (isBouncerLoading) {
         return (
-            <SafeAreaView style={styles.centered}>
-                <ActivityIndicator size="large" color="#000" />
-            </SafeAreaView>
+            // <SafeAreaView style={styles.centered}>
+            <BouncingLoader />
+            // </SafeAreaView>
         );
     }
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView
-                contentContainerStyle={styles.statsPageContainer}>
+            <View style={{ flex: 1 }}>
+                {/* // contentContainerStyle={styles.statsPageContainer}> */}
                 {/* Header Row: either "Close" if modal, or "Back" if normal page */}
                 {isModal ? (
                     <View style={styles.modalHeader}>
@@ -234,56 +237,53 @@ export default function MovementStatsScreen({
                     </>
                 )}
 
-                {/* Search text input */}
-                {/* <View style={styles.searchContainer}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search movement..."
-                    value={searchTerm}
-                    onChangeText={setSearchTerm}
-                />
-            </View> */}
 
                 {/* The DropDownPicker */}
-                <DropDownPicker
-                    placeholder="Select a movement"
-                    open={open}
-                    setOpen={setOpen}
-                    value={selectedMovementValue}
-                    setValue={setSelectedMovementValue} // if we let the library manage it
-                    items={dropdownItems}
-                    setItems={() => { }} // no-op (we're building the array ourselves)
-                    searchable
-                    searchPlaceholder="Type to filter..."
-                    style={styles.dropdownPicker}
-                    // containerStyle={{ marginBottom: 12 }}
-                    zIndex={9999}
-                    onChangeValue={handleMovementSelect}
-                    dropDownContainerStyle={{
-                        backgroundColor: '#fff',      // the drop-down menu background
-                        borderColor: 'black',
-                        margin: 20,
-                        width: '90%',
-                        minHeight: 300,
-                        borderLeftWidth: 1,
-                        borderTopWidth: 1,
-                        borderRightWidth: 4,
-                        borderBottomWidth: 4,
-                    }}
-                    listItemContainerStyle={{
-                        height: 40,                   // each item’s container height
-                    }}
-                    listItemLabelStyle={{
-                        color: '#333',                // color of each item’s text
-                        fontSize: 16,
-                    }}
-                    selectedItemLabelStyle={{
-                        fontWeight: 'bold',           // make selected item label bold
-                    }}
-                    selectedItemContainerStyle={{
-                        backgroundColor: Colours.primaryBackground,   // highlight the selected item row
-                    }}
-                />
+                {!lockedMovementId ?
+                    <DropDownPicker
+                        placeholder="Select a movement"
+                        open={open}
+                        setOpen={setOpen}
+                        value={selectedMovementValue}
+                        setValue={setSelectedMovementValue} // if we let the library manage it
+                        items={dropdownItems}
+                        setItems={() => { }} // no-op (we're building the array ourselves)
+                        searchable
+                        searchPlaceholder="Type to filter..."
+                        style={styles.dropdownPicker}
+                        // containerStyle={{ marginBottom: 12 }}
+                        zIndex={9999}
+                        onChangeValue={handleMovementSelect}
+                        dropDownContainerStyle={{
+                            backgroundColor: '#fff',      // the drop-down menu background
+                            borderColor: 'black',
+                            margin: 20,
+                            width: '90%',
+                            minHeight: 300,
+                            borderLeftWidth: 1,
+                            borderTopWidth: 1,
+                            borderRightWidth: 4,
+                            borderBottomWidth: 4,
+                        }}
+                        listItemContainerStyle={{
+                            height: 40,                   // each item’s container height
+                        }}
+                        listItemLabelStyle={{
+                            color: '#333',                // color of each item’s text
+                            fontSize: 16,
+                        }}
+                        selectedItemLabelStyle={{
+                            fontWeight: 'bold',           // make selected item label bold
+                        }}
+                        selectedItemContainerStyle={{
+                            backgroundColor: Colours.primaryBackground,   // highlight the selected item row
+                        }}
+                    />
+                    :
+                    <Text style={styles.movementTitle}>
+                        {`${lockedMovementName} history` ?? 'Movement'}
+                    </Text>
+                }
 
                 {/* Tabs */}
                 <View style={styles.tabs}>
@@ -333,7 +333,7 @@ export default function MovementStatsScreen({
                                     {/* Row of 2 cards */}
                                     <View style={styles.summaryCardContainer}>
                                         <View style={styles.summaryCard}>
-                                            <Text style={styles.cardTitle}>Est 1RM</Text>
+                                            <Text style={styles.cardTitle}>Est. 1RM</Text>
                                             <Text style={styles.cardValue}>
                                                 {selectedSummary.estimated_1rm
                                                     ? Math.round(selectedSummary.estimated_1rm)
@@ -352,13 +352,15 @@ export default function MovementStatsScreen({
 
                                     {/* Bar chart placeholder */}
                                     <View style={styles.chartContainer}>
-                                        <Text style={styles.chartTitle}>Load Over Time</Text>
+                                        <Text style={styles.chartTitle}>Training load over time</Text>
                                         {/* Use the LoadChart component here */}
                                         <LoadChart records={selectedRecords} />
                                     </View>
                                 </>
                             ) : (
-                                <Text>No summary data for this movement</Text>
+                                <View style={styles.noData}>
+                                    <Text style={styles.noDataText}>Log a workout to see a summary for this exercise</Text>
+                                </View>
                             )}
                         </View>
                     )
@@ -367,54 +369,52 @@ export default function MovementStatsScreen({
 
 
                 {/* Show records tab */}
-                {
-                    selectedMovementId && activeTab === 'records' && (
-                        <View style={styles.recordsContainer}>
-                            {selectedRecords.length === 0 ? (
-                                <View style={styles.centered}>
-                                    <Text>No records for this movement</Text>
-                                </View>
-                            ) : (
-                                <View>
-                                    {/* TABLE HEADER */}
-                                    <View style={styles.tableHeader}>
-                                        <Text style={[styles.headerCell, { flex: 2 }]}>Date</Text>
-                                        <Text style={[styles.headerCell, { flex: 0.8 }]}>Set #</Text>
-                                        <Text style={[styles.headerCell, { flex: 0.8 }]}>Reps</Text>
-                                        <Text style={[styles.headerCell, { flex: 1 }]}>Weight</Text>
-                                        <Text style={[styles.headerCell, { flex: 0.8 }]}>RPE</Text>
-                                    </View>
+                {selectedMovementId && activeTab === 'records' && (
 
-                                    {/* TABLE BODY */}
-                                    <FlatList
-                                        data={selectedRecords}
-                                        keyExtractor={(_, index) => index.toString()}
-                                        renderItem={({ item }) => (
-                                            <View style={styles.tableRow}>
-                                                <Text style={[styles.rowCell, { flex: 2 }]}>
-                                                    {formatDateWithRelative(item.performed_date)}
-                                                </Text>
-                                                <Text style={[styles.rowCell, { flex: 0.8 }]}>
-                                                    {item.set_number}
-                                                </Text>
-                                                <Text style={[styles.rowCell, { flex: 0.8 }]}>
-                                                    {item.reps}
-                                                </Text>
-                                                <Text style={[styles.rowCell, { flex: 1 }]}>
-                                                    {item.weight}
-                                                </Text>
-                                                <Text style={[styles.rowCell, { flex: 0.8 }]}>
-                                                    {item.rpe}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    />
-                                </View>
-                            )}
+                    selectedRecords.length === 0 ? (
+                        <View style={styles.noData}>
+                            <Text style={styles.noDataText}>Log a workout to see records for this exercise</Text>
                         </View>
+                    ) : (
+                        <>
+                            <View style={styles.recordsContainer}>
+
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.headerCell, { flex: 2 }]}>Date</Text>
+                                    <Text style={[styles.headerCell, { flex: 0.8 }]}>Set #</Text>
+                                    <Text style={[styles.headerCell, { flex: 0.8 }]}>Reps</Text>
+                                    <Text style={[styles.headerCell, { flex: 1 }]}>Weight</Text>
+                                    <Text style={[styles.headerCell, { flex: 0.8 }]}>RPE</Text>
+                                </View>
+                                <FlatList
+                                    data={selectedRecords}
+                                    keyExtractor={(_, index) => index.toString()}
+                                    style={styles.tableBody} // optional, if you need more styling
+                                    renderItem={({ item }) => (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.rowCell, { flex: 2 }]}>
+                                                {formatDateWithRelative(item.performed_date)}
+                                            </Text>
+                                            <Text style={[styles.rowCell, { flex: 0.8 }]}>
+                                                {item.set_number}
+                                            </Text>
+                                            <Text style={[styles.rowCell, { flex: 0.8 }]}>
+                                                {item.reps}
+                                            </Text>
+                                            <Text style={[styles.rowCell, { flex: 1 }]}>
+                                                {item.weight}
+                                            </Text>
+                                            <Text style={[styles.rowCell, { flex: 0.8 }]}>
+                                                {item.rpe}
+                                            </Text>
+                                        </View>
+                                    )} />
+                            </View>
+                        </>
                     )
+                )
                 }
-            </ScrollView>
+            </View>
         </SafeAreaView >
     );
 }
@@ -429,6 +429,14 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         backgroundColor: Colours.primaryBackground,
         paddingBottom: 10,
+    },
+
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginHorizontal: 20,
+        marginTop: 20,
+        marginBottom: 10,
     },
     screenHeader: {
         paddingLeft: 20,
@@ -474,7 +482,16 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
-
+    },
+    movementTitle: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        marginHorizontal: 20,
+        textAlign: 'center',
+        fontSize: 18,
+        fontWeight: 600,
     },
     tabs: {
         flexDirection: 'row',
@@ -521,14 +538,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 16
     },
+    noData: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        marginHorizontal: 20,
+    },
+    noDataText: {
+        textAlign: 'center',
+    },
     recordsContainer: {
-        // flex: 1,
+        flex: 1,
         margin: 20,
         borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
         borderRadius: 20,
+        overflow: 'hidden',
+
+        // maxHeight: TABLE_MAX_HEIGHT, // restrict the table to 60% device height
+
         // backgroundColor: Colours.secondaryColour,
     },
     tableHeader: {
@@ -540,8 +570,12 @@ const styles = StyleSheet.create({
         backgroundColor: Colours.secondaryColour,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-
     },
+    tableBody: {
+        flex: 1,
+        overflow: 'hidden',
+    },
+
     headerCell: {
         fontWeight: 'bold',
         textAlign: 'center',
@@ -554,6 +588,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colours.secondaryColour,
         borderBottomRightRadius: 20,
         borderBottomLeftRadius: 20,
+        overflow: 'hidden',
 
     },
     rowCell: {
@@ -571,7 +606,7 @@ const styles = StyleSheet.create({
     summaryContainer: {
         // padding: 20,
         marginHorizontal: 10,
-        marginVertical: 20,
+        // marginVertical: 20,
     },
     summaryText: {
         marginBottom: 6,
@@ -591,6 +626,7 @@ const styles = StyleSheet.create({
         borderLeftWidth: 1,
         borderRightWidth: 4,
         borderBottomWidth: 4,
+        marginTop: 20,
         // width: '48%',
     },
 
@@ -621,10 +657,10 @@ const styles = StyleSheet.create({
     },
     chartTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 8,
+        fontWeight: 700,
+        // marginBottom: 8,
         color: 'black',
-        textAlign: 'center',
+        // textAlign: 'center',
     },
 
 });

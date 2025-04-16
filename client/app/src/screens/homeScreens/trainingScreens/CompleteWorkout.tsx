@@ -28,6 +28,7 @@ import { Colours } from '@/app/src/components/styles';
 import { Video } from 'expo-av';
 import RPEInfoModal from '../../modalScreens/InfoModals/RPEInfo';
 import VideoModal from '../../modalScreens/VideoModal';
+import MovementStatsScreen from '../../statsScreens/MovementStats';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const ITEM_WIDTH = SCREEN_WIDTH - 45;
@@ -51,6 +52,11 @@ export default function CompleteWorkout({ route, navigation }) {
     const [selectedMovement, setSelectedMovement] = useState(null);
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0); // Current index for FlatList
+    const [historyModal, setHistoryModal] = useState(false);
+    const [lockedMovementId, setLockedMovementId] = useState(null);
+    const [lockedMovementName, setLockedMovementName] = useState(null);
+
+
 
     useEffect(() => {
         const initialLogs = {};
@@ -268,7 +274,7 @@ export default function CompleteWorkout({ route, navigation }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload),
-                
+
             });
 
             if (!response.ok) {
@@ -341,7 +347,19 @@ export default function CompleteWorkout({ route, navigation }) {
         }
     };
 
+    // Handler to open the history modal
+    const openStatsModal = (movementId, movement_name) => {
+        setLockedMovementId(movementId); // store the numeric ID
+        setLockedMovementName(movement_name); 
 
+        setHistoryModal(true);           // open the modal
+    }
+
+    const closeStatsModal = () => {
+        setLockedMovementId(null);
+        setLockedMovementName(null); 
+        setHistoryModal(false);
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -840,9 +858,30 @@ export default function CompleteWorkout({ route, navigation }) {
                                                 {activeTab === 'History' && (
                                                     <View style={styles.tabContent}>
                                                         <View style={styles.historyContent}>
-                                                            <Text style={styles.exerciseLabel}>
-                                                                {movement.movements.exercise} history
-                                                            </Text>
+                                                            <View style={styles.labelHeader}>
+                                                                <Text style={styles.exerciseLabel}>
+                                                                    {movement.movements.exercise} history
+                                                                </Text>
+                                                                <Ionicons
+                                                                    name="open-outline"
+                                                                    size={24}
+                                                                    color="black"
+                                                                    onPress={() => openStatsModal(movement.movements.id, movement.movements.exercise)}
+                                                                />
+                                                            </View>
+
+                                                            <Modal
+                                                                visible={historyModal}
+                                                                animationType="slide"
+                                                                onRequestClose={closeStatsModal}
+                                                            >
+                                                                <MovementStatsScreen
+                                                                    isModal
+                                                                    onClose={closeStatsModal}
+                                                                    lockedMovementId={lockedMovementId}
+                                                                    lockedMovementName={lockedMovementName}
+                                                                />
+                                                            </Modal>
 
                                                             {/* Get history for the current exercise ID */}
                                                             {movementHistory && movementHistory[movement.movements.id] ? (
@@ -1316,11 +1355,17 @@ const styles = StyleSheet.create({
     historyContent: {
         padding: 20,
     },
+    labelHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
 
+    },
     exerciseLabel: {
         fontSize: 15,
         fontWeight: '600',
-        marginBottom: 10,
+        width: '90%'
     },
     historyItem: {
         marginBottom: 10,

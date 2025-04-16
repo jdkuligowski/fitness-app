@@ -231,17 +231,20 @@ export default function StatsOverview() {
 
 
                 {/* Leaderboard Scores + Ranks */}
-                <TouchableOpacity
-                    style={styles.leaderboardOverviewContainer}
-                    onPress={() => {
-                        navigation.navigate('LeaderboardOverview');
+                <View style={styles.topSection}>
 
-                    }}
-                >
-                    <Text style={styles.leaderboardTitle}>{getCurrentMonthName()} leaderboard</Text>
-                    <View style={styles.leaderboardResults}>
-                        {/* Example user info row */}
-                        <View style={styles.profileBox}>
+                    <TouchableOpacity
+                        style={styles.leaderboardOverviewContainer}
+                        onPress={() => {
+                            navigation.navigate('LeaderboardOverview');
+
+                        }}
+                    >
+                        <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+                        {/* <Text style={styles.leaderboardTitle}>{getCurrentMonthName()} leaderboard</Text> */}
+                        <View style={styles.leaderboardResults}>
+                            {/* Example user info row */}
+                            {/* <View style={styles.profileBox}>
                             {userData?.profile_image ? (
                                 <Image
                                     style={[styles.profileImage, { marginRight: 0 }]}
@@ -255,28 +258,49 @@ export default function StatsOverview() {
                             <Text style={styles.nameText}>
                                 {userData?.first_name ?? 'User'}
                             </Text>
-                        </View>
+                        </View> */}
 
 
-                        {/* Weekly Score */}
-                        <View style={styles.pointsBox}>
-                            <Text style={styles.leaderboardSubTitle}>MONTHLY</Text>
-                            <Text style={styles.leaderboardScore}>
-                                {stats?.leaderboard?.monthly_score ?? '...'}
-                            </Text>
-                        </View>
-                        {/* Weekly Rank */}
-                        <View style={styles.pointsBox}>
-                            <Text style={styles.leaderboardSubTitle}>RANK</Text>
-                            <Text style={styles.leaderboardScore}>
-                                {stats?.ranks?.monthly_rank ?? '...'}
-                            </Text>
-                        </View>
+                            {/* Weekly Score */}
+                            <View style={styles.scoreBox}>
 
+                                <View style={styles.pointsBox}>
+                                    <Text style={styles.leaderboardSubTitle}>MONTHLY</Text>
+                                    <Text style={styles.leaderboardScore}>
+                                        {stats?.leaderboard?.monthly_score ?? '...'}
+                                    </Text>
+                                </View>
+                                {/* Weekly Rank */}
+                                <View style={styles.pointsBox}>
+                                    <Text style={styles.leaderboardSubTitle}>RANK</Text>
+                                    <Text style={styles.leaderboardScore}>
+                                        {stats?.ranks?.monthly_rank ?? '...'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.leaderboardOverviewContainer}
+                        onPress={() => {
+                            navigation.navigate('MovementStats');
+
+                        }}
+                    >
+                        <Text style={styles.leaderboardTitle}>Movement stats</Text>
+                        <View style={styles.movementStatsDetail}>
+
+                        <Ionicons name="barbell-outline" color={Colours.gymColour} size={40} />
                         <Ionicons name="chevron-forward-outline" color={'black'} size={20} />
-                    </View>
-                </TouchableOpacity>
+                        </View>
 
+
+                    </TouchableOpacity>
+
+                </View>
 
 
                 <View style={styles.tabs}>
@@ -504,9 +528,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
         paddingVertical: 2,
     },
+    topSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginHorizontal: 20,
+    },
     leaderboardOverviewContainer: {
-        marginLeft: 20,
-        marginRight: 20,
+        // marginLeft: 20,
+        // marginRight: 20,
         marginTop: 20,
         padding: 20,
         borderRadius: 20,
@@ -515,10 +544,18 @@ const styles = StyleSheet.create({
         borderRightWidth: 4,
         borderBottomWidth: 4,
         backgroundColor: Colours.secondaryColour,
+        width: '48%',
     },
     leaderboardTitle: {
         fontSize: 16,
         fontWeight: 700,
+    },
+    movementStatsDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginLeft: 40,  
+    marginTop: 10,
     },
     leaderboardResults: {
         flexDirection: 'row',
@@ -530,6 +567,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+
     leaderboardInitials: {
         padding: 10,
         borderWidth: 1,
@@ -546,11 +584,17 @@ const styles = StyleSheet.create({
     leaderboardSubTitle: {
         fontSize: 12,
         color: '#A6A6A6',
-        marginBottom: 5,
+        // marginBottom: 5,
+        width: '60%',
     },
     leaderboardScore: {
         fontSize: 16,
         fontWeight: 600,
+    },
+    pointsBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
     },
     recentWorkoutsContainer: {
         marginHorizontal: 20,
