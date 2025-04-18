@@ -420,7 +420,283 @@ const strengthRules60 = {
             },
         ],
     },
-
+    push_1: {
+        sections: [
+            {
+                section: "Strong 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 1", operator: "contains" },
+                        { key: "movement", value: "Push H Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Strong 2", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 2", operator: "contains" },
+                        { key: "movement", value: "Push V Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Push H", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Push V", operator: "contains" },
+                        { key: "equipment_check", value: "Dumbbell", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 2", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "movement", value: "Push V Unilateral", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "primary_body_part", value: "Shoulder", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
+                        { key: "primary_body_part", value: "Chest", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 2", movements: 2,
+                filters: [
+                    [
+                        { key: "movement", value: "Tricep", operator: "contains" },
+                    ],
+                    [
+                        { key: "movement", value: "Tricep", operator: "contains" },
+                    ],
+                ],
+            },
+        ],
+    },
+    push_2: {
+        sections: [
+            {
+                section: "Strong 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 1", operator: "contains" },
+                        { key: "movement", value: "Push V Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Strong 2", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 2", operator: "contains" },
+                        { key: "movement", value: "Push H Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Push V Unilateral", operator: "contains" },
+                    ],
+              [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Push H", operator: "contains" },
+                        { key: "equipment_check", value: "Dumbbell", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 2", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "movement", value: "Push H", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "primary_body_part", value: "Chest", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
+                        { key: "primary_body_part", value: "Shoulder", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 2", movements: 2,
+                filters: [
+                    [
+                        { key: "movement", value: "Tricep", operator: "contains" },
+                    ],
+                    [
+                        { key: "movement", value: "Tricep", operator: "contains" },
+                    ],
+                ],
+            },
+        ],
+    },
+    pull_1: {
+        sections: [
+            {
+                section: "Strong 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 1", operator: "contains" },
+                        { key: "movement", value: "Pull H Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Strong 2", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 2", operator: "contains" },
+                        { key: "movement", value: "Pull V Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Pull H Bilateral", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Pull V", operator: "contains" },
+                        { key: "equipment_check", value: "Dumbbell", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 2", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "movement", value: "Pull H Unilateral", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "primary_body_part", value: "Back", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
+                        { key: "primary_body_part", value: "Back", operator: "contains" },
+                    ],
+                    [
+                        { key: "movement", value: "Bicep", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 2", movements: 1,
+                filters: [
+                    [
+                        { key: "movement", value: "Bicep", operator: "contains" },
+                    ],
+                ],
+            },
+        ],
+    },
+    pull_2: {
+        sections: [
+            {
+                section: "Strong 1", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 1", operator: "contains" },
+                        { key: "movement", value: "Pull V Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Strong 2", movements: 1,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Strong 2", operator: "contains" },
+                        { key: "movement", value: "Pull H Bilateral", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Pull H Unilateral", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Pull V Bilateral", operator: "contains" },
+                        { key: "equipment_check", value: "Dumbbell", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Build 2", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Build 1", operator: "contains" },
+                        { key: "movement", value: "Pull V Unilateral", operator: "contains" },
+                        { key: "equipment_check", value: "Machine", operator: "contains" },
+                    ],
+                    [
+                        { key: "advanced_movements", value: "Build 2", operator: "contains" },
+                        { key: "primary_body_part", value: "Back", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 1", movements: 2,
+                filters: [
+                    [
+                        { key: "advanced_movements", value: "Pump 1", operator: "contains" },
+                        { key: "primary_body_part", value: "Back", operator: "contains" },
+                    ],
+                    [
+                        { key: "movement", value: "Bicep", operator: "contains" },
+                    ],
+                ],
+            },
+            {
+                section: "Pump 2", movements: 1,
+                filters: [
+                    [
+                        { key: "movement", value: "Bicep", operator: "contains" },
+                    ],
+                ],
+            },
+        ],
+    }
 }
 
 export default strengthRules60;

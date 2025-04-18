@@ -13,7 +13,8 @@ import {
     KeyboardAvoidingView,
     Keyboard,
     Platform,
-    TextInput
+    TextInput,
+    Alert
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Video } from "expo-av";
@@ -47,47 +48,75 @@ export default function MobilityWorkout({ route, navigation }) {
     const [rpeModalVisible, setRpeModalVisible] = useState(false);
     const [selectedMovement, setSelectedMovement] = useState(null);
 
-    const updateMobilityWorkout = async () => {
-        try {
-            const userId = await AsyncStorage.getItem("userId");
-            if (!userId) {
-                throw new Error("User ID not found in storage.");
-            }
-
-            // Prepare the payload
-            const payload = {
-                scheduled_date: workout.scheduled_date,
-                rpe: logData.session_rpe || null, // Update RPE
-                comments: logData.session_comments || null, // Update comments
-            };
-
-            const workoutId = workout.id;
-            console.log("Payload being sent:", JSON.stringify(payload, null, 2));
-
-            // Send the PUT request to complete the workout
-            const response = await axios.put(
-                `${ENV.API_URL}/api/saved_mobility/complete-workout/${workoutId}/`,
-                payload,
+    const updateMobilityWorkout = () => {
+        // 1️⃣ Ask before doing anything
+        Alert.alert(
+            "Mobility workout",
+            "Are you sure you want to complete workout?",
+            [
+                { text: "No", style: "cancel" /* onPress: () => navigation.goBack() */ },
                 {
-                    params: { user_id: userId },
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+                    text: "Yes",
+                    onPress: async () => {
+                        try {
+                            const userId = await AsyncStorage.getItem("userId");
+                            if (!userId) {
+                                throw new Error("User ID not found in storage.");
+                            }
 
-            if (response.status === 200) {
-                console.log("Mobility workout updated successfully:", response.data);
-                alert("Mobility workout updated successfully!");
-            } else {
-                console.error("Unexpected response:", response);
-                alert("There was an issue updating the workout. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error updating mobility workout:", error.message || error.response?.data);
-            alert("Error updating workout. Please check your connection or try again later.");
-        }
+                            // Prepare the payload
+                            const payload = {
+                                scheduled_date: workout.scheduled_date,
+                                rpe: logData.session_rpe || null,
+                                comments: logData.session_comments || null,
+                            };
+
+                            const workoutId = workout.id;
+                            console.log(
+                                "Payload being sent:",
+                                JSON.stringify(payload, null, 2)
+                            );
+
+                            // Send the PUT request to complete the workout
+                            const response = await axios.put(
+                                `${ENV.API_URL}/api/saved_mobility/complete-workout/${workoutId}/`,
+                                payload,
+                                {
+                                    params: { user_id: userId },
+                                    headers: { "Content-Type": "application/json" },
+                                }
+                            );
+
+                            if (response.status === 200) {
+                                console.log(
+                                    "Mobility workout updated successfully:",
+                                    response.data
+                                );
+                                Alert.alert(
+                                    "Well done",
+                                    "Mobility workout logged!");
+                            } else {
+                                console.error("Unexpected response:", response);
+                                alert(
+                                    "There was an issue updating the workout. Please try again."
+                                );
+                            }
+                        } catch (error) {
+                            console.error(
+                                "Error updating mobility workout:",
+                                error.message || error.response?.data
+                            );
+                            alert(
+                                "Error updating workout. Please check your connection or try again later."
+                            );
+                        }
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
     };
+
 
 
     return (
@@ -130,8 +159,8 @@ export default function MobilityWorkout({ route, navigation }) {
                 <View style={styles.tabs}>
                     {['Summary', 'Log', 'History'].map((tab) => {
                         const tabColors = {
-                            'Summary': Colours.buttonColour, 
-                            'Log': Colours.buttonColour, 
+                            'Summary': Colours.buttonColour,
+                            'Log': Colours.buttonColour,
                             'History': Colours.buttonColour,
                         };
 

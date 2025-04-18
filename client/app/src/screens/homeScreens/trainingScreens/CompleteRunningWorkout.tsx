@@ -87,57 +87,75 @@ export default function RunningWorkout({ route, navigation }) {
     }
 
 
-    const updateRunningWorkout = async () => {
 
-        try {
-            const userId = await AsyncStorage.getItem("userId");
-            if (!userId) {
-                throw new Error("User ID not found in storage.");
-            }
-
-            // Prepare the payload
-            const payload = {
-                scheduled_date: workout.scheduled_date,
-                rpe: logData.session_rpe || null, // Only update RPE if provided
-                comments: logData.session_comments || null, // Only update comments if provided
-                intervals: logData.intervals.map((interval) => ({
-                    id: interval.id, // Include the interval ID
-                    split_times: interval.split_times.map((split) => ({
-                        id: split.id, // Include the split time ID
-                        repeat_number: split.repeat_number,
-                        actual_time: split.actual_mins * 60 + split.actual_secs, // Convert minutes and seconds to total seconds
-                    })),
-                })),
-            };
-            const workoutId = workout.id
-            // console.log("Payload being sent:", JSON.stringify(payload, null, 2));
-
-            // Send the PUT request to complete the workout
-            const response = await axios.put(
-                `${ENV.API_URL}/api/saved_runs/complete-workout/${workoutId}/`,
-                payload,
+    const updateRunningWorkout = () => {
+        // confirmation dialog first
+        Alert.alert(
+            "Running workout",
+            "Are you sure you want to complete workout?",
+            [
+                { text: "No", style: "cancel" },
                 {
-                    params: { user_id: userId },
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+                    text: "Yes",
+                    onPress: async () => {
+                        try {
+                            const userId = await AsyncStorage.getItem("userId");
+                            if (!userId) {
+                                throw new Error("User ID not found in storage.");
+                            }
 
-            if (response.status === 200) {
-                console.log("Workout updated successfully:", response.data);
-                Alert.alert(
-                    "Well done",
-                    "Running workout logged!");
-            } else {
-                console.error("Unexpected response:", response);
-                alert("There was an issue updating the workout. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error updating workout:", error.message || error.response?.data);
-            alert("Error updating workout. Please check your connection or try again later.");
-        }
+                            // Build request payload
+                            const payload = {
+                                scheduled_date: workout.scheduled_date,
+                                rpe: logData.session_rpe || null,
+                                comments: logData.session_comments || null,
+                                intervals: logData.intervals.map((interval) => ({
+                                    id: interval.id,
+                                    split_times: interval.split_times.map((split) => ({
+                                        id: split.id,
+                                        repeat_number: split.repeat_number,
+                                        actual_time: split.actual_mins * 60 + split.actual_secs,
+                                    })),
+                                })),
+                            };
+
+                            const workoutId = workout.id;
+
+                            const response = await axios.put(
+                                `${ENV.API_URL}/api/saved_runs/complete-workout/${workoutId}/`,
+                                payload,
+                                {
+                                    params: { user_id: userId },
+                                    headers: { "Content-Type": "application/json" },
+                                }
+                            );
+
+                            if (response.status === 200) {
+                                console.log("Workout updated successfully:", response.data);
+                                navigation.navigate("TrainingOverview");
+                                Alert.alert("Well done", "Running workout logged!");
+                            } else {
+                                console.error("Unexpected response:", response);
+                                alert(
+                                    "There was an issue updating the workout. Please try again."
+                                );
+                            }
+                        } catch (error) {
+                            console.error(
+                                "Error updating workout:",
+                                error.message || error?.response?.data
+                            );
+                            alert(
+                                "Error updating workout. Please check your connection or try again later."
+                            );
+                        }
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
     };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>

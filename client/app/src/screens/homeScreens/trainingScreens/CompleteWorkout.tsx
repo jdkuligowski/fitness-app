@@ -15,6 +15,7 @@ import {
     Modal,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider'
@@ -283,7 +284,10 @@ export default function CompleteWorkout({ route, navigation }) {
                 alert('Error saving workout');
             } else {
                 const data = await response.json();
-                alert('Workout saved successfully!');
+                navigation.navigate('TrainingOverview');
+                Alert.alert(
+                    "Well done",
+                    "Strength workout logged!");
                 console.log('Saved response:', data);
             }
         } catch (error) {
@@ -295,74 +299,90 @@ export default function CompleteWorkout({ route, navigation }) {
     };
 
 
-    const completeWorkout = async () => {
-        setIsBouncerLoading(true);
+    const completeWorkout = () => {
+        Alert.alert(
+            "Strength workout",
+            "Are you sure you want to complete workout?",
+            [
+                {
+                    text: "No",
+                    style: "cancel",
+                },
+                {
+                    text: "Yes",
+                    onPress: async () => {
+                        setIsBouncerLoading(true);
 
-        const payload = {
-            scheduled_date: workout.scheduled_date,
-            sections: workout.workout_sections.map((section) => ({
-                section_id: section.id,
-                movements: section.section_movement_details.map((movement) => ({
-                    movement_id: movement.id,
-                    movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0,
-                    movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '',
-                    sets: movementLogs[movement.id]?.map((set) => ({
-                        set_number: set.set_number,
-                        reps: set.reps,
-                        weight: set.weight,
-                    })) || [],
-                })),
-                ...(section.section_name === "Conditioning" && section.conditioning_elements.length > 0
-                    ? {
-                        conditioning_workouts: section.conditioning_elements.map((conditioning) => ({
-                            conditioning_id: conditioning.id,
-                            comments: conditioningDetails[conditioning.id]?.comments || '',
-                            rpe: conditioningDetails[conditioning.id]?.rpe || 0,
-                        })),
-                    }
-                    : {}),
-            })),
-        };
+                        const payload = {
+                            scheduled_date: workout.scheduled_date,
+                            sections: workout.workout_sections.map((section) => ({
+                                section_id: section.id,
+                                movements: section.section_movement_details.map((movement) => ({
+                                    movement_id: movement.id,
+                                    movement_difficulty: movementSummaryDetails[movement.id]?.movement_difficulty || 0,
+                                    movement_comments: movementSummaryDetails[movement.id]?.movement_comments || '',
+                                    sets: movementLogs[movement.id]?.map((set) => ({
+                                        set_number: set.set_number,
+                                        reps: set.reps,
+                                        weight: set.weight,
+                                    })) || [],
+                                })),
+                                ...(section.section_name === "Conditioning" && section.conditioning_elements.length > 0
+                                    ? {
+                                        conditioning_workouts: section.conditioning_elements.map((conditioning) => ({
+                                            conditioning_id: conditioning.id,
+                                            comments: conditioningDetails[conditioning.id]?.comments || '',
+                                            rpe: conditioningDetails[conditioning.id]?.rpe || 0,
+                                        })),
+                                    }
+                                    : {}),
+                            })),
+                        };
 
-        console.log('Payload:', JSON.stringify(payload, null, 2)); // Log payload for debugging
+                        console.log('Payload:', JSON.stringify(payload, null, 2)); // Log payload for debugging
 
-        try {
-            const userId = await AsyncStorage.getItem('userId');
-            const response = await axios.put(
-                `${ENV.API_URL}/api/saved_workouts/complete-workout/${workout.id}/`,
-                payload,
-                { params: { user_id: userId } }
-            );
-            setIsBouncerLoading(false);
-            navigation.navigate('TrainingOverview');
-            alert('Workout completed successfully!');
-        } catch (error) {
-            console.error('Error saving workout:', error);
-            if (error.response && error.response.data) {
-                alert(`Error: ${error.response.data.error}`);
-            } else {
-                alert('Error saving workout. Please try again.');
-            }
-            setIsBouncerLoading(false);
-        }
+                        try {
+                            const userId = await AsyncStorage.getItem('userId');
+                            const response = await axios.put(
+                                `${ENV.API_URL}/api/saved_workouts/complete-workout/${workout.id}/`,
+                                payload,
+                                { params: { user_id: userId } }
+                            );
+                            setIsBouncerLoading(false);
+                            navigation.navigate('TrainingOverview');
+                            alert('Workout completed successfully!');
+                        } catch (error) {
+                            console.error('Error saving workout:', error);
+                            if (error.response && error.response.data) {
+                                alert(`Error: ${error.response.data.error}`);
+                            } else {
+                                alert('Error saving workout. Please try again.');
+                            }
+                            setIsBouncerLoading(false);
+                        }
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
     };
 
     // Handler to open the history modal
     const openStatsModal = (movementId, movement_name) => {
         setLockedMovementId(movementId); // store the numeric ID
-        setLockedMovementName(movement_name); 
+        setLockedMovementName(movement_name);
 
         setHistoryModal(true);           // open the modal
     }
 
     const closeStatsModal = () => {
         setLockedMovementId(null);
-        setLockedMovementName(null); 
+        setLockedMovementName(null);
         setHistoryModal(false);
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} >
             <StatusBar barStyle="dark-content" backgroundColor="#F6F3DC" />
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
@@ -693,33 +713,32 @@ export default function CompleteWorkout({ route, navigation }) {
                                                             {/* <Text style={styles.movementName}>{`${item.section_name}: ${movement.movements.exercise}`}</Text> */}
                                                             {item.section_name === "Warm up A" ?
                                                                 <Text style={styles.sectionSubTitle}>Progressive 4 min warm up to get the heart rate going</Text> :
-                                                                item.section_type === "superset" ?
-                                                                    <Text style={styles.sectionSubTitle}>{`Complete ${item.section_name} as a superset with no rest between exercises.`}</Text> :
-                                                                    item.section_type === "single" ?
-                                                                        <Text style={styles.sectionSubTitle}>{`${item.section_name} is a single exercise. Focus on maximising your performance with this movement.`}</Text> :
-                                                                        ''}
+                                                                ''}
 
                                                         </View>
                                                         {/* Movement instructions */}
                                                         <View style={styles.summarySections}>
-                                                            {(item.section_name === "Warm up A" || item.section_name === "Warm Up A") ?
+                                                            {item.section_name === "Warm up A" ?
                                                                 '' :
-                                                                <Text style={styles.movementName}>Movement instructions</Text>
+                                                                <View style={styles.movementInstructions}>
+                                                                    <Text style={styles.movementName}>Movement instructions</Text>
+                                                                    <Ionicons name="information-circle-outline" size={24} color="black" onPress={() => setRpeModalVisible(true)} />
+                                                                </View>
                                                             }
                                                             {(item.section_name === "Warm up B" || item.section_name === "Warm Up B") && movement.movements.movement_hold_cue === "Movement" ?
                                                                 <Text style={styles.sectionSubTitle}>Complete 2 sets of 5-8 reps at RPE 5-6</Text> :
                                                                 (item.section_name === "Warm up B" || item.section_name === "Warm Up B") && movement.movements.movement_hold_cue === "Hold" ?
-                                                                    <Text style={styles.sectionSubTitle}>Complete 2 sets for 20-40 seconds</Text> :
+                                                                    <Text style={styles.sectionSubTitle}>Complete 2 sets for 20-40 seconds as a superset</Text> :
                                                                     item.section_name === "Strong 1" || item.section_name === "Strong 2" ?
                                                                         <Text style={styles.sectionSubTitle}>Complete 3 sets of 5-8 reps at RPE 8</Text> :
                                                                         (item.section_name === "Build 1" || item.section_name === "Build 2") && movement.movements.movement_hold_cue === "Movement" ?
-                                                                            <Text style={styles.sectionSubTitle}>Complete 3 sets of 8-12 reps at RPE 8-9</Text> :
+                                                                            <Text style={styles.sectionSubTitle}>Complete 3 sets of 8-12 reps as a superset at RPE 8-9</Text> :
                                                                             (item.section_name === "Build 1" || item.section_name === "Build 2") && movement.movements.movement_hold_cue === "Hold" ?
-                                                                                <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds</Text> :
+                                                                                <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds as a superset</Text> :
                                                                                 (item.section_name === "Pump 1" || item.section_name === "Pump 2") && movement.movements.movement_hold_cue === "Movement" ?
-                                                                                    <Text style={styles.sectionSubTitle}>Complete 2-3 sets of 12-20 reps at RPE 9</Text> :
+                                                                                    <Text style={styles.sectionSubTitle}>Complete 2-3 sets of 12-20 reps as a superset at RPE 9</Text> :
                                                                                     (item.section_name === "Pump 1" || item.section_name === "Pump 2") && movement.movements.movement_hold_cue === "Hold" ?
-                                                                                        <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds</Text> :
+                                                                                        <Text style={styles.sectionSubTitle}>Complete 3 sets of 30-60 seconds as a superset</Text> :
                                                                                         ''}
 
                                                         </View>
@@ -1163,11 +1182,13 @@ const styles = StyleSheet.create({
         // width: '100%',
         // height: 200,
         position: 'relative', // ensures the child overlay can be absolutely positioned
-        margin: 8,
+        marginTop: 5,
+        marginHorizontal: 5,
     },
     thumbnailImage: {
         // width: '93%',
-        margin: 12,
+        marginTop: 12,
+        marginHorizontal: 12,
         height: 200,
         borderRadius: 10,
         // marginBottom: 20,
@@ -1194,6 +1215,12 @@ const styles = StyleSheet.create({
     },
     summarySections: {
         marginBottom: 10,
+        marginRight: 20,
+    },
+    movementInstructions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     bulletList: {
         marginTop: 5,

@@ -574,6 +574,9 @@ const styles = StyleSheet.create({
     tableBody: {
         flex: 1,
         overflow: 'hidden',
+        backgroundColor: Colours.secondaryColour,
+        borderBottomRightRadius: 20,
+        borderBottomLeftRadius: 20,
     },
 
     headerCell: {
@@ -585,7 +588,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: '#DDD',
         paddingVertical: 10,
-        backgroundColor: Colours.secondaryColour,
         borderBottomRightRadius: 20,
         borderBottomLeftRadius: 20,
         overflow: 'hidden',

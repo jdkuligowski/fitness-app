@@ -30,6 +30,7 @@ export default function GymSession({ route }) {
   const [filterToView, setFilterToView] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [filterToEdit, setFilterToEdit] = useState(null);
+  const [workoutSpecifics, setWorkoutSpecifics] = useState(null)
 
 
   useEffect(() => {
@@ -262,6 +263,30 @@ export default function GymSession({ route }) {
               ))}
             </View>
           </View>
+          {selectedWorkout === 'Upper body' ?
+            <View style={styles.workoutInfoDetails}>
+              <Text style={styles.workoutSubtitle}>Choose your upper body workout type</Text>
+              <View style={styles.workoutType}>
+                {['Push', 'Pull', 'Push & Pull'].map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.optionButton,
+                      workoutSpecifics === option && styles.selectedOption,
+                    ]}
+                    onPress={() => setWorkoutSpecifics(option)}
+                  >
+                    <View style={[
+                      styles.optionText,
+                      workoutSpecifics === option && styles.selectedOptionText,
+                    ]}
+                    ></View>
+                    <Text style={styles.actualOptionText}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            : ''}
           <View style={styles.workoutInfoDetails}>
             <Text style={styles.workoutSubtitle}>How long do you have?</Text>
             <Text style={styles.selectedTime}>
@@ -398,7 +423,8 @@ export default function GymSession({ route }) {
                     selectedWorkout,
                     frequency: 'Sometimes',
                     complexity: complexity,
-                    userData
+                    userData, 
+                    workoutSpecifics,
                   })
                 }
               >

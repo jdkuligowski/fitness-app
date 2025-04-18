@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from movements.models import Movement
 from django.db import IntegrityError
 
-CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (23).csv"  
+CSV_FILE = "/Users/jameskuligowski/Downloads/Movement Database.xlsx - v1 database on app (25).csv"  
 
 class Command(BaseCommand):
     help = "Update existing movements and insert new movements from CSV while preserving offline database IDs"
@@ -38,6 +38,7 @@ class Command(BaseCommand):
         movement.advanced_movements = row.get("advanced_movements", movement.advanced_movements)
         movement.primary_body_part = row.get("primary_body_part", movement.primary_body_part)
         movement.movement_hold_cue = row.get("movement_hold_cue", movement.movement_hold_cue)
+        movement.equipment_check = row.get("equipment_check", movement.equipment_check)
         movement.coaching_cue1 = row.get("coaching_cue1", movement.coaching_cue1)
         movement.coaching_cue2 = row.get("coaching_cue2", movement.coaching_cue2)
         movement.hiit_flag = row.get("hiit_flag", movement.hiit_flag)
@@ -61,6 +62,7 @@ class Command(BaseCommand):
                 primary_body_part=row.get("primary_body_part", ""),
                 hiit_flag=row.get("hiit_flag", None),
                 movement_hold_cue=row.get("movement_hold_cue", ""),
+                equipment_check=row.get("equipment_check", ""),
                 coaching_cue1=row.get("coaching_cue1", ""),
                 coaching_cue2=row.get("coaching_cue2", ""),
                 landscape_video_url=row.get("landscape_video_url", ""),

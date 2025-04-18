@@ -36,7 +36,7 @@ const strengthRulesMap = {
 export default function WorkoutScreen({ route }) {
     const navigation = useNavigation();
     const { setIsBouncerLoading } = useLoader(); // Access loader functions
-    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity, userData } = route.params;
+    const { selectedTime, selectedWorkout, frequency, selectedFinish, complexity, userData, workoutSpecifics } = route.params;
     const { workoutData, fetchWorkoutData, isLoading, conditioningData, fetchConditioningData } = useWorkout();
     const [workoutPlans, setWorkoutPlans] = useState([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -153,7 +153,7 @@ export default function WorkoutScreen({ route }) {
             });
 
             // Each item in 'filters' can be a single filter or an array (filterSet).
-            // We require *all* filter sets to pass (i.e., AND logic).
+            // We require *all* fiworkoutKeyBaselter sets to pass (i.e., AND logic).
             const allFilterSetsPass = filters.every((filterSet) => {
                 // If filterSet is not an array, wrap it
                 if (!Array.isArray(filterSet)) filterSet = [filterSet];
@@ -274,7 +274,22 @@ export default function WorkoutScreen({ route }) {
             return [];
         }
 
-        const workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
+        let workoutKeyBase;
+        if (selectedWorkout.toLowerCase() === "upper body") {
+            switch ((workoutSpecifics || "").toLowerCase()) {
+                case "push":
+                    workoutKeyBase = "push";
+                    break;
+                case "pull":
+                    workoutKeyBase = "pull";
+                    break;
+                default: // “Push & Pull” or not specified
+                    workoutKeyBase = "upper_body";
+            }
+        } else {
+            workoutKeyBase = selectedWorkout.toLowerCase().replace(/\s/g, "_");
+        }
+
         const workoutKeys = Object.keys(rules).filter((key) => key.startsWith(workoutKeyBase));
         if (workoutKeys.length === 0) {
             console.error(`No workout keys found for type: ${selectedWorkout}`);

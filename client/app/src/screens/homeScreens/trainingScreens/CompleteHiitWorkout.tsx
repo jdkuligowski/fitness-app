@@ -100,49 +100,63 @@ export default function HiitWorkout({ route, navigation }) {
     }, [workout]);
 
 
-    const updateHiitWorkout = async () => {
-        try {
-            const userId = await AsyncStorage.getItem("userId");
-            if (!userId) {
-                throw new Error("User ID not found in storage.");
-            }
-
-            // Prepare the payload
-            const payload = {
-                scheduled_date: workout.scheduled_date,
-                rpe: logData.session_rpe || null, // Update RPE
-                comments: logData.session_comments || null, // Update comments
-            };
-
-            const workoutId = workout.id;
-            // console.log("Payload being sent:", JSON.stringify(payload, null, 2));
-
-            // Send the PUT request to complete the workout
-            const response = await axios.put(
-                `${ENV.API_URL}/api/saved_hiit/complete-workout/${workoutId}/`,
-                payload,
+    const updateHiitWorkout = () => {
+        Alert.alert(
+            "HIIT workout",
+            "Are you sure you want to complete workout?",
+            [
+                { text: "No", style: "cancel" },
                 {
-                    params: { user_id: userId },
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+                    text: "Yes",
+                    onPress: async () => {
+                        try {
+                            const userId = await AsyncStorage.getItem("userId");
+                            if (!userId) {
+                                throw new Error("User ID not found in storage.");
+                            }
 
-            if (response.status === 200) {
-                // console.log("HIIT workout updated successfully:", response.data);
-                Alert.alert(
-                    "Well done",
-                    "HIIT workout logged!");
-            } else {
-                console.error("Unexpected response:", response);
-                alert("There was an issue updating the workout. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error updating HIIT workout:", error.message || error.response?.data);
-            alert("Error updating workout. Please check your connection or try again later.");
-        }
+                            const payload = {
+                                scheduled_date: workout.scheduled_date,
+                                rpe: logData.session_rpe || null,
+                                comments: logData.session_comments || null,
+                            };
+
+                            const workoutId = workout.id;
+
+                            const response = await axios.put(
+                                `${ENV.API_URL}/api/saved_hiit/complete-workout/${workoutId}/`,
+                                payload,
+                                {
+                                    params: { user_id: userId },
+                                    headers: { "Content-Type": "application/json" },
+                                }
+                            );
+
+                            if (response.status === 200) {
+                                navigation.navigate("TrainingOverview");
+                                Alert.alert("Well done", "HIIT workout logged!");
+                            } else {
+                                console.error("Unexpected response:", response);
+                                alert(
+                                    "There was an issue updating the workout. Please try again."
+                                );
+                            }
+                        } catch (error) {
+                            console.error(
+                                "Error updating HIIT workout:",
+                                error.message || error?.response?.data
+                            );
+                            alert(
+                                "Error updating workout. Please check your connection or try again later."
+                            );
+                        }
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
     };
+
 
     const formatHistoryDate = (rawDateString) => {
         const date = new Date(rawDateString);
